@@ -2230,7 +2230,7 @@ class SchoolAuthoritySignature(models.Model):
     authority_type = models.CharField(max_length=20, choices=AUTHORITY_TYPES)
     name = models.CharField(max_length=100)
     title = models.CharField(max_length=100)
-    signature = models.ImageField(upload_to="static/signatures/")
+    signature = models.ImageField(upload_to="signatures/")
     is_active = models.BooleanField(default=True)
     custom_title = models.CharField(
         max_length=100,
@@ -2300,9 +2300,9 @@ class SchoolInformation(models.Model):
 
     # Visual elements
 
-    logo = models.ImageField(upload_to="static/school_image/", blank=True, null=True)
+    logo = models.ImageField(upload_to="school_image/", blank=True, null=True)
     school_stamp = models.ImageField(
-        upload_to="static/school_image/", blank=True, null=True
+        upload_to="school_image/", blank=True, null=True
     )
 
 
