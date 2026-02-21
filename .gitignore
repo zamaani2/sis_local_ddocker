@@ -45,7 +45,6 @@ Thumbs.db
 *.pyd
 
 # Distribution / packaging
-dist/
 build/
 *.egg-info/
 
