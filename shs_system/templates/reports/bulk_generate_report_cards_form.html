@@ -1,0 +1,885 @@
+{% extends 'base.html' %} {% load static %} {% block title %}Bulk Generate
+Report Cards{% endblock %} {% block page_title %}Bulk Report Card {% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item">
+  <a href="{% url 'admin_dashboard' %}">Dashboard</a>
+</li>
+{% endblock %} {% block extra_css %}
+<!-- Select2 Bootstrap 5 Theme CSS -->
+<link rel="stylesheet" href="{% static 'vendor/select2-bootstrap-5-theme/1.3.0/dist/select2-bootstrap-5-theme.min.css' %}">
+<style>
+  
+  
+  .form-select,
+  .form-control {
+    background-color: #fff !important;
+    color: #212529 !important;
+    border-color: #ced4da !important;
+  }
+  
+  .form-select:focus,
+  .form-control:focus {
+    background-color: #fff !important;
+    color: #212529 !important;
+    border-color: #86b7fe !important;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+  }
+  
+  .btn {
+    color: #fff !important;
+  }
+  
+  .btn-outline-secondary {
+    color: #6c757d !important;
+    border-color: #6c757d !important;
+  }
+  
+  .btn-outline-secondary:hover {
+    color: #fff !important;
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+  }
+  
+  .text-muted {
+    color: #6c757d !important;
+  }
+  
+  .small {
+    color: #6c757d !important;
+  }
+  
+  /* Fix Select2 dropdown visibility */
+  .select2-container {
+    width: 100% !important;
+  }
+  
+  .select2-results__option {
+    color: #212529 !important;
+    background-color: #fff !important;
+  }
+  
+  .select2-results__option--highlighted {
+    background-color: #0d6efd !important;
+    color: #fff !important;
+  }
+  
+  .select2-dropdown {
+    background-color: #fff !important;
+    border: 1px solid #ced4da !important;
+  }
+  
+  .select2-search--dropdown .select2-search__field {
+    background-color: #fff !important;
+    color: #212529 !important;
+    border: 1px solid #ced4da !important;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %}
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              Bulk Generate Report Cards
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if current_academic_year %}
+              Current academic year and term management
+            {% else %}
+              Generate report cards for multiple students at once
+            {% endif %}
+          </p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'report_card_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Report Cards
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Report Card Generation</h5>
+        </div>
+        <div class="card-body">
+          <!-- Debug Information Panel -->
+
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> This tool will generate report
+            cards for all students in the selected class for the specified term.
+            <ul class="mt-2">
+              <li>
+                <strong>New report cards:</strong> Will be created for students who don't have one yet
+              </li>
+              <li>
+                <strong>Existing report cards:</strong> Will be updated with recalculated scores, attendance, and positions
+              </li>
+              <li>
+                <strong>Missing data:</strong> Report cards with missing calculations will be automatically recalculated
+              </li>
+              <li>
+                <strong>Recalculation option:</strong> Choose "Recalculate all report cards" to force recalculation of all existing report cards
+              </li>
+              <li>
+                This process may take some time depending on the number of
+                students
+              </li>
+            </ul>
+          </div>
+
+          <form method="post" id="bulkGenerateForm">
+            {% csrf_token %}
+            <input type="hidden" name="form_submitted" value="1" />
+            
+            <div class="row">
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label for="academic_year" class="form-label">Academic Year</label>
+                  <select
+                    name="academic_year"
+                    id="academic_year"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Select Academic Year</option>
+                    {% for year in academic_years %}
+                    <option value="{{ year.id }}" {% if selected_academic_year.id == year.id %}selected{% endif %}>{{ year.name }}</option>
+                    {% endfor %}
+                  </select>
+                  <small class="form-text text-muted">
+                    Select an academic year to filter terms
+                  </small>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label for="term" class="form-label">Term</label>
+                  <select name="term" id="term" class="form-select" required>
+                    <option value="">Select a term</option>
+                    {% for term in terms %}
+                    <option
+                      value="{{ term.id }}"
+                      data-academic-year="{{ term.academic_year.id }}"
+                    >
+                      {{ term.academic_year }} - {{ term.get_term_number_display}}
+                    </option>
+                    {% endfor %}
+                  </select>
+                  <small class="form-text text-muted" id="term_status">
+                    Terms will be filtered by academic year
+                  </small>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label for="class" class="form-label">Class</label>
+                  <select name="class" id="class" class="form-select" required>
+                    <option value="">Select a class</option>
+                    {% for class in classes %}
+                    <option value="{{ class.id }}">{{ class.name }}</option>
+                    {% endfor %}
+                  </select>
+                  <small class="form-text text-muted" id="class_status">
+                    Classes will be filtered by selected term
+                  </small>
+                </div>
+              </div>
+            </div>
+            <div class="row mt-3">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="processing_mode" class="form-label">Processing Mode</label>
+                  <select name="processing_mode" id="processing_mode" class="form-select">
+                    <option value="standard">Standard Processing</option>
+                    <option value="parallel">Parallel Processing (Faster for large classes)</option>
+                  </select>
+                  <small class="form-text text-muted">
+                    Parallel processing can significantly speed up generation for large classes
+                  </small>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="recalculate_all" class="form-label">Recalculation Options</label>
+                  <select name="recalculate_all" id="recalculate_all" class="form-select">
+                    <option value="false">Only generate missing report cards</option>
+                    <option value="true">Recalculate all report cards</option>
+                  </select>
+                  <small class="form-text text-muted">
+                    Choose whether to regenerate existing report cards or only generate missing ones
+                  </small>
+                </div>
+              </div>
+            </div>
+            <div class="row mt-3">
+              <div class="col-12">
+                <div class="btn-group">
+                  <button type="submit" class="btn btn-primary" id="generateBtn" disabled>
+                    <i class="bi bi-file-earmark-text"></i> Generate Report Cards
+                  </button>
+                  <a
+                    href="{% url 'report_card_list' %}"
+                    class="btn btn-secondary"
+                  >
+                    <i class="bi bi-x"></i> Cancel
+                  </a>
+                  
+                  <!-- Debug Button -->
+                  <button type="button" class="btn btn-warning" id="debugBtn">
+                    <i class="bi bi-bug"></i> Debug Info
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+
+          <!-- Progress indicator (hidden by default) -->
+          <div id="progressContainer" class="mt-4 d-none">
+            <div class="alert alert-warning">
+              <i class="bi bi-arrow-clockwise"></i> Generating report cards.
+              This may take a few moments...
+            </div>
+            <div class="progress">
+              <div
+                id="progressBar"
+                class="progress-bar progress-bar-striped progress-bar-animated"
+                role="progressbar"
+                style="width: 0%"
+              ></div>
+            </div>
+            <p class="text-muted mt-2">
+              Please do not refresh the page or navigate away.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Enable debug mode - set this to false in production
+    const DEBUG = true;
+    
+    // Better console logging function that only logs in debug mode
+    function debugLog(message, data) {
+      if (DEBUG) {
+        if (data !== undefined) {
+          console.log(`[DEBUG] ${message}:`, data);
+        } else {
+          console.log(`[DEBUG] ${message}`);
+        }
+      }
+    }
+    
+    // Log errors regardless of debug setting
+    function errorLog(message, error) {
+      console.error(`[ERROR] ${message}:`, error);
+    }
+    
+    // ==========================================
+    // 1. DATA INITIALIZATION
+    // ==========================================
+    
+    // Store all term data for efficient client-side filtering
+    const allTerms = [];
+    {% for term in terms %}
+    allTerms.push({
+      id: {{ term.id }},
+      academicYearId: {{ term.academic_year.id }},
+      text: "{{ term.academic_year }} - {{ term.get_term_number_display }}"
+    });
+    {% endfor %}
+    
+    debugLog("Total terms loaded", allTerms.length);
+    debugLog("Raw terms data", allTerms);
+    
+    // Initialize current selection variables
+    let selectedAcademicYear = $("#academic_year").val() || "";
+    let selectedTerm = $("#term").val() || "";
+    let selectedClass = $("#class").val() || "";
+    
+    debugLog("Initial state", {
+      academicYear: selectedAcademicYear,
+      term: selectedTerm,
+      class: selectedClass
+    });
+    
+    // ==========================================
+    // 2. DROPDOWN INITIALIZATION
+    // ==========================================
+    
+    // Initialize Select2 with proper configuration
+    try {
+      $("#academic_year").select2({
+        theme: "bootstrap-5",
+        width: '100%',
+        placeholder: "Select Academic Year",
+        allowClear: false
+      });
+      
+      $("#term").select2({
+        theme: "bootstrap-5",
+        width: '100%',
+        placeholder: "Select Term",
+        allowClear: false
+      });
+      
+      $("#class").select2({
+        theme: "bootstrap-5",
+        width: '100%',
+        placeholder: "Select Class",
+        allowClear: false
+      });
+      
+      $("#processing_mode, #recalculate_all").select2({
+        theme: "bootstrap-5",
+        width: '100%'
+      });
+      
+      debugLog("Select2 initialization complete");
+    } catch (error) {
+      errorLog("Error initializing Select2", error);
+    }
+    
+    // ==========================================
+    // 3. UI UPDATE FUNCTIONS
+    // ==========================================
+    
+    // Update terms dropdown based on selected academic year
+    function updateTermsDropdown() {
+      debugLog("Updating terms dropdown for academic year", selectedAcademicYear);
+      
+      // Update status message
+      $("#term_status").text("Filtering terms...");
+      
+      // Clear and disable term dropdown if no academic year selected
+      if (!selectedAcademicYear) {
+        $("#term").html('<option value="">Select a term</option>');
+        $("#term").prop("disabled", true);
+        $("#term").trigger('change.select2');
+        $("#term_status").text("Select an academic year first");
+        $("#filtered_term_count").text("0");
+        updateGenerateButton();
+        debugLog("No academic year selected, terms dropdown disabled");
+        return;
+      }
+      
+      // Filter terms by academic year
+      const filteredTerms = allTerms.filter(term => {
+        const match = term.academicYearId == selectedAcademicYear;
+        debugLog(`Term ${term.id} matches academic year ${selectedAcademicYear}: ${match}`);
+        return match;
+      });
+      
+      $("#filtered_term_count").text(filteredTerms.length);
+      debugLog("Filtered terms result", filteredTerms);
+      
+      // Build options HTML
+      let optionsHtml = '<option value="">Select a term</option>';
+      filteredTerms.forEach(term => {
+        optionsHtml += `<option value="${term.id}">${term.text}</option>`;
+      });
+      
+      // Update dropdown and enable it
+      $("#term").html(optionsHtml);
+      $("#term").prop("disabled", filteredTerms.length === 0);
+      $("#term").trigger('change.select2');
+      
+      // Update status message
+      if (filteredTerms.length > 0) {
+        $("#term_status").text(`${filteredTerms.length} terms available for this academic year`);
+      } else {
+        $("#term_status").text("No terms found for this academic year");
+      }
+      
+      debugLog(`Terms dropdown updated: ${filteredTerms.length} terms for academic year ${selectedAcademicYear}`);
+    }
+    
+    // Alternative approach: Fetch terms via AJAX instead of client-side filtering
+    function fetchTermsByAcademicYear() {
+      if (!selectedAcademicYear) {
+        debugLog("No academic year selected, skipping AJAX term fetch");
+        return;
+      }
+      
+      debugLog("Fetching terms via AJAX for academic year", selectedAcademicYear);
+      
+      // Show loading state
+      $("#term").html('<option value="">Loading terms...</option>');
+      $("#term").prop("disabled", true);
+      $("#term").trigger('change.select2');
+      $("#term_status").text("Loading terms...");
+      
+      // Fetch terms via AJAX
+      $.ajax({
+        url: "{% url 'get_terms_by_academic_year_report_cards' %}",
+        data: { academic_year_id: selectedAcademicYear },
+        dataType: "json",
+        method: "GET",
+        success: function(response) {
+          debugLog("AJAX Success - Term data received", response);
+          
+          // Build options HTML
+          let optionsHtml = '<option value="">Select a term</option>';
+          
+          if (response.terms && response.terms.length > 0) {
+            response.terms.forEach(term => {
+              optionsHtml += `<option value="${term.id}">${term.name}</option>`;
+            });
+            
+            // Update dropdown and enable it
+            $("#term").html(optionsHtml);
+            $("#term").prop("disabled", false);
+            $("#term_status").text(`${response.terms.length} terms available for this academic year`);
+            $("#filtered_term_count").text(response.terms.length);
+          } else {
+            // No terms found
+            $("#term").html('<option value="">No terms available</option>');
+            $("#term").prop("disabled", true);
+            $("#term_status").text("No terms available for this academic year");
+            $("#filtered_term_count").text("0");
+          }
+          
+          $("#term").trigger('change.select2');
+          updateGenerateButton();
+        },
+        error: function(xhr, status, error) {
+          // Handle error
+          errorLog("AJAX Error fetching terms", error);
+          errorLog("Status", status);
+          errorLog("Response", xhr.responseText);
+          
+          $("#term").html('<option value="">Error loading terms</option>');
+          $("#term").prop("disabled", true);
+          $("#term").trigger('change.select2');
+          $("#term_status").text("Error loading terms. Please try again.");
+          $("#filtered_term_count").text("0");
+          updateGenerateButton();
+        }
+      });
+    }
+    
+    // Update classes dropdown based on selected term
+    function updateClassesDropdown() {
+      debugLog("Updating classes dropdown for term", selectedTerm);
+      
+      // Update status message
+      $("#class_status").text("Waiting for term selection...");
+      
+      // Clear and disable class dropdown if no term selected
+      if (!selectedTerm) {
+        $("#class").html('<option value="">Select a class</option>');
+        $("#class").prop("disabled", true);
+        $("#class").trigger('change.select2');
+        $("#class_status").text("Select a term first");
+        updateGenerateButton();
+        debugLog("No term selected, classes dropdown disabled");
+        return;
+      }
+      
+      // Show loading state
+      $("#class").html('<option value="">Loading classes...</option>');
+      $("#class").prop("disabled", true);
+      $("#class").trigger('change.select2');
+      $("#class_status").text("Loading classes for this term...");
+      
+      debugLog(`Fetching classes for term ID: ${selectedTerm}`);
+      
+      // Fetch classes via AJAX
+      $.ajax({
+        url: "{% url 'get_classes_by_term' %}",
+        data: { term_id: selectedTerm },
+        dataType: "json",
+        method: "GET",
+        beforeSend: function() {
+          debugLog("AJAX Request being sent to fetch classes");
+        },
+        success: function(response) {
+          debugLog("AJAX Success - Class data received", response);
+          
+          // Build options HTML
+          let optionsHtml = '<option value="">Select a class</option>';
+          
+          if (response.classes && response.classes.length > 0) {
+            response.classes.forEach(cls => {
+              optionsHtml += `<option value="${cls.id}">${cls.name}</option>`;
+              debugLog("Added class option", cls);
+            });
+            
+            // Update dropdown and enable it
+            $("#class").html(optionsHtml);
+            $("#class").prop("disabled", false);
+            $("#class_status").text(`${response.classes.length} classes available for this term`);
+          } else {
+            // No classes found
+            $("#class").html('<option value="">No classes available</option>');
+            $("#class").prop("disabled", true);
+            $("#class_status").text("No classes available for this term");
+            debugLog("No classes found for term", selectedTerm);
+          }
+          
+          $("#class").trigger('change.select2');
+          updateGenerateButton();
+        },
+        error: function(xhr, status, error) {
+          // Handle error with more detailed logging
+          errorLog("AJAX Error fetching classes", {
+            error: error,
+            status: status,
+            statusText: xhr.statusText,
+            responseText: xhr.responseText
+          });
+          
+          try {
+            // Try to parse error response if it's JSON
+            const errorResponse = JSON.parse(xhr.responseText);
+            errorLog("Parsed error response", errorResponse);
+          } catch(e) {
+            // Ignore parsing errors
+          }
+          
+          $("#class").html('<option value="">Error loading classes</option>');
+          $("#class").prop("disabled", true);
+          $("#class").trigger('change.select2');
+          $("#class_status").text("Error loading classes. Please try again.");
+          updateGenerateButton();
+        }
+      });
+    }
+    
+    // Update generate button state
+    function updateGenerateButton() {
+      const canGenerate = selectedAcademicYear && selectedTerm && selectedClass;
+      $("#generateBtn").prop("disabled", !canGenerate);
+      
+      debugLog("Button state updated", {
+        enabled: canGenerate,
+        academicYear: !!selectedAcademicYear,
+        term: !!selectedTerm,
+        class: !!selectedClass
+      });
+    }
+    
+    // ==========================================
+    // 4. EVENT HANDLERS
+    // ==========================================
+    
+    // Academic Year change event
+    $("#academic_year").on("change", function() {
+      const oldAcademicYear = selectedAcademicYear;
+      selectedAcademicYear = $(this).val();
+      
+      debugLog("Academic year changed", {
+        from: oldAcademicYear,
+        to: selectedAcademicYear
+      });
+      
+      selectedTerm = null;
+      selectedClass = null;
+      
+      // Reset dependent dropdowns
+      $("#term").val(null);
+      $("#class").val(null);
+      
+      // Update UI
+      // Uncomment the next line to use AJAX instead of client-side filtering
+      // fetchTermsByAcademicYear();
+      updateTermsDropdown();
+      updateClassesDropdown(); // Reset class dropdown
+      updateGenerateButton();
+    });
+    
+    // Term change event
+    $("#term").on("change", function() {
+      const oldTerm = selectedTerm;
+      selectedTerm = $(this).val();
+      
+      debugLog("Term changed", {
+        from: oldTerm,
+        to: selectedTerm
+      });
+      
+      selectedClass = null;
+      
+      // Reset class dropdown
+      $("#class").val(null);
+      
+      // Update UI
+      updateClassesDropdown();
+      updateGenerateButton();
+    });
+    
+    // Class change event
+    $("#class").on("change", function() {
+      const oldClass = selectedClass;
+      selectedClass = $(this).val();
+      
+      debugLog("Class changed", {
+        from: oldClass,
+        to: selectedClass
+      });
+      
+      // Update UI
+      updateGenerateButton();
+    });
+    
+    // Prevent form submission when pressing Enter
+    $("#bulkGenerateForm").on("keypress", function(e) {
+      if (e.which === 13) {
+        debugLog("Enter key pressed, preventing form submission");
+        e.preventDefault();
+        return false;
+      }
+    });
+    
+    // Form submission
+    $("#bulkGenerateForm").on("submit", function(e) {
+      debugLog("Form submission attempted", {
+        academicYear: selectedAcademicYear,
+        term: selectedTerm,
+        class: selectedClass
+      });
+      
+      // Prevent form submission if validation fails
+      if (!selectedAcademicYear || !selectedTerm || !selectedClass) {
+        e.preventDefault();
+        
+        debugLog("Form validation failed", {
+          academicYear: !!selectedAcademicYear,
+          term: !!selectedTerm,
+          class: !!selectedClass
+        });
+        
+        Swal.fire({
+          title: "Missing Information",
+          text: "Please select academic year, term, and class before generating report cards.",
+          icon: "warning"
+        });
+        
+        return false;
+      }
+      
+      // Show confirmation dialog
+      e.preventDefault();
+      
+      const academicYearText = $("#academic_year option:selected").text();
+      const termText = $("#term option:selected").text();
+      const classText = $("#class option:selected").text();
+      
+      debugLog("Form validation passed, showing confirmation dialog", {
+        academicYearText,
+        termText,
+        classText
+      });
+      
+      Swal.fire({
+        title: "Generate Report Cards?",
+        html: `<p>Are you sure you want to generate report cards for:</p>
+              <ul class="text-start">
+                <li><strong>Academic Year:</strong> ${academicYearText}</li>
+                <li><strong>Term:</strong> ${termText}</li>
+                <li><strong>Class:</strong> ${classText}</li>
+              </ul>`,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Yes, Generate Now",
+        cancelButtonText: "Cancel",
+        confirmButtonColor: "#28a745",
+        cancelButtonColor: "#dc3545"
+      }).then((result) => {
+        if (result.isConfirmed) {
+          debugLog("Form submission confirmed, submitting form");
+          // Show progress indicator
+          $("#progressContainer").removeClass("d-none");
+          
+          // Submit the form
+          $(this).off('submit').submit();
+        } else {
+          debugLog("Form submission cancelled by user");
+        }
+      });
+    });
+    
+    // Enhanced Debug button
+    $("#debugBtn").on("click", function(e) {
+      e.preventDefault();
+      debugLog("Debug button clicked");
+      
+      // Get selection info
+      const academicYearText = $("#academic_year option:selected").text();
+      const termText = $("#term option:selected").text();
+      const classText = $("#class option:selected").text();
+      
+      // Get DOM state
+      const academicYearDomValue = $("#academic_year").val();
+      const termDomValue = $("#term").val();
+      const classDomValue = $("#class").val();
+      
+      // Check for state inconsistencies
+      const stateInconsistencies = [];
+      if (selectedAcademicYear !== academicYearDomValue) {
+        stateInconsistencies.push(`Academic Year: JS state=${selectedAcademicYear}, DOM value=${academicYearDomValue}`);
+      }
+      if (selectedTerm !== termDomValue) {
+        stateInconsistencies.push(`Term: JS state=${selectedTerm}, DOM value=${termDomValue}`);
+      }
+      if (selectedClass !== classDomValue) {
+        stateInconsistencies.push(`Class: JS state=${selectedClass}, DOM value=${classDomValue}`);
+      }
+      
+      // Get Select2 data
+      const select2Status = {
+        academicYear: {
+          initialized: !!$("#academic_year").data('select2'),
+          data: $("#academic_year").select2('data'),
+        },
+        term: {
+          initialized: !!$("#term").data('select2'),
+          data: $("#term").select2('data'),
+        },
+        class: {
+          initialized: !!$("#class").data('select2'),
+          data: $("#class").select2('data'),
+        }
+      };
+      
+      // Get network status info
+      const networkInfo = {
+        online: navigator.onLine,
+        readyState: document.readyState
+      };
+      
+      // Build debug info
+      let debugInfo = "=== FORM STATE ===\n";
+      debugInfo += `Selected Academic Year: ${academicYearText} (ID: ${selectedAcademicYear || "None"})\n`;
+      debugInfo += `Selected Term: ${termText} (ID: ${selectedTerm || "None"})\n`;
+      debugInfo += `Selected Class: ${classText} (ID: ${selectedClass || "None"})\n\n`;
+      
+      if (stateInconsistencies.length > 0) {
+        debugInfo += "=== STATE INCONSISTENCIES ===\n";
+        stateInconsistencies.forEach(issue => {
+          debugInfo += `${issue}\n`;
+        });
+        debugInfo += "\n";
+      }
+      
+      debugInfo += "=== DROPDOWN STATE ===\n";
+      debugInfo += `Academic Year Dropdown Enabled: ${!$("#academic_year").prop("disabled")}\n`;
+      debugInfo += `Term Dropdown Enabled: ${!$("#term").prop("disabled")}\n`;
+      debugInfo += `Class Dropdown Enabled: ${!$("#class").prop("disabled")}\n`;
+      debugInfo += `Generate Button Enabled: ${!$("#generateBtn").prop("disabled")}\n\n`;
+      
+      debugInfo += "=== SELECT2 INFO ===\n";
+      debugInfo += `Academic Year Select2 Initialized: ${!!$("#academic_year").data('select2')}\n`;
+      debugInfo += `Term Select2 Initialized: ${!!$("#term").data('select2')}\n`;
+      debugInfo += `Class Select2 Initialized: ${!!$("#class").data('select2')}\n\n`;
+      
+      debugInfo += "=== DATA STATS ===\n";
+      debugInfo += `Total Terms in Database: ${allTerms.length}\n`;
+      
+      const filteredTerms = allTerms.filter(term => term.academicYearId == selectedAcademicYear);
+      debugInfo += `Filtered Terms for Academic Year ${selectedAcademicYear}: ${filteredTerms.length}\n\n`;
+      
+      debugInfo += "=== FILTERED TERMS ===\n";
+      filteredTerms.forEach((term, idx) => {
+        debugInfo += `${idx+1}. ID: ${term.id}, Text: ${term.text}\n`;
+      });
+      
+      debugInfo += "\n=== AJAX DEBUG INFO ===\n";
+      debugInfo += `AJAX URL for Classes: {% url 'get_classes_by_term' %}\n`;
+      debugInfo += `Term Parameter: term_id=${selectedTerm}\n`;
+      
+      debugInfo += "\n=== NETWORK STATUS ===\n";
+      debugInfo += `Online: ${networkInfo.online}\n`;
+      debugInfo += `Document Ready State: ${networkInfo.readyState}\n`;
+      
+      // Show debug info in modal
+      Swal.fire({
+        title: "Debug Information",
+        html: `<pre style="text-align:left;font-size:12px;">${debugInfo}</pre>`,
+        width: 800,
+        confirmButtonText: "Close"
+      });
+      
+      // Log to console as well
+      debugLog("Full debug information", {
+        formState: {
+          academicYear: {
+            text: academicYearText,
+            id: selectedAcademicYear
+          },
+          term: {
+            text: termText,
+            id: selectedTerm
+          },
+          class: {
+            text: classText,
+            id: selectedClass
+          }
+        },
+        domState: {
+          academicYear: academicYearDomValue,
+          term: termDomValue,
+          class: classDomValue
+        },
+        stateInconsistencies,
+        dropdownState: {
+          academicYearEnabled: !$("#academic_year").prop("disabled"),
+          termEnabled: !$("#term").prop("disabled"),
+          classEnabled: !$("#class").prop("disabled"),
+          generateBtnEnabled: !$("#generateBtn").prop("disabled")
+        },
+        select2Status,
+        termsData: {
+          total: allTerms.length,
+          filtered: filteredTerms
+        },
+        networkInfo
+      });
+    });
+    
+    // ==========================================
+    // 5. INITIALIZATION
+    // ==========================================
+    
+    // Initialize UI based on initial values
+    debugLog("Initializing form with academic year", selectedAcademicYear);
+    
+    if (selectedAcademicYear) {
+      // If academic year is pre-selected, update term dropdown
+      updateTermsDropdown();
+      
+      // If term is also pre-selected, update class dropdown
+      if (selectedTerm) {
+        updateClassesDropdown();
+      }
+    } else {
+      // Disable dependent dropdowns at start
+      $("#term").prop("disabled", true);
+      $("#class").prop("disabled", true);
+      debugLog("No initial academic year, dependent dropdowns disabled");
+    }
+    
+    // Initial button state
+    updateGenerateButton();
+    
+    // Log initialization complete
+    debugLog("Form initialization complete");
+  });
+</script>
+{% endblock %}

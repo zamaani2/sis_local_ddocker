@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media File Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+        }
+        .image-test {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        img {
+            max-width: 300px;
+            border: 1px solid #ddd;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Media File Serving Test</h1>
+    
+    <div class="image-test">
+        <h2>Direct URL Test</h2>
+        {% for image_path in image_paths %}
+        <div>
+            <h3>{{ image_path }}</h3>
+            <img src="/media/{{ image_path }}" alt="Test image">
+            <p>URL: /media/{{ image_path }}</p>
+        </div>
+        <hr>
+        {% empty %}
+        <p>No images found in the media directory.</p>
+        {% endfor %}
+    </div>
+
+    <div class="image-test">
+        <h2>Student Profile Pictures</h2>
+        {% for student in students %}
+        <div>
+            <h3>{{ student.full_name }}</h3>
+            {% if student.profile_picture %}
+                <img src="{{ student.profile_picture.url }}" alt="{{ student.full_name }}">
+                <p>URL: {{ student.profile_picture.url }}</p>
+                <p>Path: {{ student.profile_picture.path }}</p>
+            {% else %}
+                <p>No profile picture</p>
+            {% endif %}
+        </div>
+        <hr>
+        {% empty %}
+        <p>No students found with profile pictures.</p>
+        {% endfor %}
+    </div>
+
+    <div class="image-test">
+        <h2>Debug Information</h2>
+        <pre>
+MEDIA_URL: {{ MEDIA_URL }}
+MEDIA_ROOT: {{ MEDIA_ROOT }}
+        </pre>
+    </div>
+</body>
+</html> 

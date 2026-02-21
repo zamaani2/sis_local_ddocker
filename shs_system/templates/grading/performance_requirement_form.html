@@ -1,0 +1,197 @@
+{% extends "base.html" %} {% load static %} 
+{% block title %} {% if requirement_id %}Edit Performance Requirements{% else %}Add New Performance Requirements{% endif %} {% endblock %} 
+{% block page_title %} {% if requirement_id %}Edit Performance Requirements{% else %}Add New Performance Requirements{% endif %} {% endblock %} 
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        {% if requirement_id %}Edit Performance Requirements{% else %}Add New Performance Requirements {% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                    <div class="messages">
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <form method="post"
+                        action="{% if requirement_id %}{% url 'performance_requirement_update' requirement_id %}{% else %}{% url 'performance_requirement_create' %}{% endif %}">
+                        {% csrf_token %}
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="name">Name <span class="text-danger">*</span></label>
+                                    <input type="text" id="name" name="name" class="form-control"
+                                        value="{{ requirement.name|default:'' }}" required maxlength="100" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {% if requirement.is_active|default:True %}checked{% endif %} />
+                                    <label class="form-check-label" for="is_active">
+                                        Active
+                                    </label>
+                                    <small class="form-text text-muted d-block">
+                                        Only one set of requirements can be active at a time.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="description">Description (Optional)</label>
+                            <textarea id="description" name="description" class="form-control" rows="3"> {{ requirement.description|default:'' }}</textarea>
+                        </div>
+
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Promotion Requirements</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="min_average_score_for_promotion">Minimum Average Score for
+                                                Promotion <span class="text-danger">*</span></label>
+                                            <input type="number" id="min_average_score_for_promotion"
+                                                name="min_average_score_for_promotion" class="form-control"
+                                                value="{{ requirement.min_average_score_for_promotion|default:'40.00' }}"
+                                                required min="0" max="100" step="0.01" />
+                                            <small class="form-text text-muted">
+                                                Minimum overall average score required for a student to be promoted.
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="max_failed_subjects">Maximum Failed Subjects <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="number" id="max_failed_subjects" name="max_failed_subjects"
+                                                class="form-control"
+                                                value="{{ requirement.max_failed_subjects|default:'3' }}" required
+                                                min="0" max="20" step="1" />
+                                            <small class="form-text text-muted">
+                                                Maximum number of subjects a student can fail and still be promoted.
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group mb-3">
+                                    <label for="min_passing_grade">Minimum Passing Grade</label>
+                                    <select id="min_passing_grade" name="min_passing_grade" class="form-select">
+                                        <option value="">-- No minimum grade set --</option>
+                                        {% for grade in grades %}
+                                        <option value="{{ grade.id }}" {% if requirement.min_passing_grade.id == grade.id %}selected{% endif %}>
+                                            {{ grade.grade_letter }} ({{ grade.min_score }}-{{ grade.max_score }}): {{ grade.remarks }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <small class="form-text text-muted">
+                                        Minimum grade letter required to pass a subject. Optional if using minimum score
+                                        instead.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Calculation Method</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group mb-3">
+                                    <label>Average Calculation Method <span class="text-danger">*</span></label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="calculation_method" id="calculation_simple" value="simple" {% if requirement.calculation_method|default:'simple' == 'simple' %}checked{% endif %} onchange="toggleWeightFields()">
+                                        <label class="form-check-label" for="calculation_simple">
+                                            Simple Average (All terms weighted equally)
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="calculation_method" id="calculation_weighted" value="weighted" {% if requirement.calculation_method == 'weighted' %}checked{% endif %} onchange="toggleWeightFields()">
+                                        <label class="form-check-label" for="calculation_weighted">
+                                            Weighted Average (Customized term weights)
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div id="weight_fields"
+                                    class="{% if requirement.calculation_method != 'weighted' %}d-none{% endif %}">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="first_term_weight">First Term Weight (%)</label>
+                                                <input type="number" id="first_term_weight" name="first_term_weight"
+                                                    class="form-control"
+                                                    value="{{ requirement.first_term_weight|default:'30.00' }}" min="0"
+                                                    max="100" step="0.01">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="second_term_weight">Second Term Weight (%)</label>
+                                                <input type="number" id="second_term_weight" name="second_term_weight"
+                                                    class="form-control"
+                                                    value="{{ requirement.second_term_weight|default:'30.00' }}" min="0"
+                                                    max="100" step="0.01">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="third_term_weight">Third Term Weight (%)</label>
+                                                <input type="number" id="third_term_weight" name="third_term_weight"
+                                                    class="form-control"
+                                                    value="{{ requirement.third_term_weight|default:'40.00' }}" min="0"
+                                                    max="100" step="0.01">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-muted mt-2">
+                                        <small>Note: Term weights must sum to 100%</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group text-end">
+                            <a href="{% url 'performance_requirement_list' %}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                {% if requirement_id %}Update{% else %}Create{% endif %} Requirements
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extrajs %}
+<script>
+    function toggleWeightFields() {
+        const weightedMethod = document.getElementById('calculation_weighted').checked;
+        const weightFields = document.getElementById('weight_fields');
+
+        if (weightedMethod) {
+            weightFields.classList.remove('d-none');
+        } else {
+            weightFields.classList.add('d-none');
+        }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        toggleWeightFields();
+    });
+</script>
+{% endblock %}
+
+{% endblock %}

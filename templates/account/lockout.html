@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Account Locked{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4><i class="fas fa-lock me-2"></i>Account Locked</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <p><strong>Your account has been temporarily locked due to too many failed login attempts.</strong></p>
+                        <p>This is a security measure to protect your account from unauthorized access.</p>
+                    </div>
+                    
+                    <h5>What happened?</h5>
+                    <p>Our system detected multiple failed login attempts from your device. As a security precaution, we've temporarily restricted access to your account.</p>
+                    
+                    <h5>What can you do now?</h5>
+                    <ul>
+                        <li>Wait for 1 hour before attempting to log in again</li>
+                        <li>If you've forgotten your password, you can <a href="{% url 'password_reset' %}">reset it here</a></li>
+                        <li>Contact the system administrator if you believe this is an error</li>
+                    </ul>
+                    
+                    <div class="mt-4">
+                        <a href="{% url 'password_reset' %}" class="btn btn-outline-primary">Reset Password</a>
+                        <a href="{% url 'home' %}" class="btn btn-outline-secondary ms-2">Return to Homepage</a>
+                    </div>
+                </div>
+                <div class="card-footer text-muted">
+                    <small>For security reasons, this lockout will expire automatically after 1 hour.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

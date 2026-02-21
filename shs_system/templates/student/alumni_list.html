@@ -1,0 +1,391 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% load static %}
+{% block title %}Alumni{% endblock %}
+
+{% block page_title %}Graduated Students (Alumni){% endblock %}
+
+{% block extra_css %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="{% static 'vendor/datatables/1.11.5/css/dataTables.bootstrap5.min.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'vendor/datatables-responsive/2.2.9/css/responsive.bootstrap5.min.css' %}">
+<!-- Sweet Alert CSS -->
+<link rel="stylesheet" href="{% static 'vendor/sweetalert2/11.4.8/dist/sweetalert2.min.css' %}">
+
+<style>
+  .alumni-badge {
+    background: linear-gradient(45deg, #28a745, #20c997);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  
+  .graduation-date {
+    color: #6c757d;
+    font-size: 0.875rem;
+  }
+  
+  .alumni-card {
+    border-left: 4px solid #28a745;
+  }
+  
+  .filter-card {
+    background: linear-gradient(145deg, #2d1b4e, #3d2a5e);
+    border: 1px solid #8b5cf6;
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
+  }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{% url 'student_list' %}">Students</a></li>
+<li class="breadcrumb-item active">Alumni</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            <i class="bi bi-mortarboard-fill text-success me-2"></i>
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %}
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              Graduated Students (Alumni)
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">View and manage graduated students from your school</p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'student_list' %}" class="btn btn-outline-primary">
+            <i class="bi bi-arrow-left"></i> Back to Students
+          </a>
+          <button type="button" class="btn btn-success" onclick="exportAlumni()">
+            <i class="bi bi-download"></i> Export Alumni
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card alumni-card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <i class="bi bi-mortarboard-fill text-success fs-2"></i>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <h5 class="mb-0">{{ total_count }}</h5>
+              <p class="text-muted mb-0">Total Alumni</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <i class="bi bi-calendar-check text-info fs-2"></i>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <h5 class="mb-0">{{ graduation_years|length }}</h5>
+              <p class="text-muted mb-0">Graduation Years</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <i class="bi bi-people-fill text-warning fs-2"></i>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <h5 class="mb-0">{{ forms|length }}</h5>
+              <p class="text-muted mb-0">Forms Represented</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <i class="bi bi-book-fill text-primary fs-2"></i>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <h5 class="mb-0">{{ learning_areas|length }}</h5>
+              <p class="text-muted mb-0">Learning Areas</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card filter-card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#filterPanel" aria-expanded="true" aria-controls="filterPanel">
+              <i class="bi bi-funnel"></i> Filter Alumni
+            </button>
+          </h5>
+        </div>
+        <div class="collapse show" id="filterPanel">
+          <div class="card-body">
+            <form method="GET" id="filterForm">
+              <div class="row">
+                <div class="col-md-3">
+                  <label for="search" class="form-label">Search</label>
+                  <input type="text" name="search" class="form-control" id="search" 
+                         value="{{ search_query }}" placeholder="Search by name or admission number...">
+                </div>
+                <div class="col-md-2">
+                  <label for="formFilter" class="form-label">Final Form</label>
+                  <select name="form" class="form-select" id="formFilter">
+                    <option value="">All Forms</option>
+                    {% for form in forms %}
+                    <option value="{{ form.form_number }}" {% if form_filter == form.form_number|stringformat:"s" %}selected{% endif %}>
+                      {{ form.name }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label for="learningAreaFilter" class="form-label">Learning Area</label>
+                  <select name="learning_area" class="form-select" id="learningAreaFilter">
+                    <option value="">All Areas</option>
+                    {% for area in learning_areas %}
+                    <option value="{{ area.id }}" {% if learning_area_filter == area.id|stringformat:"s" %}selected{% endif %}>
+                      {{ area.name }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label for="graduationYearFilter" class="form-label">Graduation Year</label>
+                  <select name="graduation_year" class="form-select" id="graduationYearFilter">
+                    <option value="">All Years</option>
+                    {% for year in graduation_years %}
+                    <option value="{{ year }}" {% if graduation_year_filter == year|stringformat:"s" %}selected{% endif %}>
+                      {{ year }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">&nbsp;</label>
+                  <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">
+                      <i class="bi bi-search"></i> Apply Filters
+                    </button>
+                    <a href="{% url 'alumni_list' %}" class="btn btn-outline-secondary">
+                      <i class="bi bi-arrow-clockwise"></i> Clear
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alumni Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-mortarboard-fill text-success me-2"></i>
+            Alumni Records
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover" id="alumniTable">
+              <thead class="table-light">
+                <tr>
+                  <th>Graduation Date</th>
+                  <th>Admission #</th>
+                  <th>Full Name</th>
+                  <th>Final Form</th>
+                  <th>Learning Area</th>
+                  <th>Remarks</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for archived_student in alumni %}
+                <tr>
+                  <td>
+                    <span class="graduation-date">
+                      {{ archived_student.completion_date|date:"M d, Y" }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="fw-bold">{{ archived_student.student.admission_number }}</span>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0 me-2">
+                        {% if archived_student.student.profile_picture %}
+                          <img src="{{ archived_student.student.profile_picture.url }}" 
+                               alt="Profile" class="rounded-circle" width="32" height="32">
+                        {% else %}
+                          <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" 
+                               style="width: 32px; height: 32px;">
+                            <i class="bi bi-person text-white"></i>
+                          </div>
+                        {% endif %}
+                      </div>
+                      <div>
+                        <div class="fw-bold">{{ archived_student.student.full_name }}</div>
+                        <small class="text-muted">{{ archived_student.student.gender }}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="alumni-badge">
+                      {{ archived_student.final_form.name|default:"N/A" }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge bg-info">
+                      {{ archived_student.final_learning_area.name|default:"N/A" }}
+                    </span>
+                  </td>
+                  <td>
+                    {% if archived_student.remarks %}
+                      <span class="text-muted" title="{{ archived_student.remarks }}">
+                        {{ archived_student.remarks|truncatechars:50 }}
+                      </span>
+                    {% else %}
+                      <span class="text-muted">No remarks</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group">
+                      <a href="{% url 'alumni_detail' archived_student.student.id %}" 
+                         class="btn btn-outline-primary" title="View Details">
+                        <i class="bi bi-eye"></i>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="7" class="text-center py-4">
+                    <div class="text-muted">
+                      <i class="bi bi-mortarboard-fill fs-1 d-block mb-2"></i>
+                      <h5>No Alumni Found</h5>
+                      <p>No graduated students match your current filters.</p>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Pagination -->
+          {% if alumni.has_other_pages %}
+          <nav aria-label="Alumni pagination">
+            <ul class="pagination justify-content-center">
+              {% if alumni.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}{% if learning_area_filter %}&learning_area={{ learning_area_filter }}{% endif %}{% if graduation_year_filter %}&graduation_year={{ graduation_year_filter }}{% endif %}">First</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ alumni.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}{% if learning_area_filter %}&learning_area={{ learning_area_filter }}{% endif %}{% if graduation_year_filter %}&graduation_year={{ graduation_year_filter }}{% endif %}">Previous</a>
+                </li>
+              {% endif %}
+              
+              <li class="page-item active">
+                <span class="page-link">
+                  Page {{ alumni.number }} of {{ alumni.paginator.num_pages }}
+                </span>
+              </li>
+              
+              {% if alumni.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ alumni.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}{% if learning_area_filter %}&learning_area={{ learning_area_filter }}{% endif %}{% if graduation_year_filter %}&graduation_year={{ graduation_year_filter }}{% endif %}">Next</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ alumni.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if form_filter %}&form={{ form_filter }}{% endif %}{% if learning_area_filter %}&learning_area={{ learning_area_filter }}{% endif %}{% if graduation_year_filter %}&graduation_year={{ graduation_year_filter }}{% endif %}">Last</a>
+                </li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- DataTables JS -->
+<script src="{% static 'vendor/datatables/1.11.5/js/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'vendor/datatables/1.11.5/js/dataTables.bootstrap5.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-responsive/2.2.9/js/dataTables.responsive.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-responsive/2.2.9/js/responsive.bootstrap5.min.js' %}"></script>
+<!-- Sweet Alert JS -->
+<script src="{% static 'vendor/sweetalert2/11.4.8/dist/sweetalert2.all.min.js' %}"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTables if needed (for future AJAX implementation)
+    // $('#alumniTable').DataTable({
+    //   responsive: true,
+    //   pageLength: 25,
+    //   order: [[0, 'desc']] // Sort by graduation date descending
+    // });
+    
+    // Auto-submit form on filter change
+    $('.form-select').change(function() {
+      $('#filterForm').submit();
+    });
+    
+    // Export alumni function
+    window.exportAlumni = function() {
+      Swal.fire({
+        title: 'Export Alumni',
+        text: 'This feature will export all alumni data to a CSV file.',
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: 'Export',
+        cancelButtonText: 'Cancel'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // TODO: Implement export functionality
+          Swal.fire('Coming Soon!', 'Export functionality will be implemented soon.', 'info');
+        }
+      });
+    };
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Restore Academic Year - {{ academic_year.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-undo text-success"></i>
+                        Restore Academic Year: {{ academic_year.name }}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success">
+                        <h5><i class="fas fa-check-circle"></i> Restore Academic Year</h5>
+                        <p class="mb-0">
+                            This will restore the archived academic year and make it active again. 
+                            All data has been preserved and will be fully accessible.
+                        </p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-info-circle text-info"></i> Archive Information</h5>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-calendar text-info"></i> <strong>Archived:</strong> {{ academic_year.archived_at|date:"F d, Y H:i" }}</li>
+                                <li><i class="fas fa-user text-info"></i> <strong>Archived by:</strong> {{ academic_year.archived_by.full_name|default:"Unknown" }}</li>
+                                <li><i class="fas fa-school text-info"></i> <strong>School:</strong> {{ academic_year.school.name }}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-undo text-success"></i> Restore Effects</h5>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-eye text-success"></i> Will appear in active lists</li>
+                                <li><i class="fas fa-check text-success"></i> Can be set as current</li>
+                                <li><i class="fas fa-database text-success"></i> All data remains intact</li>
+                                <li><i class="fas fa-templates text-success"></i> Templates remain functional</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-clock"></i> Academic Year Details</h6>
+                        <p class="mb-0">
+                            <strong>Name:</strong> {{ academic_year.name }}<br>
+                            <strong>Period:</strong> {{ academic_year.start_date }} to {{ academic_year.end_date }}<br>
+                            <strong>Status:</strong> <span class="badge badge-secondary">Archived</span>
+                        </p>
+                    </div>
+
+                    <form method="post" id="unarchiveForm">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'academic_year_archive_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Archived
+                            </a>
+                            <button type="submit" class="btn btn-success" id="unarchiveBtn">
+                                <i class="fas fa-undo"></i> Restore Academic Year
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    $('#unarchiveForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const form = this;
+        const submitBtn = $('#unarchiveBtn');
+        const originalText = submitBtn.html();
+        
+        // Show loading state
+        submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Restoring...');
+        submitBtn.prop('disabled', true);
+        
+        // Submit form
+        $.ajax({
+            url: form.action || window.location.href,
+            method: 'POST',
+            data: $(form).serialize(),
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: response.message || 'Academic year restored successfully.',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        window.location.href = response.redirect_url || '{% url "academic_year_list" %}';
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: response.message || 'An error occurred while restoring.',
+                        icon: 'error'
+                    });
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'An error occurred while restoring.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                
+                Swal.fire({
+                    title: 'Error!',
+                    text: errorMessage,
+                    icon: 'error'
+                });
+            },
+            complete: function() {
+                submitBtn.html(originalText);
+                submitBtn.prop('disabled', false);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

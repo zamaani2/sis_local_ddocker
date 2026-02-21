@@ -1,0 +1,31 @@
+<!-- Modal for confirming setting current term -->
+<div class="modal fade" id="setCurrentTermModal" tabindex="-1" aria-labelledby="setCurrentTermModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="setCurrentTermModalLabel">Confirm Set Current Term</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to set <strong>{{ term.get_term_number_display }}</strong> 
+             of academic year <strong>{{ term.academic_year.name }}</strong> as the current term?</p>
+          <p class="text-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            This will remove current status from any other term in this academic year.
+          </p>
+          {% if not term.academic_year.is_current %}
+          <p class="text-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            This will also set <strong>{{ term.academic_year.name }}</strong> as the current academic year.
+          </p>
+          {% endif %}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <a href="{% url 'set_current_term' term.pk %}?next={{ request.path|urlencode }}" class="btn btn-primary">
+            Set as Current Term
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>

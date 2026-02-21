@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Archived Academic Years{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-archive text-warning"></i>
+                        Archived Academic Years
+                    </h3>
+                    <div class="card-tools">
+                        <a href="{% url 'academic_year_list' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back to Active Years
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if archived_years %}
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle"></i> About Archived Academic Years</h6>
+                            <p class="mb-0">
+                                Archived academic years preserve all data but are hidden from active lists. 
+                                You can restore them anytime without any data loss.
+                            </p>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="archivedYearsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Academic Year</th>
+                                        <th>Period</th>
+                                        <th>Archived</th>
+                                        <th>Archived By</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for year in archived_years %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ year.name }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ year.school.name }}</small>
+                                            </td>
+                                            <td>
+                                                {{ year.start_date|date:"M d, Y" }} to {{ year.end_date|date:"M d, Y" }}
+                                            </td>
+                                            <td>
+                                                {% if year.archived_at %}
+                                                    {{ year.archived_at|date:"M d, Y H:i" }}
+                                                {% else %}
+                                                    <span class="text-muted">Unknown</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if year.archived_by %}
+                                                    {{ year.archived_by.full_name }}
+                                                {% else %}
+                                                    <span class="text-muted">Unknown</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <a href="{% url 'unarchive_academic_year' year.id %}" 
+                                                       class="btn btn-success btn-sm" 
+                                                       title="Restore Academic Year">
+                                                        <i class="fas fa-undo"></i> Restore
+                                                    </a>
+                                                    <a href="{% url 'academic_year_detail' year.id %}" 
+                                                       class="btn btn-info btn-sm" 
+                                                       title="View Details">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-archive fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Archived Academic Years</h5>
+                            <p class="text-muted">There are no archived academic years in the system.</p>
+                            <a href="{% url 'academic_year_list' %}" class="btn btn-primary">
+                                <i class="fas fa-arrow-left"></i> Back to Active Years
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    if ($('#archivedYearsTable').length) {
+        $('#archivedYearsTable').DataTable({
+            responsive: true,
+            pageLength: 25,
+            order: [[2, 'desc']], // Sort by archived date
+            columnDefs: [
+                { orderable: false, targets: -1 } // Disable sorting on actions column
+            ]
+        });
+    }
+});
+</script>
+{% endblock %}

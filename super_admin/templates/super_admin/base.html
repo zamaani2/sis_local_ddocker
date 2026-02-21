@@ -1,0 +1,473 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>{% block title %}SchoolApp{% endblock %} - Super Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="SchoolApp Platform - Super Admin Dashboard"
+    />
+    <meta name="author" content="SchoolApp" />
+    <link rel="icon" href="{% static 'favicon.ico' %}" />
+
+    <!-- Import the centralized styles -->
+    {% include 'partials/_styles.html' %}
+
+    <!-- Super Admin specific CSS -->
+    <style>
+      /* Super Admin Badge */
+      .super-admin-badge {
+        background-color: #f59e0b;
+        color: #212529;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-left: 0.5rem;
+      }
+
+      /* Super Admin specific layout adjustments */
+      .super-admin-layout {
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* Ensure proper theme integration */
+      .super-admin-layout .app-wrapper {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      .super-admin-layout .content-wrapper {
+        flex: 1;
+        display: flex;
+      }
+
+      /* Super Admin specific sidebar adjustments */
+      .super-admin-layout .sidebar {
+        width: 250px;
+        min-height: calc(100vh - 60px);
+        transition: margin-left 0.3s ease-in-out;
+      }
+
+      .super-admin-layout .sidebar-wrapper {
+        height: 100%;
+        overflow-y: auto;
+      }
+
+      .super-admin-layout .sidebar .nav-header {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        padding: 1rem 1rem 0.5rem;
+        margin-top: 0.5rem;
+      }
+
+      /* Main content adjustments */
+      .super-admin-layout .main-content {
+        flex: 1;
+        padding: 1.5rem;
+        overflow-x: hidden;
+      }
+
+      .super-admin-layout .content-header {
+        margin-bottom: 1.5rem;
+      }
+
+      /* Footer adjustments */
+      .super-admin-layout .main-footer {
+        padding: 1rem;
+        text-align: center;
+        font-size: 0.85rem;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        .super-admin-layout .sidebar {
+          margin-left: -250px;
+          position: fixed;
+          z-index: 1020;
+          height: 100%;
+        }
+
+        .super-admin-layout .sidebar.show {
+          margin-left: 0;
+        }
+
+        .super-admin-layout .content-wrapper {
+          margin-left: 0;
+        }
+      }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body
+    class="layout-fixed sidebar-expand-lg sidebar-mini sidebar-collapse bg-body-secondary super-admin-layout"
+  >
+    <div class="app-wrapper">
+      <!-- Navbar -->
+      <nav
+        class="app-header navbar navbar-expand bg-primary-subtle"
+        data-bs-theme="dark"
+        aria-label="Main navigation"
+      >
+        <div class="container-fluid">
+          <button
+            class="btn btn-link text-white d-lg-none me-2"
+            id="sidebarToggler"
+            data-lte-toggle="sidebar"
+            role="button"
+            aria-label="Toggle sidebar"
+          >
+            <i class="bi bi-list"></i>
+          </button>
+          <a class="navbar-brand" href="{% url 'super_admin:dashboard' %}">
+            SchoolApp <span class="super-admin-badge">SUPER ADMIN</span>
+          </a>
+
+          <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+              <li class="nav-item dropdown">
+                <a
+                  class="nav-link dropdown-toggle text-white"
+                  href="#"
+                  id="userDropdown"
+                  role="button"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  <i class="bi bi-person-circle me-1"></i> {{
+                  request.user.username }}
+                </a>
+                <ul
+                  class="dropdown-menu dropdown-menu-end"
+                  aria-labelledby="userDropdown"
+                >
+                  <li>
+                    <a class="dropdown-item" href="#"
+                      ><i class="bi bi-gear me-1"></i> Settings</a
+                    >
+                  </li>
+                  <li><hr class="dropdown-divider" /></li>
+                  <li>
+                    <a class="dropdown-item" href="{% url 'logout' %}"
+                      ><i class="bi bi-box-arrow-right me-1"></i> Logout</a
+                    >
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+
+      <div class="content-wrapper">
+        <!-- Sidebar -->
+        <aside
+          class="app-sidebar bg-primary-subtle bg-gradient"
+          data-bs-theme="dark"
+          aria-label="Main sidebar"
+        >
+          <!--begin::Sidebar Brand-->
+          <div class="sidebar-brand">
+            <!--begin::Brand Link-->
+            <a href="{% url 'super_admin:dashboard' %}" class="brand-link">
+              <!--begin::Brand Text-->
+              <span class="brand-text fw-light">SUPER ADMIN</span>
+              <!--end::Brand Text-->
+            </a>
+            <!--end::Brand Link-->
+          </div>
+          <!--end::Sidebar Brand-->
+          <!--begin::Sidebar Wrapper-->
+          <div class="sidebar-wrapper">
+            <nav class="mt-2" aria-label="Sidebar navigation">
+              <ul
+                class="nav sidebar-menu flex-column"
+                role="menu"
+                data-accordion="false"
+              >
+                <li class="nav-item">
+                  <a
+                    href="{% url 'super_admin:dashboard' %}"
+                    class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
+                  >
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
+                  </a>
+                </li>
+
+                <li class="nav-header">SCHOOL MANAGEMENT</li>
+                <li class="nav-item">
+                  <a
+                    href="{% url 'super_admin:school_list' %}"
+                    class="nav-link {% if 'school' in request.resolver_match.url_name %}active{% endif %}"
+                  >
+                    <i class="bi bi-building"></i>
+                    <span>Schools</span>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a
+                    href="{% url 'super_admin:domain_list' %}"
+                    class="nav-link {% if 'domain' in request.resolver_match.url_name %}active{% endif %}"
+                  >
+                    <i class="bi bi-globe"></i>
+                    <span>Domains</span>
+                  </a>
+                </li>
+
+                <li class="nav-header">SUBSCRIPTION MANAGEMENT</li>
+                <li class="nav-item">
+                  <a
+                    href="{% url 'super_admin:plan_list' %}"
+                    class="nav-link {% if 'plan' in request.resolver_match.url_name %}active{% endif %}"
+                  >
+                    <i class="bi bi-layers"></i>
+                    <span>Plans</span>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a
+                    href="{% url 'super_admin:subscription_list' %}"
+                    class="nav-link {% if 'subscription' in request.resolver_match.url_name %}active{% endif %}"
+                  >
+                    <i class="bi bi-calendar-check"></i>
+                    <span>Subscriptions</span>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a
+                    href="{% url 'super_admin:transaction_list' %}"
+                    class="nav-link {% if 'transaction' in request.resolver_match.url_name %}active{% endif %}"
+                  >
+                    <i class="bi bi-credit-card"></i>
+                    <span>Transactions</span>
+                  </a>
+                </li>
+
+                <li class="nav-header">ADMINISTRATION</li>
+                <li class="nav-item">
+                  <a
+                    href="{% url 'super_admin:user_list' %}"
+                    class="nav-link {% if 'user' in request.resolver_match.url_name %}active{% endif %}"
+                  >
+                    <i class="bi bi-people"></i>
+                    <span>Super Admin Users</span>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a
+                    href="{% url 'super_admin:settings_update' %}"
+                    class="nav-link {% if 'settings' in request.resolver_match.url_name %}active{% endif %}"
+                  >
+                    <i class="bi bi-gear"></i>
+                    <span>Platform Settings</span>
+                  </a>
+                </li>
+
+                <li class="nav-item">
+                  <a
+                    href="{% url 'super_admin:backup_restore_dashboard' %}"
+                    class="nav-link {% if 'backup_restore' in request.resolver_match.url_name %}active{% endif %}"
+                  >
+                    <i class="bi bi-archive"></i>
+                    <span>Backup & Restore</span>
+                  </a>
+                </li>
+
+
+                <li class="nav-header">QUICK LINKS</li>
+                <li class="nav-item">
+                  <a href="/" class="nav-link" target="_blank">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                    <span>View Platform</span>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a
+                    href="{% url 'admin:index' %}"
+                    class="nav-link"
+                    target="_blank"
+                  >
+                    <i class="bi bi-shield-lock"></i>
+                    <span>Django Admin</span>
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="app-main">
+          <!--begin::App Content Header-->
+          <div class="app-content-header">
+            <div class="container-fluid">
+              <div class="row">
+                <div class="col-sm-6">
+                  <h1 class="mb-0">
+                    {% block page_title %}Super Admin Dashboard{% endblock %}
+                  </h1>
+                </div>
+                <div class="col-sm-6">
+                  <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb float-sm-end">
+                      <li class="breadcrumb-item">
+                        <a href="{% url 'super_admin:dashboard' %}">Home</a>
+                      </li>
+                      {% block breadcrumb %}{% endblock %}
+                    </ol>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!--end::App Content Header-->
+
+          <!--begin::App Content-->
+          <div class="app-content">
+            <div class="container-fluid">
+              <!-- Flash Messages -->
+              {% if messages %}
+              <div class="messages" aria-live="polite">
+                {% for message in messages %}
+                <div
+                  class="alert alert-{{ message.tags }} alert-dismissible fade show"
+                  role="alert"
+                >
+                  {{ message }}
+                  <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Close"
+                  ></button>
+                </div>
+                {% endfor %}
+              </div>
+
+              <!-- Hidden messages for SweetAlert processing -->
+              <div id="django-messages" style="display: none">
+                {% for message in messages %}
+                <div
+                  class="django-message"
+                  data-message-type="{{ message.tags }}"
+                >
+                  {{ message }}
+                </div>
+                {% endfor %}
+              </div>
+              {% endif %} {% block content %}
+              <!-- Content goes here -->
+              {% endblock content %}
+            </div>
+          </div>
+          <!--end::App Content-->
+        </main>
+      </div>
+
+      <!-- Footer -->
+      <footer class="app-footer">
+        <!--begin::To the end-->
+        <div class="float-end d-none d-sm-inline">Super Admin v1.0.0</div>
+        <!--end::To the end-->
+        <!--begin::Copyright-->
+        <strong>
+          Copyright &copy; {% now "Y" %}&nbsp;
+          <a href="#" class="text-decoration-none">SchoolApp Platform</a>.
+        </strong>
+        All rights reserved.
+        <!--end::Copyright-->
+      </footer>
+    </div>
+
+    <!-- jQuery first (local) -->
+    <script src="{% static 'vendor/jquery/3.7.1/jquery-3.7.1.min.js' %}"></script>
+
+    <!-- Bootstrap and its dependencies (local) -->
+    <script src="{% static 'vendor/popperjs/2.11.8/umd/popper.min.js' %}"></script>
+    <script src="{% static 'vendor/bootstrap/5.3.3/js/bootstrap.bundle.min.js' %}"></script>
+
+    <!-- DataTables (local) -->
+    <script src="{% static 'vendor/datatables/1.13.7/js/jquery.dataTables.min.js' %}"></script>
+    <script src="{% static 'vendor/datatables/1.13.7/js/dataTables.bootstrap5.min.js' %}"></script>
+
+    <!-- Other plugins (local) -->
+    <script src="{% static 'vendor/overlayscrollbars/2.10.1/browser/overlayscrollbars.browser.es6.min.js' %}"></script>
+    <script src="{% static 'admin/dist/js/adminlte.js' %}"></script>
+
+    <!-- Sweet Alert for better notifications (local) -->
+    <script src="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.all.min.js' %}"></script>
+
+    <!-- Active Menu State Handler -->
+    <script src="{% static 'js/active-menu.js' %}"></script>
+
+    <!-- Process Django Messages with SweetAlert -->
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Process Django messages if no URL parameters
+        const messagesContainer = document.getElementById("django-messages");
+        if (messagesContainer) {
+          const messages =
+            messagesContainer.querySelectorAll(".django-message");
+
+          messages.forEach(function (messageDiv) {
+            const message = messageDiv.textContent.trim();
+            const messageType = messageDiv.getAttribute("data-message-type");
+
+            let icon = "info";
+            let title = "Information";
+            let confirmButtonColor = "#3085d6";
+            let timer = null;
+            let showConfirmButton = true;
+
+            if (messageType === "success") {
+              icon = "success";
+              title = "Success!";
+              confirmButtonColor = "#28a745";
+            } else if (messageType === "error") {
+              icon = "error";
+              title = "Error";
+              confirmButtonColor = "#dc3545";
+            } else if (messageType === "warning") {
+              icon = "warning";
+              title = "Notice";
+              confirmButtonColor = "#ffc107";
+              // Make warnings less intrusive - auto-dismiss after 5 seconds
+              timer = 5000;
+              showConfirmButton = false;
+            }
+
+            const swalOptions = {
+              title: title,
+              text: message,
+              icon: icon,
+              confirmButtonText: "OK",
+              confirmButtonColor: confirmButtonColor,
+              allowOutsideClick: false,
+              allowEscapeKey: true,
+              showCloseButton: true,
+            };
+
+            // Add timer for warnings
+            if (timer) {
+              swalOptions.timer = timer;
+              swalOptions.timerProgressBar = true;
+              swalOptions.showConfirmButton = showConfirmButton;
+            }
+
+            Swal.fire(swalOptions);
+          });
+        }
+      });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

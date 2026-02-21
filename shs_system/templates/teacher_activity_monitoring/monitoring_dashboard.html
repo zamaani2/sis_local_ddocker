@@ -1,0 +1,488 @@
+{% extends 'base.html' %} {% load static %} 
+{% block title %}Teacher Activity Monitoring{% endblock %}
+{% block page_title %}Teacher Activity Monitoring{% endblock %}
+{% block extra_css %}
+
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %}
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              Teacher Activity Monitoring
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if current_academic_year %}
+              Current academic year and term management
+            {% else %}
+              Monitor and track teacher activities and progress
+            {% endif %}
+          </p>
+        </div>
+        <div class="btn-group">
+          <button
+            type="button"
+            class="btn btn-warning me-2"
+            data-bs-toggle="modal"
+            data-bs-target="#bulkReminderModal"
+          >
+            <i class="bi bi-bell"></i> Send Bulk Reminders
+          </button>
+          <a href="{% url 'view_reminder_logs' %}" class="btn btn-info">
+            <i class="bi bi-clock-history"></i> View Reminder Logs
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter Form -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <i class="bi bi-funnel me-2"></i>Filter Options
+    </div>
+    <div class="card-body">
+      <form method="get" class="row g-3">
+        <!-- Hidden input for school ID -->
+        {% if school %}
+        <input
+          type="hidden"
+          id="school_id"
+          name="school_id"
+          value="{{ school.id }}"
+        />
+        {% endif %}
+        <div class="col-md-2">
+          <label for="id_academic_year" class="form-label">Academic Year</label>
+          {{ form.academic_year }}
+        </div>
+        <div class="col-md-2">
+          <label for="id_term" class="form-label">Term</label>
+          {{ form.term }}
+        </div>
+        <div class="col-md-2">
+          <label for="id_department" class="form-label">Department</label>
+          {{ form.department }}
+        </div>
+        <div class="col-md-2">
+          <label for="id_activity_type" class="form-label">Activity Type</label>
+          {{ form.activity_type }}
+        </div>
+        <div class="col-md-2">
+          <label for="id_completion_status" class="form-label">Status</label>
+          {{ form.completion_status }}
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary me-2">
+            <i class="bi bi-search me-1"></i> Apply Filters
+          </button>
+          <a
+            href="{% url 'teacher_activity_monitoring' %}"
+            class="btn btn-outline-secondary"
+          >
+            <i class="bi bi-arrow-clockwise me-1"></i> Reset
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Export Button -->
+  <div class="d-flex justify-content-end mb-3">
+    <a
+      href="{% url 'teacher_activity_monitoring' %}?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}export=csv"
+      class="btn btn-success"
+    >
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export to CSV
+    </a>
+  </div>
+
+  <!-- Activity Data Table -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <i class="bi bi-list-task me-2"></i>Teacher Activities for {{ selected_term.academic_year.name }} - {{ selected_term.get_term_number_display }}
+    </div>
+    <div class="card-body">
+      {% if page_obj %}
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>Teacher</th>
+              <th>Department</th>
+              <th>Class</th>
+              <th>Subject</th>
+              <th>Score Entry</th>
+              <th>Remarks</th>
+              <th>Report Cards</th>
+              <th>Last Activity</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for activity in page_obj %}
+            <tr>
+              <td>
+                <a
+                  href="{% url 'teacher_activity_detail' activity.teacher.id %}"
+                >
+                  {{ activity.teacher.name }}
+                </a>
+                <small class="d-block text-muted"
+                  >{{ activity.teacher.staff_id }}</small
+                >
+              </td>
+              <td>{{ activity.teacher.department }}</td>
+              <td>
+                <a href="{% url 'class_activity_detail' activity.class.id %}">
+                  {{ activity.class.name }}
+                </a>
+                <small class="d-block text-muted"
+                  >{{ activity.class.form }}</small
+                >
+              </td>
+              <td>{{ activity.subject.name }}</td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="progress flex-grow-1 me-2">
+                    <div
+                      class="progress-bar {% if activity.scores.status == 'completed' %}bg-success{% elif activity.scores.status == 'in_progress' %}bg-info{% else %}bg-warning{% endif %}"
+                      role="progressbar"
+                      style="width: {{ activity.scores.percentage }}%;"
+                      aria-valuenow="{{ activity.scores.percentage }}"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                    ></div>
+                  </div>
+                  <span class="small"
+                    >{{ activity.scores.completed }}/{{ activity.scores.total }}</span
+                  >
+                </div>
+                <small
+                  class="d-block {% if activity.scores.status == 'completed' %}text-success {% elif activity.scores.status == 'in_progress' %}text-info {% elif activity.scores.status == 'not_started' %}text-warning {% else %}text-danger{% endif %}"
+                >
+                  {{ activity.scores.status|title }}
+                </small>
+              </td>
+              <td>
+                {% if activity.is_class_teacher and activity.remarks %}
+                <div class="d-flex align-items-center">
+                  <div class="progress flex-grow-1 me-2">
+                    <div
+                      class="progress-bar {% if activity.remarks.status == 'completed' %}bg-success{% elif activity.remarks.status == 'in_progress' %}bg-info{% else %}bg-warning{% endif %}"
+                      role="progressbar"
+                      style="width: {{ activity.remarks.percentage }}%;"
+                      aria-valuenow="{{ activity.remarks.percentage }}"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                    ></div>
+                  </div>
+                  <span class="small"
+                    >{{ activity.remarks.completed }}/{{activity.remarks.total}}</span
+                  >
+                </div>
+                <small
+                  class="d-block {% if activity.remarks.status == 'completed' %}text-success {% elif activity.remarks.status == 'in_progress' %}text-info {% elif activity.remarks.status == 'not_started' %}text-warning {% else %}text-danger{% endif %}"
+                >
+                  {{ activity.remarks.status|title }}
+                </small>
+                {% else %}
+                <span class="text-muted">N/A</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if activity.is_class_teacher and activity.report_cards %}
+                <div class="d-flex align-items-center">
+                  <div class="progress flex-grow-1 me-2">
+                    <div
+                      class="progress-bar {% if activity.report_cards.status == 'completed' %}bg-success{% elif activity.report_cards.status == 'in_progress' %}bg-info{% else %}bg-warning{% endif %}"
+                      role="progressbar"
+                      style="width: {{ activity.report_cards.percentage }}%;"
+                      aria-valuenow="{{ activity.report_cards.percentage }}"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                    ></div>
+                  </div>
+                  <span class="small"
+                    >{{ activity.report_cards.completed }}/{{ activity.report_cards.total }}</span
+                  >
+                </div>
+                <small
+                  class="d-block {% if activity.report_cards.status == 'completed' %}text-success {% elif activity.report_cards.status == 'in_progress' %}text-info {% elif activity.report_cards.status == 'not_started' %}text-warning {% else %}text-danger{% endif %}"
+                >
+                  {{ activity.report_cards.status|title }}
+                </small>
+                {% else %}
+                <span class="text-muted">N/A</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if activity.last_activity %} {{ activity.last_activity|date:"d M Y" }}
+                <small class="d-block text-muted"
+                  >{{ activity.last_activity|time:"H:i" }}</small
+                >
+                {% else %}
+                <span class="text-warning">No activity</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="dropdown">
+                  <button
+                    class="btn btn-outline-secondary dropdown-toggle"
+                    type="button"
+                    id="dropdownMenuButton{{ forloop.counter }}"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                  >
+                    Actions
+                  </button>
+                  <ul
+                    class="dropdown-menu"
+                    aria-labelledby="dropdownMenuButton{{ forloop.counter }}"
+                  >
+                    <li>
+                      <a
+                        class="dropdown-item"
+                        href="{% url 'teacher_activity_detail' activity.teacher.id %}"
+                      >
+                        <i class="bi bi-person me-1"></i> Teacher Details
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        class="dropdown-item"
+                        href="{% url 'class_activity_detail' activity.class.id %}"
+                      >
+                        <i class="bi bi-people me-1"></i> Class Details
+                      </a>
+                    </li>
+                    <li><hr class="dropdown-divider" /></li>
+                    {% if activity.assignment_id %}
+                    <li>
+                      <form
+                        action="{% url 'send_activity_reminder_with_id' activity.assignment_id %}"
+                        method="post"
+                        data-confirm="true"
+                      >
+                        {% csrf_token %}
+                        <input
+                          type="hidden"
+                          name="activity_type"
+                          value="scores"
+                        />
+                        <input
+                          type="hidden"
+                          name="redirect_url"
+                          value="{{ request.path }}"
+                        />
+                        <button type="submit" class="dropdown-item">
+                          <i class="bi bi-bell me-1"></i> Remind: Score Entry
+                        </button>
+                      </form>
+                    </li>
+                    {% endif %} {% if activity.assignment_id %}
+                    <li>
+                      <a
+                        href="#"
+                        class="dropdown-item schedule-reminder-link"
+                        data-bs-toggle="modal"
+                        data-bs-target="#scheduleReminderModal"
+                        data-form-action="{% url 'send_activity_reminder_with_id' activity.assignment_id %}"
+                        data-activity-type="scores"
+                      >
+                        <i class="bi bi-clock me-1"></i> Schedule: Score Entry
+                      </a>
+                    </li>
+                    {% endif %} {% if activity.is_class_teacher and activity.assignment_id %}
+                    <li>
+                      <form
+                        action="{% url 'send_activity_reminder_with_id' activity.assignment_id %}"
+                        method="post"
+                        data-confirm="true"
+                      >
+                        {% csrf_token %}
+                        <input
+                          type="hidden"
+                          name="activity_type"
+                          value="remarks"
+                        />
+                        <input
+                          type="hidden"
+                          name="redirect_url"
+                          value="{{ request.path }}"
+                        />
+                        <button type="submit" class="dropdown-item">
+                          <i class="bi bi-bell me-1"></i> Remind: Remarks
+                        </button>
+                      </form>
+                    </li>
+                    {% if activity.assignment_id %}
+                    <li>
+                      <a
+                        href="#"
+                        class="dropdown-item schedule-reminder-link"
+                        data-bs-toggle="modal"
+                        data-bs-target="#scheduleReminderModal"
+                        data-form-action="{% url 'send_activity_reminder_with_id' activity.assignment_id %}"
+                        data-activity-type="remarks"
+                      >
+                        <i class="bi bi-clock me-1"></i> Schedule: Remarks
+                      </a>
+                    </li>
+                    {% endif %} {% if activity.assignment_id %}
+                    <li>
+                      <form
+                        action="{% url 'send_activity_reminder_with_id' activity.assignment_id %}"
+                        method="post"
+                        data-confirm="true"
+                      >
+                        {% csrf_token %}
+                        <input
+                          type="hidden"
+                          name="activity_type"
+                          value="report_cards"
+                        />
+                        <input
+                          type="hidden"
+                          name="redirect_url"
+                          value="{{ request.path }}"
+                        />
+                        <button type="submit" class="dropdown-item">
+                          <i class="bi bi-bell me-1"></i> Remind: Report Cards
+                        </button>
+                      </form>
+                    </li>
+                    {% endif %} {% if activity.assignment_id %}
+                    <li>
+                      <a
+                        href="#"
+                        class="dropdown-item schedule-reminder-link"
+                        data-bs-toggle="modal"
+                        data-bs-target="#scheduleReminderModal"
+                        data-form-action="{% url 'send_activity_reminder_with_id' activity.assignment_id %}"
+                        data-activity-type="report_cards"
+                      >
+                        <i class="bi bi-clock me-1"></i> Schedule: Report Cards
+                      </a>
+                    </li>
+                    {% endif %} {% endif %}
+                  </ul>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination (only show if DataTables is not available) -->
+      <div id="fallback-pagination" class="d-none">
+        {% if page_obj.has_other_pages %}
+        <nav aria-label="Page navigation">
+          <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+              <a
+                class="page-link"
+                href="?{% if request.GET %}{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}{% endif %}page=1"
+                aria-label="First"
+              >
+                <span aria-hidden="true">&laquo;&laquo;</span>
+              </a>
+            </li>
+            <li class="page-item">
+              <a
+                class="page-link"
+                href="?{% if request.GET %}{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}{% endif %}page={{ page_obj.previous_page_number }}"
+                aria-label="Previous"
+              >
+                <span aria-hidden="true">&laquo;</span>
+              </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+              <a class="page-link" href="#" aria-label="First">
+                <span aria-hidden="true">&laquo;&laquo;</span>
+              </a>
+            </li>
+            <li class="page-item disabled">
+              <a class="page-link" href="#" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+              </a>
+            </li>
+            {% endif %} {% for num in page_obj.paginator.page_range %} {% if page_obj.number == num %}
+            <li class="page-item active">
+              <a class="page-link" href="#">{{ num }}</a>
+            </li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <li class="page-item">
+              <a
+                class="page-link"
+                href="?{% if request.GET %}{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}{% endif %}page={{ num }}"
+                >{{ num }}</a
+              >
+            </li>
+            {% endif %} {% endfor %} {% if page_obj.has_next %}
+            <li class="page-item">
+              <a
+                class="page-link"
+                href="?{% if request.GET %}{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}{% endif %}page={{ page_obj.next_page_number }}"
+                aria-label="Next"
+              >
+                <span aria-hidden="true">&raquo;</span>
+              </a>
+            </li>
+            <li class="page-item">
+              <a
+                class="page-link"
+                href="?{% if request.GET %}{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}{% endif %}page={{ page_obj.paginator.num_pages }}"
+                aria-label="Last"
+              >
+                <span aria-hidden="true">&raquo;&raquo;</span>
+              </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+              <a class="page-link" href="#" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+              </a>
+            </li>
+            <li class="page-item disabled">
+              <a class="page-link" href="#" aria-label="Last">
+                <span aria-hidden="true">&raquo;&raquo;</span>
+              </a>
+            </li>
+            {% endif %}
+          </ul>
+        </nav>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i> No teacher activities found
+        matching your criteria.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Include Bulk Reminder Modal -->
+{% include "teacher_activity_monitoring/bulk_reminder_modal.html" %}
+
+<!-- Add term filter script -->
+<script src="{% static 'js/term_filter.js' %}"></script>
+
+{% endblock %} {% block extra_js %}
+<script src="{% static 'js/teacher_activity_monitoring.js' %}"></script>
+<script src="{% static 'js/django_messages_sweetalert.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,163 @@
+{% load static %}
+<form method="post" action="{% if requirement_id %}{% url 'performance_requirement_update' requirement_id %}{% else %}{% url 'performance_requirement_create' %}{% endif %}" class="js-requirement-form">
+  {% csrf_token %}
+  <div class="modal-header">
+    <h5 class="modal-title">{% if requirement_id %}Edit Performance Requirement{% else %}Add New Performance Requirement{% endif %}</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+  </div>
+  <div class="modal-body">
+    <div class="messages-container"></div>
+
+    <div class="row mb-3">
+      <div class="col-md-8">
+        <div class="form-group">
+          <label for="name">Name <span class="text-danger">*</span></label>
+          <input type="text" id="name" name="name" class="form-control" value="{{ requirement.name|default:'' }}" required maxlength="100" />
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="form-check mt-4">
+          <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {% if requirement.is_active|default:True %}checked{% endif %} />
+          <label class="form-check-label" for="is_active">Active</label>
+          <small class="form-text text-muted d-block">Only one set of requirements can be active at a time.</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group mb-3">
+      <label for="description">Description (Optional)</label>
+      <textarea id="description" name="description" class="form-control" rows="2">{{ requirement.description|default:'' }}</textarea>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <div class="form-group">
+          <label for="min_average_score_for_promotion">
+            Minimum Average Score for Promotion <span class="text-danger">*</span>
+          </label>
+          <input type="number" id="min_average_score_for_promotion" name="min_average_score_for_promotion" class="form-control" value="{{ requirement.min_average_score_for_promotion|default:'40.00' }}" required min="0" max="100" step="0.01" />
+          <small class="form-text text-muted">Minimum average score required for a student to be promoted to the next class.</small>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="form-group">
+          <label for="max_failed_subjects">
+            Maximum Failed Subjects <span class="text-danger">*</span>
+          </label>
+          <input type="number" id="max_failed_subjects" name="max_failed_subjects" class="form-control" value="{{ requirement.max_failed_subjects|default:'3' }}" required min="0" max="20" step="1" />
+          <small class="form-text text-muted">Maximum number of subjects a student can fail and still be promoted.</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <div class="form-group">
+          <label for="min_passing_grade">Minimum Passing Grade</label>
+          <select id="min_passing_grade" name="min_passing_grade" class="form-select">
+            <option value="">-- None (Use score only) --</option>
+            {% for grade in grades %}
+            <option value="{{ grade.id }}" {% if requirement.min_passing_grade.id == grade.id %}selected{% endif %}>
+              {{ grade.grade_letter }} ({{ grade.min_score }}-{{ grade.max_score }}): {{ grade.remarks }}
+            </option>
+            {% endfor %}
+          </select>
+          <small class="form-text text-muted">The minimum grade letter required to pass a subject (optional).</small>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="form-group">
+          <label for="calculation_method">Calculation Method <span class="text-danger">*</span></label>
+          <select id="calculation_method" name="calculation_method" class="form-select" required>
+            <option value="simple" {% if requirement.calculation_method == 'simple' %}selected{% endif %}>Simple Average</option>
+            <option value="weighted" {% if requirement.calculation_method == 'weighted' %}selected{% endif %}>Weighted Average</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="term-weights-section {% if requirement.calculation_method != 'weighted' and not requirement_id %}d-none{% endif %}">
+      <h5 class="mb-3">Term Weights (for Weighted Average)</h5>
+      <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        Term weights determine how much each term contributes to a student's final average. Weights must sum to 100%.
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-4">
+          <div class="form-group">
+            <label for="first_term_weight">First Term Weight (%)</label>
+            <input type="number" id="first_term_weight" name="first_term_weight" class="form-control term-weight" value="{{ requirement.first_term_weight|default:'30.00' }}" min="0" max="100" step="0.01" />
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label for="second_term_weight">Second Term Weight (%)</label>
+            <input type="number" id="second_term_weight" name="second_term_weight" class="form-control term-weight" value="{{ requirement.second_term_weight|default:'30.00' }}" min="0" max="100" step="0.01" />
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label for="third_term_weight">Third Term Weight (%)</label>
+            <input type="number" id="third_term_weight" name="third_term_weight" class="form-control term-weight" value="{{ requirement.third_term_weight|default:'40.00' }}" min="0" max="100" step="0.01" />
+          </div>
+        </div>
+      </div>
+      <div class="form-text mb-3">
+        <span id="total-weight-display">Total Weight: <span class="fw-bold">100%</span></span>
+        <span id="weight-warning" class="text-danger d-none">Warning: Weights must sum to 100%</span>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <button type="submit" class="btn btn-primary">
+      {% if requirement_id %}Update{% else %}Create{% endif %} Requirement
+    </button>
+  </div>
+</form>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var calcMethod = document.getElementById('calculation_method');
+    var termWeightsSection = document.querySelector('.term-weights-section');
+    
+    // Show/hide term weights section based on calculation method
+    if (calcMethod) {
+      calcMethod.addEventListener('change', function() {
+        if (this.value === 'weighted') {
+          termWeightsSection.classList.remove('d-none');
+        } else {
+          termWeightsSection.classList.add('d-none');
+        }
+      });
+    }
+    
+    // Calculate total weight
+    var termWeights = document.querySelectorAll('.term-weight');
+    var totalWeightDisplay = document.getElementById('total-weight-display');
+    var weightWarning = document.getElementById('weight-warning');
+    
+    function updateTotalWeight() {
+      var total = 0;
+      termWeights.forEach(function(input) {
+        total += parseFloat(input.value || 0);
+      });
+      
+      var weightElement = totalWeightDisplay.querySelector('.fw-bold');
+      weightElement.textContent = total.toFixed(2) + '%';
+      
+      if (Math.abs(total - 100) > 0.01) {
+        weightWarning.classList.remove('d-none');
+      } else {
+        weightWarning.classList.add('d-none');
+      }
+    }
+    
+    termWeights.forEach(function(input) {
+      input.addEventListener('input', updateTotalWeight);
+    });
+    
+    // Initialize on page load
+    updateTotalWeight();
+  });
+</script> 

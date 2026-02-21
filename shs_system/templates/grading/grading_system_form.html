@@ -1,0 +1,158 @@
+{% extends "base.html" %} {% load static %} {% block title %} {% if grade.id
+%}Edit Grade{% else %}Add New Grade{% endif %} {% endblock %} {% block
+page_title %} {% if grade.id %}Edit Grade{% else %}Add New Grade{% endif %} {%
+endblock %} {% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-8 mx-auto">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="mb-0">
+            {% if grade.id %}Edit Grade{% else %}Add New Grade{% endif %}
+          </h4>
+        </div>
+        <div class="card-body">
+          {% if messages %}
+          <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <form
+            method="post"
+            action="{% if grade.id %}{% url 'grading_system_update' grade.id %}{% else %}{% url 'grading_system_create' %}{% endif %}"
+          >
+            {% csrf_token %}
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="grade_letter"
+                    >Grade Letter <span class="text-danger">*</span></label
+                  >
+                  <input
+                    type="text"
+                    id="grade_letter"
+                    name="grade_letter"
+                    class="form-control"
+                    value="{{ grade.grade_letter|default:'' }}"
+                    required
+                    maxlength="2"
+                  />
+                  <small class="form-text text-muted"
+                    >E.g., A1, B2, etc. (Max 2 characters)</small
+                  >
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-check mt-4">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="is_active"
+                    name="is_active"
+                    {%
+                    if
+                    grade.is_active|default:True
+                    %}checked{%
+                    endif
+                    %}
+                  />
+                  <label class="form-check-label" for="is_active">
+                    Active
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="min_score"
+                    >Minimum Score <span class="text-danger">*</span></label
+                  >
+                  <input
+                    type="number"
+                    id="min_score"
+                    name="min_score"
+                    class="form-control"
+                    value="{{ grade.min_score|default:'' }}"
+                    required
+                    min="0"
+                    max="100"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="max_score"
+                    >Maximum Score <span class="text-danger">*</span></label
+                  >
+                  <input
+                    type="number"
+                    id="max_score"
+                    name="max_score"
+                    class="form-control"
+                    value="{{ grade.max_score|default:'' }}"
+                    required
+                    min="0"
+                    max="100"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group mb-3">
+              <label for="remarks"
+                >Remarks <span class="text-danger">*</span></label
+              >
+              <input
+                type="text"
+                id="remarks"
+                name="remarks"
+                class="form-control"
+                value="{{ grade.remarks|default:'' }}"
+                required
+                maxlength="50"
+              />
+              <small class="form-text text-muted"
+                >E.g., Excellent, Very Good, etc.</small
+              >
+            </div>
+
+            <div class="form-group mb-3">
+              <label for="description">Description (Optional)</label>
+              <textarea
+                id="description"
+                name="description"
+                class="form-control"
+                rows="3"
+              >
+{{ grade.description|default:'' }}</textarea
+              >
+              <small class="form-text text-muted"
+                >Additional information about this grade.</small
+              >
+            </div>
+
+            <div class="form-group text-end">
+              <a
+                href="{% url 'grading_system_list' %}"
+                class="btn btn-secondary"
+                >Cancel</a
+              >
+              <button type="submit" class="btn btn-primary">
+                {% if grade.id %}Update{% else %}Create{% endif %} Grade
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,1242 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}Mock Exam Score Entry{% endblock %}
+{% block page_title %}Mock Exam Score Entry{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/student_class_assignment.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'vendor/datatables/1.13.7/css/jquery.dataTables.min.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'vendor/datatables-buttons/2.4.2/css/buttons.dataTables.min.css' %}">
+<link rel="stylesheet" href="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.min.css' %}">
+<style>
+    /* Mock exam specific styles */
+    .badge-grade {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-weight: bold;
+        font-size: 0.85rem;
+    }
+
+    .grade-a {
+        background-color: #198754;
+        color: white;
+    }
+
+    .grade-b {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+    .grade-c {
+        background-color: #6f42c1;
+        color: white;
+    }
+
+    .grade-d {
+        background-color: #fd7e14;
+        color: white;
+    }
+
+    .grade-e {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .grade-f {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .score-input {
+        background-color: #ffffff;
+        border: 1px solid #ced4da;
+        border-radius: 3px;
+        padding: 0.375rem 0.5rem;
+        width: 100%;
+        min-width: 70px;
+        font-size: 0.85rem;
+        text-align: center;
+    }
+
+    .score-input:focus {
+        border-color: #86b7fe;
+        outline: 0;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    .score-input.error {
+        border-color: #dc3545;
+        background-color: #f8d7da;
+    }
+
+
+    .mock-exam-info {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .date-picker-container {
+        background-color: #e3f2fd;
+        border: 1px solid #2196f3;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+
+
+
+    .position-badge {
+        background-color: #6c757d;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .loading-spinner {
+        display: none;
+        text-align: center;
+        padding: 2rem;
+    }
+    
+    /* Show spinner when active class is added */
+    .loading-spinner.active,
+    #loadingSpinner.active {
+        display: block;
+    }
+    
+    /* Ensure spinner is hidden by default */
+    #loadingSpinner {
+        display: none;
+    }
+
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+        border-width: 0.3em;
+    }
+
+    /* Compact card styles for top section */
+    .container-fluid .card.mb-2 {
+        margin-bottom: 0.5rem !important;
+    }
+
+    .container-fluid .card .card-body.py-2 {
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+
+    .container-fluid .card .card-body.p-2 {
+        padding: 0.5rem !important;
+    }
+
+    /* Reduce button sizes in compact cards */
+    .card .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    /* Compact form elements */
+    .form-select-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    /* Reduce table padding */
+    .table td, .table th {
+        padding: 0.5rem 0.5rem;
+    }
+
+    /* Compact header */
+    .card-header.py-2 {
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Compact Header and Selection -->
+    <div class="card mb-2">
+        <div class="card-body py-2">
+            <div class="row align-items-center g-2">
+                <div class="col-md-3">
+                    <h6 class="mb-0 text-primary">
+                        <i class="fas fa-clipboard-check me-1"></i>
+                        Mock Exam Entry
+                    </h6>
+                </div>
+                <div class="col-md-5">
+                    <form method="GET" id="assignmentForm" class="mb-0">
+                        <select class="form-select form-select-sm" id="assignment_id" name="assignment_id" required>
+                            <option value="">Select Class & Subject...</option>
+                            {% for assignment in assignments %}
+                            <option value="{{ assignment.id }}" 
+                                    {% if selected_assignment and selected_assignment.id == assignment.id %}selected{% endif %}>
+                                {{ assignment.class_assigned.name }} - {{ assignment.subject.subject_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% if selected_mock_exam %}
+                        <input type="hidden" name="mock_exam_id" value="{{ selected_mock_exam.id }}">
+                        {% endif %}
+                    </form>
+                </div>
+                {% if selected_assignment %}
+                <div class="col-md-4">
+                    <div class="d-flex gap-2 align-items-center">
+                        <small class="text-muted mb-0">
+                            <strong>{{ selected_assignment.class_assigned.name }}</strong> - 
+                            <strong>{{ selected_assignment.subject.subject_name }}</strong>
+                        </small>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if selected_assignment %}
+    <!-- Compact Mock Exam Info and Action Buttons -->
+    {% if selected_mock_exam %}
+    <div class="card mb-2">
+        <div class="card-body py-2">
+            <div class="row align-items-center g-2">
+                <div class="col-md-3">
+                    <small class="text-muted d-block mb-0">
+                        <i class="fas fa-clipboard-check me-1"></i>
+                        <strong>Mock Exam:</strong> {{ selected_mock_exam.name }}
+                    </small>
+                    <small class="text-muted d-block mb-0">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        {{ selected_mock_exam.exam_date|date:'M d, Y' }}
+                    </small>
+                    <input type="hidden" id="mockExamId" value="{{ selected_mock_exam.id }}">
+                </div>
+                {% if students %}
+                <div class="col-md-9">
+                    <div class="d-flex gap-2 align-items-center flex-wrap">
+                        <button class="btn btn-success btn-sm" id="saveAllBtn" disabled>
+                            <i class="fas fa-save me-1"></i>
+                            Save All
+                        </button>
+                        <a href="{% url 'export_mock_exam_scores' %}?assignment_id={{ selected_assignment.id }}" 
+                           class="btn btn-primary btn-sm"
+                           title="Export template for the selected class only">
+                            <i class="fas fa-file-excel me-1"></i>
+                            Export
+                        </a>
+                        <button type="button" 
+                           id="batchExportBtn"
+                           class="btn btn-outline-primary btn-sm"
+                           title="Export templates for selected classes (multiple sheets)">
+                            <i class="fas fa-file-excel me-1"></i>
+                            Batch Export
+                        </button>
+                        <button type="button" 
+                           id="importMockExamScoresBtn"
+                           class="btn btn-success btn-sm"
+                           title="Import mock exam scores from Excel file">
+                            <i class="fas fa-upload me-1"></i>
+                            Import
+                        </button>
+                    </div>
+                </div>
+                {% else %}
+                <!-- Export buttons when no students loaded -->
+                <div class="col-md-9">
+                    <div class="d-flex gap-2 align-items-center flex-wrap">
+                        <a href="{% url 'export_mock_exam_scores' %}?assignment_id={{ selected_assignment.id }}" 
+                           class="btn btn-primary btn-sm">
+                            <i class="fas fa-file-excel me-1"></i>
+                            Export This Class
+                        </a>
+                        <button type="button" 
+                           id="batchExportBtn"
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-file-excel me-1"></i>
+                            Batch Export
+                        </button>
+                        <button type="button" 
+                           id="importMockExamScoresBtn"
+                           class="btn btn-success btn-sm">
+                            <i class="fas fa-upload me-1"></i>
+                            Import
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% elif not active_mock_exams %}
+    <div class="alert alert-warning py-2 mb-2">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <small>No active mock exams found. Please create a mock exam first.</small>
+    </div>
+    {% endif %}
+
+    <!-- Students Table -->
+    {% if selected_mock_exam and students %}
+    <div class="card">
+        <div class="card-body p-2">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="mockExamTable">
+                <thead>
+                    <tr>
+                        <th width="5%">#</th>
+                        <th width="25%">Student Name</th>
+                        <th width="15%">Raw Score (0-100)</th>
+                        <th width="10%">Grade</th>
+                        <th width="15%">Remarks</th>
+                        <th width="10%">Position</th>
+                        <th width="20%">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student_class in students %}
+                    <tr data-student-id="{{ student_class.student.id }}">
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            <strong>{{ student_class.student.full_name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ student_class.student.student_id }}</small>
+                        </td>
+                        <td>
+                            {% with student_scores=existing_scores|get_item:student_class.student.id %}
+                            <input type="number" 
+                                   class="score-input raw-score-input" 
+                                   data-student-id="{{ student_class.student.id }}"
+                                   min="0" 
+                                   max="100" 
+                                   step="0.01"
+                                   placeholder="0.00"
+                                   value="{% if student_scores %}{{ student_scores.raw_exam_score|default:'' }}{% endif %}">
+                            {% endwith %}
+                        </td>
+                        <td class="grade-cell" data-student-id="{{ student_class.student.id }}">
+                            {% with student_scores=existing_scores|get_item:student_class.student.id %}
+                                {% if student_scores and student_scores.grade %}
+                                    <span class="badge-grade grade-{{ student_scores.grade|lower }}">{{ student_scores.grade }}</span>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+                        <td class="remarks-cell" data-student-id="{{ student_class.student.id }}">
+                            {% with student_scores=existing_scores|get_item:student_class.student.id %}
+                                {% if student_scores and student_scores.remarks %}
+                                    <small class="text-muted">{{ student_scores.remarks }}</small>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+                        <td class="position-cell" data-student-id="{{ student_class.student.id }}">
+                            {% with student_scores=existing_scores|get_item:student_class.student.id %}
+                                {% if student_scores and student_scores.position %}
+                                    <span class="position-badge">{{ student_scores.position }}</span>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary save-individual-btn" 
+                                    data-student-id="{{ student_class.student.id }}"
+                                    disabled>
+                                <i class="fas fa-save me-1"></i>
+                                Save
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loading-spinner" id="loadingSpinner">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Saving...</span>
+        </div>
+        <p class="mt-2 text-muted">Saving mock exam scores...</p>
+    </div>
+
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        No students found for the selected class. Please select a different class.
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- No assignment selected -->
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        Please select a class and subject to enter mock exam scores.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vendor/datatables/1.13.7/js/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.min.js' %}"></script>
+<script>
+$(document).ready(function() {
+    // Ensure loading spinner is hidden on page load (multiple safety checks)
+    $('#loadingSpinner').hide();
+    $('.loading-spinner').hide();
+    
+    // Auto-load students when assignment is selected
+    $('#assignment_id').on('change', function() {
+        const assignmentId = $(this).val();
+        if (assignmentId) {
+            // Show loading indicator
+            const loadingHtml = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"><span class="visually-hidden">Loading...</span></div><span class="text-muted">Loading students...</span></div>';
+            $('.card-body').after(loadingHtml);
+            
+            // Submit form automatically
+            $('#assignmentForm').submit();
+        }
+    });
+    
+    // Mock exam is now auto-selected (default active), no need for change handler
+    
+    // Initialize DataTable only if table exists
+    if ($('#mockExamTable').length) {
+        $('#mockExamTable').DataTable({
+            "paging": false,
+            "searching": true,
+            "ordering": true,
+            "info": false,
+            "responsive": true,
+            "language": {
+                "search": "Search students:",
+                "emptyTable": "No students found"
+            }
+        });
+    }
+
+    // Get cookie helper function (global for use in multiple places)
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Get CSRF token from cookies (Django standard method)
+    function getCSRFToken() {
+        // Try to get CSRF token from cookie first
+        let csrfToken = getCookie('csrftoken');
+        
+        // Fallback to form field or meta tag if cookie not found
+        if (!csrfToken) {
+            csrfToken = $('[name=csrfmiddlewaretoken]').val() || $('meta[name=csrf-token]').attr('content') || '';
+        }
+        
+        // Debug: Log if token is not found (remove in production)
+        if (!csrfToken && console && console.warn) {
+            console.warn('CSRF token not found in cookies, form fields, or meta tags');
+            console.log('Available cookies:', document.cookie);
+        }
+        
+        return csrfToken;
+    }
+
+    // Enable/disable save buttons based on input
+    function updateSaveButtons() {
+        let hasInputs = false;
+        $('.raw-score-input').each(function() {
+            if ($(this).val() && $(this).val() !== '') {
+                hasInputs = true;
+                return false;
+            }
+        });
+        
+        $('#saveAllBtn').prop('disabled', !hasInputs);
+        $('.save-individual-btn').each(function() {
+            const studentId = $(this).data('student-id');
+            const input = $(`.raw-score-input[data-student-id="${studentId}"]`);
+            $(this).prop('disabled', !input.val() || input.val() === '');
+        });
+    }
+
+    // Update grade and remarks when raw score changes using grading system
+    $('.raw-score-input').on('input', function() {
+        const studentId = $(this).data('student-id');
+        const rawScore = parseFloat($(this).val()) || 0;
+        
+        // For mock exams, total score is the same as raw score
+        const totalScore = rawScore;
+        
+        // Update grade and remarks using grading system API
+        if (!isNaN(totalScore) && totalScore > 0) {
+            fetch(`{% url 'get_grading_info' %}?score=${totalScore}`)
+                .then(response => response.json())
+                .then(data => {
+                    const grade = data.grade || '--';
+                    const remarks = data.remarks || '--';
+                    
+                    // Update grade display
+                    const gradeCell = $(`.grade-cell[data-student-id="${studentId}"]`);
+                    if (grade !== '--') {
+                        const gradeFirstChar = grade.charAt(0).toLowerCase();
+                        const gradeClass = `grade-${gradeFirstChar}`;
+                        gradeCell.html(`<span class="badge-grade ${gradeClass}">${grade}</span>`);
+                    } else {
+                        gradeCell.text('-');
+                    }
+                    
+                    // Update remarks display
+                    const remarksCell = $(`.remarks-cell[data-student-id="${studentId}"]`);
+                    if (remarks !== '--') {
+                        remarksCell.html(`<small class="text-muted">${remarks}</small>`);
+                    } else {
+                        remarksCell.text('-');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching grade info:', error);
+                    // Fallback: clear grade and remarks
+                    $(`.grade-cell[data-student-id="${studentId}"]`).text('-');
+                    $(`.remarks-cell[data-student-id="${studentId}"]`).text('-');
+                });
+        } else {
+            // Clear grade and remarks if no score
+            $(`.grade-cell[data-student-id="${studentId}"]`).text('-');
+            $(`.remarks-cell[data-student-id="${studentId}"]`).text('-');
+        }
+        
+        updateSaveButtons();
+    });
+
+    // Individual save button click
+    $('.save-individual-btn').on('click', function() {
+        const studentId = $(this).data('student-id');
+        const rawScore = $(`.raw-score-input[data-student-id="${studentId}"]`).val();
+        
+        if (!rawScore || rawScore === '') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Score Entered',
+                text: 'Please enter a raw score for this student.'
+            });
+            return;
+        }
+        
+        saveMockExamScores([{studentId: studentId, rawScore: rawScore}]);
+    });
+
+    // Save all button click
+    $('#saveAllBtn').on('click', function() {
+        const scores = [];
+        $('.raw-score-input').each(function() {
+            const studentId = $(this).data('student-id');
+            const rawScore = $(this).val();
+            
+            if (rawScore && rawScore !== '') {
+                scores.push({
+                    studentId: studentId,
+                    rawScore: rawScore
+                });
+            }
+        });
+        
+        if (scores.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Scores Entered',
+                text: 'Please enter at least one score before saving.'
+            });
+            return;
+        }
+        
+        saveMockExamScores(scores);
+    });
+
+    // Save mock exam scores function
+    function saveMockExamScores(scores) {
+        const assignmentId = '{{ selected_assignment.id }}';
+        const mockExamId = $('#mockExamId').val() || '{{ selected_mock_exam.id|default:"" }}';
+        
+        // Validate required fields first (before showing spinner)
+        if (!assignmentId || assignmentId === '' || !mockExamId) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Missing Information',
+                text: 'Assignment and mock exam selection are required.'
+            });
+            // Ensure spinner is hidden
+            $('#loadingSpinner').removeClass('active').css('display', 'none').hide();
+            return;
+        }
+        
+        // Show loading spinner only after validation
+        $('#loadingSpinner').addClass('active').css('display', 'block').show();
+        
+        // Prepare data
+        const data = {
+            assignment_id: assignmentId,
+            mock_exam_id: mockExamId,
+            scores: {}
+        };
+        
+        scores.forEach(function(score) {
+            data.scores[score.studentId] = {
+                raw_score: score.rawScore
+            };
+        });
+        
+        // Get CSRF token
+        const csrfToken = getCSRFToken();
+        
+        if (!csrfToken) {
+            Swal.fire({
+                icon: 'error',
+                title: 'CSRF Token Error',
+                text: 'Could not retrieve CSRF token. Please refresh the page and try again.'
+            });
+            // Hide spinner
+            $('#loadingSpinner').removeClass('active').css('display', 'none').hide();
+            return;
+        }
+        
+        // Send AJAX request with proper CSRF token
+        $.ajax({
+            url: '{% url "save_mock_exam_scores" %}',
+            type: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            xhrFields: {
+                withCredentials: true  // Important for CSRF cookie
+            },
+            success: function(response) {
+                // Always hide spinner first
+                $('#loadingSpinner').removeClass('active').css('display', 'none').hide();
+                
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: response.message,
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                    
+                    // Update grade, remarks, and position displays
+                    if (response.assessments) {
+                        response.assessments.forEach(function(assessment) {
+                            // Update grade
+                            if (assessment.grade) {
+                                const gradeCell = $(`.grade-cell[data-student-id="${assessment.student_id}"]`);
+                                const gradeFirstChar = assessment.grade.charAt(0).toLowerCase();
+                                const gradeClass = `grade-${gradeFirstChar}`;
+                                gradeCell.html(`<span class="badge-grade ${gradeClass}">${assessment.grade}</span>`);
+                            }
+                            
+                            // Update remarks
+                            if (assessment.remarks) {
+                                const remarksCell = $(`.remarks-cell[data-student-id="${assessment.student_id}"]`);
+                                remarksCell.html(`<small class="text-muted">${assessment.remarks}</small>`);
+                            }
+                            
+                            // Update position
+                            const positionCell = $(`.position-cell[data-student-id="${assessment.student_id}"]`);
+                            if (assessment.position) {
+                                positionCell.html(`<span class="position-badge">${assessment.position}</span>`);
+                            }
+                        });
+                    }
+                    
+                    // Disable save buttons
+                    updateSaveButtons();
+                    
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'An error occurred while saving scores.'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                // Always hide spinner on error
+                $('#loadingSpinner').removeClass('active').css('display', 'none').hide();
+                
+                let errorMessage = 'An error occurred while saving scores.';
+                
+                // Handle CSRF errors specifically
+                if (xhr.status === 403) {
+                    errorMessage = 'CSRF verification failed. Please refresh the page and try again.';
+                    console.error('CSRF Error:', {
+                        status: xhr.status,
+                        statusText: xhr.statusText,
+                        responseText: xhr.responseText,
+                        csrfToken: csrfToken ? 'Token found' : 'Token NOT found'
+                    });
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.responseText) {
+                    // Try to parse HTML error response
+                    try {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(xhr.responseText, 'text/html');
+                        const errorText = doc.querySelector('h1, .error')?.textContent || xhr.responseText;
+                        if (errorText && errorText.length < 200) {
+                            errorMessage = errorText;
+                        }
+                    } catch (e) {
+                        // If parsing fails, use default message
+                    }
+                }
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: errorMessage,
+                    footer: xhr.status === 403 ? '<small>If this persists, please refresh the page.</small>' : ''
+                });
+            },
+            complete: function() {
+                // Always hide spinner when request completes (success or error)
+                // This is a safety net - should already be hidden in success/error handlers
+                $('#loadingSpinner').removeClass('active').css('display', 'none').hide();
+            }
+        });
+    }
+
+    // Initial button state
+    updateSaveButtons();
+    
+    // Ensure spinner is hidden on page load (multiple safety checks)
+    $('#loadingSpinner').removeClass('active').css('display', 'none').hide();
+    $('.loading-spinner').removeClass('active').css('display', 'none').hide();
+    
+    // Also hide spinner if page is refreshed or if there's any error
+    $(window).on('beforeunload', function() {
+        $('#loadingSpinner').removeClass('active').css('display', 'none').hide();
+    });
+    
+    // Additional safety: Hide spinner after a short delay (in case of any timing issues)
+    setTimeout(function() {
+        $('#loadingSpinner').removeClass('active').css('display', 'none').hide();
+    }, 100);
+    
+    // Global error handler to catch any unhandled errors and hide spinner
+    window.addEventListener('error', function() {
+        $('#loadingSpinner').removeClass('active').css('display', 'none').hide();
+    });
+
+    // Batch Export Dialog Function
+    function showMockExamBatchExportDialog() {
+        // Show loading state while fetching data
+        Swal.fire({
+            title: "Loading Classes",
+            html: "Fetching your class assignments...",
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+        });
+
+        // Fetch the teacher's assignments
+        fetch("/api/teacher-assignments/", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+                "X-CSRFToken": getCookie("csrftoken"),
+            },
+        })
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error("Network response was not ok");
+            }
+            return response.json();
+        })
+        .then((data) => {
+            Swal.close();
+
+            // Check if the API returned an error
+            if (!data.success) {
+                console.error("API Error:", data.error);
+                Swal.fire({
+                    icon: "error",
+                    title: "Error Loading Classes",
+                    text: data.error || "Could not load your class assignments. Please try again or contact support if the problem persists.",
+                });
+                return;
+            }
+
+            if (!data.assignments || data.assignments.length === 0) {
+                console.log("No assignments found");
+                Swal.fire({
+                    icon: "info",
+                    title: "No Classes Found",
+                    text: "You don't have any classes assigned to you for the current academic year.",
+                });
+                return;
+            }
+
+            console.log("Assignments found:", data.assignments.length);
+
+            // Group assignments by class
+            const classesByForm = {};
+            data.assignments.forEach((assignment) => {
+                const className = assignment.class_name;
+                if (!classesByForm[className]) {
+                    classesByForm[className] = [];
+                }
+                classesByForm[className].push(assignment);
+            });
+
+            // Create HTML for the multi-select dialog
+            let html = `<div class="text-start">
+                <p>Select the classes you want to export mock exam score templates for:</p>
+                <div style="max-height: 300px; overflow-y: auto;">`;
+
+            // Add classes grouped by class name
+            Object.keys(classesByForm).forEach((className) => {
+                html += `<h6 class="mt-3 text-primary">${className}</h6>`;
+                classesByForm[className].forEach((assignment) => {
+                    html += `
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="${assignment.id}" id="assignment_${assignment.id}">
+                            <label class="form-check-label" for="assignment_${assignment.id}">
+                                ${assignment.class_name} - ${assignment.subject}
+                            </label>
+                        </div>`;
+                });
+            });
+
+            html += `</div></div>`;
+
+            // Show the multi-select dialog
+            Swal.fire({
+                title: "Export Mock Exam Score Templates",
+                html: html,
+                showCancelButton: true,
+                confirmButtonText: "Export Selected",
+                cancelButtonText: "Cancel",
+                width: '600px',
+                preConfirm: () => {
+                    const selectedIds = [];
+                    document.querySelectorAll(".form-check-input:checked").forEach((checkbox) => {
+                        selectedIds.push(checkbox.value);
+                    });
+
+                    if (selectedIds.length === 0) {
+                        Swal.showValidationMessage("Please select at least one class");
+                        return false;
+                    }
+
+                    return selectedIds;
+                },
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    // Show loading state
+                    Swal.fire({
+                        title: "Preparing Export",
+                        html: "Creating Excel file with mock exam score templates...",
+                        timer: 3000,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+
+                            // Use direct download link instead of iframe to avoid X-Frame-Options blocking
+                            setTimeout(() => {
+                                // Create a temporary anchor element for download
+                                const downloadUrl = `{% url 'export_mock_exam_scores_batch' %}?assignment_ids=${result.value.join(",")}`;
+                                const link = document.createElement('a');
+                                link.href = downloadUrl;
+                                link.style.display = 'none';
+                                document.body.appendChild(link);
+                                
+                                // Trigger the download
+                                link.click();
+                                
+                                // Remove the link after a short delay
+                                setTimeout(() => {
+                                    document.body.removeChild(link);
+                                }, 100);
+                            }, 500);
+                        },
+                        didClose: () => {
+                            // Show success message after timer
+                            Swal.fire({
+                                icon: "success",
+                                title: "Export Complete",
+                                text: "Your mock exam score templates should begin downloading. If not, please check your browser settings.",
+                                timer: 3000,
+                                timerProgressBar: true,
+                            });
+                        }
+                    });
+                }
+            });
+        })
+        .catch((error) => {
+            console.error("Error fetching assignments:", error);
+            Swal.fire({
+                icon: "error",
+                title: "Error Loading Classes",
+                text: "Could not load your class assignments. Please try again or contact support if the problem persists.",
+            });
+        });
+    }
+
+    // Attach click handler to batch export button
+    $('#batchExportBtn').on('click', function() {
+        showMockExamBatchExportDialog();
+    });
+
+    // Mock Exam Import functionality
+    $('#importMockExamScoresBtn').on('click', function() {
+        const assignmentId = '{{ selected_assignment.id|default:"" }}';
+
+        // Check if a class is selected to determine the default import mode
+        if (assignmentId) {
+            // If class is selected, default to single class import
+            Swal.fire({
+                title: "Import Mock Exam Scores",
+                html: "Choose import type:",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonText: "Single Class",
+                cancelButtonText: "Multiple Classes",
+                showCloseButton: true,
+                cancelButtonColor: "#3085d6",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Single class import
+                    showMockExamSingleClassImportDialog(assignmentId);
+                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    // Multiple class import
+                    showMockExamBatchImportDialog();
+                }
+            });
+        } else {
+            // If no class is selected, go straight to batch import
+            showMockExamBatchImportDialog();
+        }
+    });
+
+    // Single class import dialog
+    function showMockExamSingleClassImportDialog(assignmentId) {
+        Swal.fire({
+            title: 'Import Mock Exam Scores for This Class',
+            html: `
+                <div class="text-start mb-3">
+                    <p>Upload an Excel file with mock exam scores for this class.</p>
+                    <p class="text-muted small">The file should contain raw scores (0-100) in column C.</p>
+                </div>
+            `,
+            input: 'file',
+            inputAttributes: {
+                accept: '.xlsx,.xls',
+                'aria-label': 'Upload Excel file'
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Upload',
+            cancelButtonText: 'Cancel',
+            showLoaderOnConfirm: true,
+            preConfirm: (file) => {
+                if (!file) {
+                    Swal.showValidationMessage('Please select a file');
+                    return false;
+                }
+                if (!file.name.match(/\.(xlsx|xls)$/i)) {
+                    Swal.showValidationMessage('Please select a valid Excel file');
+                    return false;
+                }
+                return file;
+            },
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                const file = result.value;
+                uploadMockExamSingleFile(file, assignmentId);
+            }
+        });
+    }
+
+    // Batch import dialog
+    function showMockExamBatchImportDialog() {
+        Swal.fire({
+            title: 'Import Mock Exam Scores (Multiple Classes)',
+            html: `
+                <div class="text-start mb-3">
+                    <p>Upload an Excel file with multiple sheets for different classes.</p>
+                    <p class="text-muted small">Each sheet should contain mock exam scores with raw scores in column C.</p>
+                </div>
+            `,
+            input: 'file',
+            inputAttributes: {
+                accept: '.xlsx,.xls',
+                'aria-label': 'Upload Excel file'
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Upload',
+            cancelButtonText: 'Cancel',
+            showLoaderOnConfirm: true,
+            preConfirm: (file) => {
+                if (!file) {
+                    Swal.showValidationMessage('Please select a file');
+                    return false;
+                }
+                if (!file.name.match(/\.(xlsx|xls)$/i)) {
+                    Swal.showValidationMessage('Please select a valid Excel file');
+                    return false;
+                }
+                return file;
+            },
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                const file = result.value;
+                uploadMockExamBatchFile(file);
+            }
+        });
+    }
+
+    // Handle file upload for batch import
+    function uploadMockExamBatchFile(file) {
+        // Show progress
+        Swal.fire({
+            title: "Uploading...",
+            html: `
+                <div class="progress mb-3">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                </div>
+                <div id="upload-status">Preparing upload...</div>
+            `,
+            showConfirmButton: false,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                const progressBar = Swal.getPopup().querySelector(".progress-bar");
+                const statusText = Swal.getPopup().querySelector("#upload-status");
+
+                // Create FormData
+                const formData = new FormData();
+                formData.append("batchFile", file);
+                formData.append("csrfmiddlewaretoken", getCookie("csrftoken"));
+
+                // Create XHR
+                const xhr = new XMLHttpRequest();
+
+                // Track upload progress
+                xhr.upload.addEventListener("progress", (e) => {
+                    if (e.lengthComputable) {
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        progressBar.style.width = percentComplete + "%";
+                        statusText.textContent = `Uploading: ${Math.round(percentComplete)}%`;
+                    }
+                });
+
+                xhr.addEventListener("load", () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Import Successful",
+                                    html: `
+                                        <div class="text-start">
+                                            <p>Successfully imported mock exam scores for ${response.total_updated} students across ${response.results.length} classes.</p>
+                                            ${response.results.map(r => `<div class="mb-1"><strong>${r.class_name} - ${r.subject_name}:</strong> ${r.processed} students</div>`).join('')}
+                                        </div>
+                                    `,
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: "error",
+                                    title: "Import Failed",
+                                    html: `
+                                        <div class="text-start">
+                                            <p>${response.error || "An error occurred during import."}</p>
+                                            ${response.errors && response.errors.length ?
+                                            `<p>Details:</p>
+                                                <ul class="text-danger">
+                                                    ${response.errors.map(err => `<li>${err}</li>`).join('')}
+                                                </ul>` : ''}
+                                        </div>
+                                    `,
+                                });
+                            }
+                        } catch (e) {
+                            // If not JSON, it might be an HTML response (e.g., redirect)
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Import Successful",
+                                    text: "Mock exam scores were imported successfully.",
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: "error",
+                                    title: "Import Failed",
+                                    text: "An error occurred during import.",
+                                });
+                            }
+                        }
+                    } else {
+                        Swal.fire({
+                            icon: "error",
+                            title: "Upload Failed",
+                            text: "A network error occurred. Please try again.",
+                        });
+                    }
+                });
+
+                xhr.addEventListener("error", () => {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Upload Failed",
+                        text: "A network error occurred. Please try again.",
+                    });
+                });
+
+                xhr.open("POST", "{% url 'import_mock_exam_scores_batch' %}", true);
+                xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+                xhr.send(formData);
+            }
+        });
+    }
+
+    // Handle file upload for single class import
+    function uploadMockExamSingleFile(file, assignmentId) {
+        // Show progress
+        Swal.fire({
+            title: "Uploading...",
+            html: `
+                <div class="progress mb-3">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                </div>
+                <div id="upload-status">Preparing upload...</div>
+            `,
+            showConfirmButton: false,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                const progressBar = Swal.getPopup().querySelector(".progress-bar");
+                const statusText = Swal.getPopup().querySelector("#upload-status");
+
+                // Create FormData
+                const formData = new FormData();
+                formData.append("scoreFile", file);
+                formData.append("assignment_id", assignmentId);
+                formData.append("csrfmiddlewaretoken", getCookie("csrftoken"));
+
+                // Create XHR
+                const xhr = new XMLHttpRequest();
+
+                // Track upload progress
+                xhr.upload.addEventListener("progress", (e) => {
+                    if (e.lengthComputable) {
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        progressBar.style.width = percentComplete + "%";
+                        statusText.textContent = `Uploading: ${Math.round(percentComplete)}%`;
+                    }
+                });
+
+                xhr.addEventListener("load", () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Import Successful",
+                                    text: `Successfully imported mock exam scores for ${response.updated_count} students.`,
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                let errorDetails = '';
+                                if (response.error_messages && response.error_messages.length) {
+                                    errorDetails = `<br><br><strong>Details:</strong><ul>${response.error_messages.map(err => `<li>${err}</li>`).join('')}</ul>`;
+                                }
+                                Swal.fire({
+                                    icon: "error",
+                                    title: "Import Failed",
+                                    html: `${response.error || "Error importing file"}${errorDetails}`,
+                                });
+                            }
+                        } catch (e) {
+                            // If not JSON, it might be an HTML response (e.g., redirect)
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Import Successful",
+                                    text: "Mock exam scores were imported successfully.",
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                                return;
+                            } else {
+                                Swal.fire({
+                                    icon: "error",
+                                    title: "Import Failed",
+                                    text: "An error occurred during import.",
+                                });
+                            }
+                        }
+                    } else {
+                        Swal.fire({
+                            icon: "error",
+                            title: "Upload Failed",
+                            text: "A network error occurred. Please try again.",
+                        });
+                    }
+                });
+
+                xhr.addEventListener("error", () => {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Upload Failed",
+                        text: "A network error occurred. Please try again.",
+                    });
+                });
+
+                xhr.open("POST", "{% url 'import_mock_exam_scores' %}", true);
+                xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+                xhr.send(formData);
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

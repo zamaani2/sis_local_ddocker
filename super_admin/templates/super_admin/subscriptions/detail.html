@@ -1,0 +1,371 @@
+{% extends 'super_admin/base.html' %}
+{% load static %}
+
+{% block title %}Subscription Details - {{ block.super }}{% endblock %}
+
+{% block page_title %}Subscription Details{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'super_admin:subscription_list' %}">Subscriptions</a></li>
+<li class="breadcrumb-item active">{{ subscription.id }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Subscription Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h2 class="mb-1">Subscription #{{ subscription.id }}</h2>
+              <p class="mb-0 text-muted">
+                <i class="bi bi-building me-1"></i> <a href="{% url 'super_admin:school_detail' subscription.school.id %}">{{ subscription.school.name }}</a>
+                {% if subscription.status == 'active' %}
+                <span class="badge bg-success ms-2">Active</span>
+                {% elif subscription.status == 'trial' %}
+                <span class="badge bg-info ms-2">Trial</span>
+                {% elif subscription.status == 'expired' %}
+                <span class="badge bg-danger ms-2">Expired</span>
+                {% elif subscription.status == 'cancelled' %}
+                <span class="badge bg-warning ms-2">Cancelled</span>
+                {% endif %}
+              </p>
+            </div>
+            <div class="d-flex">
+              <a href="{% url 'super_admin:subscription_update' subscription.id %}" class="btn btn-primary me-2">
+                <i class="bi bi-pencil me-1"></i> Edit Subscription
+              </a>
+              <div class="dropdown">
+                <button class="btn btn-secondary dropdown-toggle" type="button" id="actionDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                  Actions
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionDropdown">
+                  <li><a class="dropdown-item" href="{% url 'super_admin:school_detail' subscription.school.id %}"><i class="bi bi-building me-1"></i> View School</a></li>
+                  {% if subscription.status == 'active' or subscription.status == 'trial' %}
+                  <li><a class="dropdown-item text-warning" href="{% url 'super_admin:subscription_cancel' subscription.id %}"><i class="bi bi-x-circle me-1"></i> Cancel Subscription</a></li>
+                  {% elif subscription.status == 'expired' or subscription.status == 'cancelled' %}
+                  <li><a class="dropdown-item text-success" href="#" data-bs-toggle="modal" data-bs-target="#renewModal"><i class="bi bi-arrow-repeat me-1"></i> Renew Subscription</a></li>
+                  {% endif %}
+                  {% if subscription.status == 'trial' %}
+                  <li><a class="dropdown-item text-primary" href="#" data-bs-toggle="modal" data-bs-target="#convertModal"><i class="bi bi-arrow-up-circle me-1"></i> Convert to Paid</a></li>
+                  {% endif %}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Subscription Details -->
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="m-0 font-weight-bold">Subscription Information</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <dl class="row">
+                <dt class="col-sm-4">Subscription ID:</dt>
+                <dd class="col-sm-8">{{ subscription.id }}</dd>
+                
+                <dt class="col-sm-4">Plan:</dt>
+                <dd class="col-sm-8">{{ subscription.plan.name }}</dd>
+                
+                <dt class="col-sm-4">Price:</dt>
+                <dd class="col-sm-8">${{ subscription.plan.price }}/{{ subscription.plan.billing_cycle }}</dd>
+                
+                <dt class="col-sm-4">Status:</dt>
+                <dd class="col-sm-8">
+                  {% if subscription.status == 'active' %}
+                  <span class="text-success">Active</span>
+                  {% elif subscription.status == 'trial' %}
+                  <span class="text-info">Trial</span>
+                  {% elif subscription.status == 'expired' %}
+                  <span class="text-danger">Expired</span>
+                  {% elif subscription.status == 'cancelled' %}
+                  <span class="text-warning">Cancelled</span>
+                  {% endif %}
+                </dd>
+              </dl>
+            </div>
+            <div class="col-md-6">
+              <dl class="row">
+                <dt class="col-sm-4">Start Date:</dt>
+                <dd class="col-sm-8">{{ subscription.start_date|date:"F d, Y" }}</dd>
+                
+                <dt class="col-sm-4">End Date:</dt>
+                <dd class="col-sm-8">{{ subscription.end_date|date:"F d, Y" }}</dd>
+                
+                <dt class="col-sm-4">Auto Renew:</dt>
+                <dd class="col-sm-8">
+                  {% if subscription.auto_renew %}
+                  <span class="text-success">Yes</span>
+                  {% else %}
+                  <span class="text-danger">No</span>
+                  {% endif %}
+                </dd>
+                
+                <dt class="col-sm-4">Created On:</dt>
+                <dd class="col-sm-8">{{ subscription.created_at|date:"F d, Y" }}</dd>
+              </dl>
+            </div>
+          </div>
+          
+          {% if subscription.status == 'active' %}
+          <div class="progress mb-2 mt-4">
+            <div class="progress-bar bg-success" role="progressbar" style="width: {{ subscription_progress }}%" 
+                 aria-valuenow="{{ subscription_progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+          <p class="text-center text-muted small">{{ days_remaining }} days remaining</p>
+          {% elif subscription.status == 'trial' %}
+          <div class="progress mb-2 mt-4">
+            <div class="progress-bar bg-info" role="progressbar" style="width: {{ trial_progress }}%" 
+                 aria-valuenow="{{ trial_progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+          <p class="text-center text-muted small">{{ trial_days_remaining }} days remaining in trial</p>
+          {% endif %}
+        </div>
+      </div>
+      
+      <!-- Transaction History -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="m-0 font-weight-bold">Transaction History</h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+              <thead>
+                <tr>
+                  <th>Transaction ID</th>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Payment Method</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for transaction in transactions %}
+                <tr>
+                  <td>
+                    <a href="{% url 'super_admin:transaction_detail' transaction.id %}">{{ transaction.id }}</a>
+                  </td>
+                  <td>{{ transaction.payment_date|date:"M d, Y" }}</td>
+                  <td>${{ transaction.amount }}</td>
+                  <td>{{ transaction.payment_method|title }}</td>
+                  <td>
+                    {% if transaction.status == 'completed' %}
+                    <span class="badge bg-success">Completed</span>
+                    {% elif transaction.status == 'pending' %}
+                    <span class="badge bg-warning">Pending</span>
+                    {% elif transaction.status == 'failed' %}
+                    <span class="badge bg-danger">Failed</span>
+                    {% else %}
+                    <span class="badge bg-secondary">{{ transaction.status|title }}</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center">No transactions found for this subscription.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Sidebar Information -->
+    <div class="col-lg-4">
+      <!-- Plan Details -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="m-0 font-weight-bold">Plan Details</h6>
+        </div>
+        <div class="card-body">
+          <h5 class="card-title">{{ subscription.plan.name }}</h5>
+          <h6 class="card-subtitle mb-3 text-muted">${{ subscription.plan.price }}/{{ subscription.plan.billing_cycle }}</h6>
+          
+          <dl class="row">
+            <dt class="col-sm-6">Max Users:</dt>
+            <dd class="col-sm-6">{{ subscription.plan.max_users }}</dd>
+            
+            <dt class="col-sm-6">Max Storage:</dt>
+            <dd class="col-sm-6">{{ subscription.plan.max_storage }} MB</dd>
+            
+            <dt class="col-sm-6">Features:</dt>
+            <dd class="col-sm-6">
+              <ul class="list-unstyled">
+                {% for feature in subscription.plan.features %}
+                <li><i class="bi bi-check-circle text-success me-1"></i> {{ feature }}</li>
+                {% endfor %}
+              </ul>
+            </dd>
+          </dl>
+          
+          <div class="d-grid gap-2 mt-3">
+            <a href="{% url 'super_admin:plan_detail' subscription.plan.id %}" class="btn btn-outline-primary">
+              <i class="bi bi-info-circle me-1"></i> View Plan Details
+            </a>
+          </div>
+        </div>
+      </div>
+      
+      <!-- School Information -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="m-0 font-weight-bold">School Information</h6>
+        </div>
+        <div class="card-body">
+          <h5 class="card-title">{{ subscription.school.name }}</h5>
+          <p class="text-muted">{{ subscription.school.domain }}</p>
+          
+          <dl class="row">
+            <dt class="col-sm-6">Admin Name:</dt>
+            <dd class="col-sm-6">{{ subscription.school.admin_name }}</dd>
+            
+            <dt class="col-sm-6">Admin Email:</dt>
+            <dd class="col-sm-6">{{ subscription.school.admin_email }}</dd>
+            
+            <dt class="col-sm-6">Total Students:</dt>
+            <dd class="col-sm-6">{{ subscription.school.students_count }}</dd>
+            
+            <dt class="col-sm-6">Total Teachers:</dt>
+            <dd class="col-sm-6">{{ subscription.school.teachers_count }}</dd>
+          </dl>
+          
+          <div class="d-grid gap-2 mt-3">
+            <a href="{% url 'super_admin:school_detail' subscription.school.id %}" class="btn btn-outline-primary">
+              <i class="bi bi-building me-1"></i> View School Details
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Renew Subscription Modal -->
+<div class="modal fade" id="renewModal" tabindex="-1" aria-labelledby="renewModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="renewModalLabel">Renew Subscription</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="{% url 'super_admin:subscription_renew' subscription.id %}" method="post">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="plan" class="form-label">Subscription Plan</label>
+            <select class="form-select" id="plan" name="plan">
+              {% for plan in available_plans %}
+              <option value="{{ plan.id }}" {% if plan.id == subscription.plan.id %}selected{% endif %}>
+                {{ plan.name }} - ${{ plan.price }}/{{ plan.billing_cycle }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <div class="mb-3">
+            <label for="duration" class="form-label">Duration</label>
+            <select class="form-select" id="duration" name="duration">
+              <option value="1">1 month</option>
+              <option value="3">3 months</option>
+              <option value="6">6 months</option>
+              <option value="12" selected>1 year</option>
+            </select>
+          </div>
+          
+          <div class="mb-3">
+            <label for="payment_method" class="form-label">Payment Method</label>
+            <select class="form-select" id="payment_method" name="payment_method">
+              <option value="credit_card">Credit Card</option>
+              <option value="bank_transfer">Bank Transfer</option>
+              <option value="paypal">PayPal</option>
+              <option value="manual">Manual Entry</option>
+            </select>
+          </div>
+          
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="auto_renew" name="auto_renew" checked>
+            <label class="form-check-label" for="auto_renew">
+              Enable auto-renewal
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success">Renew Subscription</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Convert to Paid Modal -->
+<div class="modal fade" id="convertModal" tabindex="-1" aria-labelledby="convertModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="convertModalLabel">Convert to Paid Subscription</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="{% url 'super_admin:subscription_convert' subscription.id %}" method="post">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="convert_plan" class="form-label">Select Plan</label>
+            <select class="form-select" id="convert_plan" name="plan">
+              {% for plan in available_plans %}
+              <option value="{{ plan.id }}">
+                {{ plan.name }} - ${{ plan.price }}/{{ plan.billing_cycle }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <div class="mb-3">
+            <label for="convert_duration" class="form-label">Duration</label>
+            <select class="form-select" id="convert_duration" name="duration">
+              <option value="1">1 month</option>
+              <option value="3">3 months</option>
+              <option value="6">6 months</option>
+              <option value="12" selected>1 year</option>
+            </select>
+          </div>
+          
+          <div class="mb-3">
+            <label for="convert_payment_method" class="form-label">Payment Method</label>
+            <select class="form-select" id="convert_payment_method" name="payment_method">
+              <option value="credit_card">Credit Card</option>
+              <option value="bank_transfer">Bank Transfer</option>
+              <option value="paypal">PayPal</option>
+              <option value="manual">Manual Entry</option>
+            </select>
+          </div>
+          
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="convert_auto_renew" name="auto_renew" checked>
+            <label class="form-check-label" for="convert_auto_renew">
+              Enable auto-renewal
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Convert to Paid</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %} 

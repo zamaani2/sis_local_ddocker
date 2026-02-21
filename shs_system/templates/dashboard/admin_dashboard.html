@@ -1,0 +1,1041 @@
+{% extends "base.html" %} {% load static %} {% load dashboard_tags %}
+{% block title %}Admin Dashboard{% endblock %} 
+
+{% block page_title %}Admin Dashboard{% endblock %} 
+{% block extra_css %}
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %}
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              Admin Dashboard
+            {% endif %}
+          </h2>
+          <p class="text-light mb-0">
+            {% if current_academic_year %}
+              Current academic year and term management
+            {% else %}
+              Comprehensive overview of school management system
+            {% endif %}
+          </p>
+        </div>
+        <div class="btn-group">
+          <button type="button" class="btn btn-outline-primary" onclick="refreshDashboard()">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- School Info and System Status -->
+  <div class="row mb-4">
+    <div class="col-md-9">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            {% if school_info.logo %}
+            <img
+              src="{{ school_info.logo.url }}"
+              alt="School Logo"
+              style="height: 80px; margin-right: 20px"
+            />
+            {% endif %}
+            <div>
+              <h2 class="mb-1">{{ school_info.name }}</h2>
+              <p class="text-white mb-0">{{ school_info.motto }}</p>
+              <div class="d-flex align-items-center mt-2">
+                <span class="badge bg-success me-2"
+                  >Active Term: {{ current_term }}</span
+                >
+                <span class="badge bg-info"
+                  >Academic Year: {{ current_academic_year }}</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">System Status</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-flex justify-content-between mb-2">
+            <span>Term Progress</span>
+            <span>{{ term_progress|default:"0" }}%</span>
+          </div>
+          <div class="progress mb-3">
+            <div
+              class="progress-bar bg-success"
+              role="progressbar"
+              style="width: {{ term_progress|default:'0' }}%"
+              aria-valuenow="{{ term_progress|default:'0' }}"
+              aria-valuemin="0"
+              aria-valuemax="100"
+            ></div>
+          </div>
+          <div class="d-grid gap-2">
+            <a
+              href="{% url 'current_settings_dashboard' %}"
+              class="btn btn-success btn-sm"
+              ><i class="bi bi-lightning"></i> Quick Set Current</a
+            >
+            <a
+              href="{% url 'academic_year_list' %}"
+              class="btn btn-outline-primary"
+              >Manage Terms</a
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Teacher Monitoring Stats Section -->
+  {% if teacher_monitoring_summary %}
+  <div class="row mb-4">
+      <div class="col-12">
+          <div class="card">
+              <div class="card-header">
+                  <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Teacher Activity Monitoring</h5>
+              </div>
+              <div class="card-body">
+                  <div class="row">
+                      <div class="col-md-4">
+                          <div class="card bg-primary text-white mb-4">
+                              <div class="card-body">
+                                  <h5>Score Entry</h5>
+                                  <div class="d-flex justify-content-between align-items-center">
+                                      <span class="display-5">{{ teacher_monitoring_summary.scores_completion_percent }}%</span>
+                                      <span class="fs-6">{{ teacher_monitoring_summary.scores_completed }} / {{ teacher_monitoring_summary.total_teachers }}</span>
+                                  </div>
+                                  <div class="progress bg-white mt-2">
+                                      <div class="progress-bar bg-success" role="progressbar" style="width: {{ teacher_monitoring_summary.scores_completion_percent }}%" 
+                                          aria-valuenow="{{ teacher_monitoring_summary.scores_completion_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                      <div class="col-md-4">
+                          <div class="card bg-warning text-dark mb-4">
+                              <div class="card-body">
+                                  <h5>Remarks Entry</h5>
+                                  <div class="d-flex justify-content-between align-items-center">
+                                      <span class="display-5">{{ teacher_monitoring_summary.remarks_completion_percent }}%</span>
+                                      <span class="fs-6">{{ teacher_monitoring_summary.remarks_completed }} / {{ teacher_monitoring_summary.total_teachers }}</span>
+                                  </div>
+                                  <div class="progress bg-white mt-2">
+                                      <div class="progress-bar bg-success" role="progressbar" style="width: {{ teacher_monitoring_summary.remarks_completion_percent }}%" 
+                                          aria-valuenow="{{ teacher_monitoring_summary.remarks_completion_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                      <div class="col-md-4">
+                          <div class="card bg-info text-white mb-4">
+                              <div class="card-body">
+                                  <h5>Attendance Records</h5>
+                                  <div class="d-flex justify-content-between align-items-center">
+                                      <span class="display-5">{{ teacher_monitoring_summary.attendance_completion_percent }}%</span>
+                                      <span class="fs-6">{{ teacher_monitoring_summary.attendance_completed }} / {{ teacher_monitoring_summary.total_teachers }}</span>
+                                  </div>
+                                  <div class="progress bg-white mt-2">
+                                      <div class="progress-bar bg-success" role="progressbar" style="width: {{ teacher_monitoring_summary.attendance_completion_percent }}%" 
+                                          aria-valuenow="{{ teacher_monitoring_summary.attendance_completion_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+                  <div class="text-end">
+                      <a href="{% url 'teacher_monitoring' %}" class="btn btn-primary">View Detailed Monitoring</a>
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+  {% endif %}
+
+  <!-- Key Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="mb-0">{{ total_students }}</h4>
+              <p class="mb-0">Total Students</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-users fa-2x"></i>
+            </div>
+          </div>
+          <a href="{% url 'student_list' %}" class="btn btn-primary btn-sm mt-2">
+            View Students <i class="fas fa-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="mb-0">{{ total_teachers }}</h4>
+              <p class="mb-0">Teachers</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-chalkboard-teacher fa-2x"></i>
+            </div>
+          </div>
+          <a href="{% url 'teacher_list' %}" class="btn btn-primary btn-sm mt-2">
+            Manage Teachers <i class="fas fa-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="mb-0">{{ total_classes }}</h4>
+              <p class="mb-0">Classes</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-school fa-2x"></i>
+            </div>
+          </div>
+          <a href="{% url 'class_list' %}" class="btn btn-primary btn-sm mt-2">
+            Manage Classes <i class="fas fa-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="mb-0">{{ attendance_rate }}<sup class="fs-5">%</sup></h4>
+              <p class="mb-0">Attendance Rate</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-calendar-check fa-2x"></i>
+            </div>
+          </div>
+          <a href="#attendance-report" class="btn btn-primary btn-sm mt-2">
+            Attendance Details <i class="fas fa-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+    <!-- Score Statistics Cards -->
+    <div class="row mb-4">
+
+      {% get_score_statistics school_info as stats %}
+
+      <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1"> Average Score</div>
+                <div class="h5 mb-0 font-weight-bold">{{ stats.avg_score|floatformat:2 }}%</div>
+              </div>
+              <div class="align-self-center">
+                <i class="fas fa-graduation-cap text-primary fa-2x"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                  Passing Rate</div>
+                <div class="h5 mb-0 font-weight-bold">{{ stats.passing_percentage }}%</div>
+              </div>
+              <div class="align-self-center">
+                <i class="fas fa-check-circle text-success fa-2x"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Excellent Performance
+                </div>
+                <div class="h5 mb-0 font-weight-bold">{{ stats.excellent_percentage }}%</div>
+                <div class="progress mt-2" style="height: 4px;">
+                  <div class="progress-bar bg-info" role="progressbar"
+                    style="width: {{ stats.excellent_percentage }}%" aria-valuenow="{{ stats.excellent_percentage }}" aria-valuemin="0"
+                    aria-valuemax="100"></div>
+                </div>
+              </div>
+              <div class="align-self-center">
+                <i class="fas fa-clipboard-check text-info fa-2x"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                  Below Average</div>
+                <div class="h5 mb-0 font-weight-bold">{{ stats.below_average_percentage }}%</div>
+              </div>
+              <div class="align-self-center">
+                <i class="fas fa-exclamation-triangle text-warning fa-2x"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Academic Performance Analytics -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card shadow">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Academic Performance Analytics</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <!-- Score Distribution Chart -->
+              <div class="col-lg-6">
+                <div class="card mb-4">
+                  <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-light">Score Distribution</h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:300px;">
+                      <canvas id="scoreDistributionChart"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Subject Performance Chart -->
+              <div class="col-lg-6">
+                <div class="card mb-4">
+                  <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-light">Top Subject Performance</h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:300px;">
+                      <canvas id="subjectPerformanceChart"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <!-- Class Performance Chart -->
+              <div class="col-lg-6">
+                <div class="card mb-4">
+                  <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-light">Class Performance</h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:300px;">
+                      <canvas id="classPerformanceChart"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Term Performance Trend -->
+              <div class="col-lg-6">
+                <div class="card mb-4">
+                  <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-light">Term Performance Trend</h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:300px;">
+                      <canvas id="termPerformanceChart"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Main Dashboard Content -->
+    <div class="row">
+      <!-- Left Column -->
+      <div class="col-md-8">
+        <!-- Academic Performance Card -->
+        <div class="card mb-4">
+          <div
+            class="card-header d-flex justify-content-between align-items-center"
+          >
+            <h5 class="card-title">Academic Performance</h5>
+            <div class="btn-group btn-group-sm">
+              <button type="button" class="btn btn-outline-light">
+                This Term
+              </button>
+              <button type="button" class="btn btn-outline-primary">
+                Year Trend
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="performance-chart" style="height: 300px"></div>
+            <div class="row text-center mt-3">
+              <div class="col-md-3 col-6">
+                <h5 class="text-primary mb-0">{{ avg_score|default:"0" }}</h5>
+                <small class="text-white">Avg Score</small>
+              </div>
+              <div class="col-md-3 col-6">
+                <h5 class="text-success mb-0">{{ passing_rate|default:"0" }}%</h5>
+                <small class="text-white">Passing Rate</small>
+              </div>
+              <div class="col-md-3 col-6">
+                <h5 class="text-danger mb-0">{{ failing_rate|default:"0" }}%</h5>
+                <small class="text-white">Failing Rate</small>
+              </div>
+              <div class="col-md-3 col-6">
+                <h5 class="text-info mb-0">{{ total_subjects|default:"0" }}</h5>
+                <small class="text-white">Subjects</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Student Distribution -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title">Student Distribution</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div id="students-by-form-chart" style="height: 250px"></div>
+              </div>
+              <div class="col-md-6">
+                <div
+                  id="students-by-learning-area-chart"
+                  style="height: 250px"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div class="col-md-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">Quick Actions</h5>
+          </div>
+          <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+              <a
+                href="{% url 'student_promotion' %}"
+                class="list-group-item list-group-item-action d-flex align-items-center"
+              >
+                <i class="fas fa-user-graduate me-3 text-primary"></i>
+                <div>
+                  <div class="fw-bold">Student Promotion</div>
+                  <small class="text-light">Promote students to next form</small>
+                </div>
+              </a>
+              <a
+                href="{% url 'score_management_dashboard' %}"
+                class="list-group-item list-group-item-action d-flex align-items-center"
+              >
+                <i class="fas fa-chart-line me-3 text-primary"></i>
+                <div>
+                  <div class="fw-bold">Score Management</div>
+                  <small class="text-light">Comprehensive score analysis</small>
+                </div>
+              </a>
+              <a
+
+                href="{% url 'enhanced_enter_scores' %}"
+
+                class="list-group-item list-group-item-action d-flex align-items-center"
+              >
+                <i class="fas fa-clipboard-check me-3 text-success"></i>
+                <div>
+                  <div class="fw-bold">Enter Scores</div>
+
+                  <small class="text-light">Record student assessments (with teacher filter)</small>
+
+                </div>
+              </a>
+              <a
+                href="{% url 'score_sheet' %}"
+                class="list-group-item list-group-item-action d-flex align-items-center"
+              >
+                <i class="fas fa-table me-3 text-info"></i>
+                <div>
+                  <div class="fw-bold">Score Sheet</div>
+                  <small class="text-light">View detailed class score sheets</small>
+                </div>
+              </a>
+              <a
+                href="{% url 'class_teacher_remarks' %}"
+                class="list-group-item list-group-item-action d-flex align-items-center"
+              >
+                <i class="fas fa-comments me-3 text-info"></i>
+                <div>
+                  <div class="fw-bold">Teacher Remarks</div>
+                  <small class="text-light">Manage class teacher feedback</small>
+                </div>
+              </a>
+              <a
+                href="{% url 'student_class_assignment_dashboard' %}"
+                class="list-group-item list-group-item-action d-flex align-items-center"
+              >
+                <i class="fas fa-users-cog me-3 text-warning"></i>
+                <div>
+                  <div class="fw-bold">Student Class Assignment</div>
+                  <small class="text-light">Manage student class assignments</small>
+                </div>
+              </a>
+              <a
+                href="{% url 'user_management' %}"
+                class="list-group-item list-group-item-action d-flex align-items-center"
+              >
+                <i class="fas fa-users me-3 text-warning"></i>
+                <div>
+                  <div class="fw-bold">User Management</div>
+                  <small class="text-light">Manage system users</small>
+                </div>
+              </a>
+              <a
+                href="{% url 'teacher_monitoring' %}"
+                class="list-group-item list-group-item-action d-flex align-items-center"
+              >
+                <i class="fas fa-chart-line me-3 text-danger"></i>
+                <div>
+                  <div class="fw-bold">Teacher Activity Monitoring</div>
+                  <small class="text-light">Monitor teacher score entry and remarks</small>
+                </div>
+              </a>
+              <a
+                href="#generate-reports"
+                class="list-group-item list-group-item-action d-flex align-items-center"
+              >
+                <i class="fas fa-file-alt me-3 text-danger"></i>
+                <div>
+                  <div class="fw-bold">Generate Reports</div>
+                  <small class="text-light">Create academic reports</small>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Recent Activities</h5>
+          </div>
+          <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+              {% if recent_activities %} {% for activity in recent_activities %}
+              <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between">
+                  <h6 class="mb-1">{{ activity.action }}</h6>
+                  <small>{{ activity.timestamp|timesince }} ago</small>
+                </div>
+                <p class="mb-1">{{ activity.description }}</p>
+                <small>By: {{ activity.user }}</small>
+              </div>
+              {% endfor %} {% else %}
+              <div class="list-group-item text-center text-light py-3">
+                No recent activities to display
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="card-footer text-center">
+            <a href="#view-all-activities" class="btn btn-outline-primary"
+              >View All Activities</a
+            >
+          </div>
+        </div>
+      </div>
+      
+    </div>
+      <!-- Top Students -->
+    <div class="row mb-4">
+      <div class="col-md-12">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-trophy me-2 text-warning"></i>Top Performing Students</h5>
+          </div>
+          <div class="card-body">
+
+            {% get_top_students school_info as top_students %}
+
+            {% if top_students %}
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Student Name</th>
+                    <th>Current Class</th>
+                    <th>Average Score</th>
+                    <th>Performance Level</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for student in top_students %}
+                  <tr>
+                    <td>
+                      <span class="badge bg-primary">{{ forloop.counter }}</span>
+                    </td>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center" 
+                             style="width: 32px; height: 32px;">
+                          <i class="fas fa-user text-white"></i>
+                        </div>
+                        <div>
+                          <strong>{{ student.full_name }}</strong>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge bg-info">{{ student.current_class }}</span>
+                    </td>
+                    <td>
+                      <strong>{{ student.avg_score }}%</strong>
+                    </td>
+                    <td>
+                      <span class="badge {% if student.avg_score >= 80 %}bg-success
+                            {% elif student.avg_score >= 70 %}bg-primary
+                            {% elif student.avg_score >= 60 %}bg-info
+                            {% elif student.avg_score >= 40 %}bg-warning
+                            {% else %}bg-danger{% endif %}">
+                        {% if student.avg_score >= 80 %}Excellent
+                        {% elif student.avg_score >= 70 %}Very Good
+                        {% elif student.avg_score >= 60 %}Good
+                        {% elif student.avg_score >= 40 %}Average
+                        {% else %}Below Average{% endif %}
+                      </span>
+                    </td>
+                    <td>
+                      <a href="{% url 'student_score_detail' student.student.id %}" class="btn btn-outline-primary">
+                        <i class="fas fa-chart-line"></i> View Details
+                      </a>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+              <i class="fas fa-users fa-3x text-muted mb-3"></i>
+              <h5 class="text-white">No Student Data Available</h5>
+              <p class="text-white">Student performance data will appear here once scores are entered.</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Academic Structure & Resources -->
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-layer-group me-2 text-primary"></i>Academic Structure</h5>
+          </div>
+          <div class="card-body p-0">
+            <div class="row g-0">
+              <div class="col-6 border-end">
+                <div class="list-group list-group-flush">
+                  <a
+                    href="{% url 'form_list' %}"
+                    class="list-group-item list-group-item-action"
+                  >
+                    <i class="fas fa-layer-group me-2 text-primary"></i>
+                    Forms/Grade Levels
+                  </a>
+                  <a
+                    href="{% url 'learning_area_list' %}"
+                    class="list-group-item list-group-item-action"
+                  >
+                    <i class="fas fa-book me-2 text-success"></i> Learning Areas
+                  </a>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="list-group list-group-flush">
+                  <a
+                    href="{% url 'department_list' %}"
+                    class="list-group-item list-group-item-action"
+                  >
+                    <i class="fas fa-building me-2 text-info"></i> Departments
+                  </a>
+                  <a
+                    href="{% url 'subject_list' %}"
+                    class="list-group-item list-group-item-action">
+                    <i class="fas fa-book-open me-2 text-warning"></i> Subjects
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-cogs me-2 text-success"></i>School Management</h5>
+          </div>
+          <div class="card-body p-0">
+            <div class="row g-0">
+              <div class="col-6 border-end">
+                <div class="list-group list-group-flush">
+                  <a
+                    href="{% url 'school_information_list' %}"
+                    class="list-group-item list-group-item-action"
+                  >
+                    <i class="fas fa-school me-2 text-primary"></i> School
+                    Information
+                  </a>
+                  <a
+                    href="#attendance-settings"
+                    class="list-group-item list-group-item-action"
+                  >
+                    <i class="fas fa-calendar-check me-2 text-success"></i>
+                    Attendance Settings
+                  </a>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="list-group list-group-flush">
+                  <a
+                    href="#grading-system"
+                    class="list-group-item list-group-item-action"
+                  >
+                    <i class="fas fa-chart-line me-2 text-info"></i> Grading
+                    System
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.37.1/dist/apexcharts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  function refreshDashboard() {
+    // Add loading state
+    const btn = event.target.closest("button");
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+    btn.disabled = true;
+
+    // Simulate refresh (in a real implementation, you'd make an AJAX call)
+    setTimeout(() => {
+      location.reload();
+    }, 1000);
+  }
+
+  function showAlert(type, message) {
+    // Create and show alert
+    const alertDiv = document.createElement("div");
+    alertDiv.className = `alert alert-${
+      type === "success" ? "success" : "danger"
+    } alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+      <i class="fas fa-${
+        type === "success" ? "check-circle" : "exclamation-triangle"
+      }"></i>
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    // Insert at the top of the container
+    const container = document.querySelector(".container-fluid");
+    if (container) {
+      container.insertBefore(alertDiv, container.firstChild);
+    }
+
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+      if (alertDiv.parentNode) {
+        alertDiv.remove();
+      }
+    }, 5000);
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+
+    // Get chart data from template tags
+    {% get_score_distribution_data school_info as score_distribution %}
+    {% get_subject_performance_data school_info as subject_performance %}
+    {% get_class_performance_data school_info as class_performance %}
+    {% get_term_performance_trend school_info as term_performance %}
+
+    
+    // Score Distribution Chart
+    if (document.getElementById('scoreDistributionChart')) {
+      var ctx = document.getElementById('scoreDistributionChart').getContext('2d');
+      var scoreDistributionChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+
+          labels: JSON.parse('{{ score_distribution.labels|safe }}'),
+          datasets: [{
+            data: JSON.parse('{{ score_distribution.data|safe }}'),
+
+            backgroundColor: [
+              'rgba(255, 99, 132, 0.7)',
+              'rgba(255, 159, 64, 0.7)',
+              'rgba(255, 205, 86, 0.7)',
+              'rgba(75, 192, 192, 0.7)',
+              'rgba(54, 162, 235, 0.7)'
+            ],
+            borderColor: [
+              'rgb(255, 99, 132)',
+              'rgb(255, 159, 64)',
+              'rgb(255, 205, 86)',
+              'rgb(75, 192, 192)',
+              'rgb(54, 162, 235)'
+            ],
+            borderWidth: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+            },
+            title: {
+              display: true,
+              text: 'Score Distribution'
+            }
+          }
+        }
+      });
+    }
+    
+    // Subject Performance Chart
+    if (document.getElementById('subjectPerformanceChart')) {
+      var ctx = document.getElementById('subjectPerformanceChart').getContext('2d');
+      var subjectPerformanceChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+
+          labels: JSON.parse('{{ subject_performance.labels|safe }}'),
+          datasets: [{
+            label: 'Average Score',
+            data: JSON.parse('{{ subject_performance.data|safe }}'),
+
+            backgroundColor: 'rgba(78, 115, 223, 0.7)',
+            borderColor: 'rgba(78, 115, 223, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100
+            }
+          },
+          plugins: {
+            title: {
+              display: true,
+              text: 'Subject Performance'
+            }
+          }
+        }
+      });
+    }
+    
+    // Class Performance Chart
+    if (document.getElementById('classPerformanceChart')) {
+      var ctx = document.getElementById('classPerformanceChart').getContext('2d');
+      var classPerformanceChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+
+          labels: JSON.parse('{{ class_performance.labels|safe }}'),
+          datasets: [{
+            label: 'Average Score',
+            data: JSON.parse('{{ class_performance.data|safe }}'),
+
+            backgroundColor: 'rgba(28, 200, 138, 0.7)',
+            borderColor: 'rgba(28, 200, 138, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100
+            }
+          },
+          plugins: {
+            title: {
+              display: true,
+              text: 'Class Performance'
+            }
+          }
+        }
+      });
+    }
+    
+    // Term Performance Trend Chart
+    if (document.getElementById('termPerformanceChart')) {
+      var ctx = document.getElementById('termPerformanceChart').getContext('2d');
+      var termPerformanceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+
+          labels: JSON.parse('{{ term_performance.labels|safe }}'),
+          datasets: [{
+            label: 'Average Score',
+            data: JSON.parse('{{ term_performance.data|safe }}'),
+
+            backgroundColor: 'rgba(246, 194, 62, 0.2)',
+            borderColor: 'rgba(246, 194, 62, 1)',
+            borderWidth: 2,
+            tension: 0.1,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100
+            }
+          },
+          plugins: {
+            title: {
+              display: true,
+              text: 'Term Performance Trend'
+            }
+          }
+        }
+      });
+    }
+    
+    // Performance Chart (from existing code)
+    const performanceOptions = {
+      series: [{
+        name: "Average Score",
+
+        data: [{{ avg_score|default:"0" }}, {{ passing_rate|default:"0" }}, {{ failing_rate|default:"0" }}]
+
+      }],
+      chart: {
+        type: 'bar',
+        height: 300,
+        toolbar: {
+          show: false
+        }
+      },
+      plotOptions: {
+        bar: {
+          borderRadius: 4,
+          horizontal: false,
+        }
+      },
+      colors: ['#0d6efd', '#198754', '#dc3545'],
+      dataLabels: {
+        enabled: false
+      },
+      xaxis: {
+        categories: ['Average Score', 'Passing Rate', 'Failing Rate'],
+      }
+    };
+
+    if (document.getElementById('performance-chart')) {
+      const performanceChart = new ApexCharts(document.getElementById('performance-chart'), performanceOptions);
+      performanceChart.render();
+    }
+
+    // Students by Form Chart (from existing code)
+    const studentsByFormOptions = {
+      series: [{% for form_number, count in students_by_form.items %}{{ count }}{% if not forloop.last %},{% endif %}{% endfor %}],
+      chart: {
+        type: 'donut',
+        height: 250
+      },
+      labels: [{% for form_number, count in students_by_form.items %}'Form {{ form_number }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+      responsive: [{
+        breakpoint: 480,
+        options: {
+          chart: {
+            width: 200
+          },
+          legend: {
+            position: 'bottom'
+          }
+        }
+      }]
+    };
+
+    if (document.getElementById('students-by-form-chart')) {
+      const studentsByFormChart = new ApexCharts(document.getElementById('students-by-form-chart'), studentsByFormOptions);
+      studentsByFormChart.render();
+    }
+  });
+</script>
+{% endblock %}

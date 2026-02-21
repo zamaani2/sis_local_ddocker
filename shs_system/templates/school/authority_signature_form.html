@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+{% if form.instance.pk %}Edit Authority Signature{% else %}Add Authority Signature{% endif %}
+{% endblock %}
+
+{% block page_title %}
+{% if form.instance.pk %}Edit Authority Signature{% else %}Add Authority Signature{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .signature-preview {
+    max-width: 200px;
+    max-height: 100px;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+    background-color: #f8f9fa;
+  }
+  
+  .form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  }
+  
+  .custom-title-field {
+    transition: all 0.3s ease;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %}
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              {% if form.instance.pk %}Edit Authority Signature{% else %}Add Authority Signature{% endif %}
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if form.instance.pk %}Update authority signature details{% else %}Create a new authority signature for {{ school.name }}{% endif %}
+          </p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'authority_signature_list' school_id=school.id %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to List
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  {% if messages %}
+  <div class="row mb-4">
+    <div class="col-12">
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row">
+    <!-- Main Form -->
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-signature me-2"></i>
+            {% if form.instance.pk %}Edit Authority Signature{% else %}Add New Authority Signature{% endif %}
+          </h5>
+        </div>
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Authority Type and Custom Title -->
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="{{ form.authority_type.id_for_label }}" class="form-label">
+                  <i class="fas fa-user-tie me-1"></i>Authority Type <span class="text-danger">*</span>
+                </label>
+                {{ form.authority_type }}
+                {% if form.authority_type.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.authority_type.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+                {% if form.authority_type.help_text %}
+                <small class="form-text text-muted">{{ form.authority_type.help_text }}</small>
+                {% endif %}
+              </div>
+
+              <div class="col-md-6 mb-3 custom-title-field" style="display: none;">
+                <label for="{{ form.custom_title.id_for_label }}" class="form-label">
+                  <i class="fas fa-edit me-1"></i>Custom Title
+                </label>
+                {{ form.custom_title }}
+                {% if form.custom_title.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.custom_title.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+                {% if form.custom_title.help_text %}
+                <small class="form-text text-muted">{{ form.custom_title.help_text }}</small>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Name and Title -->
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="{{ form.name.id_for_label }}" class="form-label">
+                  <i class="fas fa-user me-1"></i>Name <span class="text-danger">*</span>
+                </label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.name.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="{{ form.title.id_for_label }}" class="form-label">
+                  <i class="fas fa-id-badge me-1"></i>Title <span class="text-danger">*</span>
+                </label>
+                {{ form.title }}
+                {% if form.title.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.title.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Signature Upload and Status -->
+            <div class="row">
+              <div class="col-md-8 mb-3">
+                <label for="{{ form.signature.id_for_label }}" class="form-label">
+                  <i class="fas fa-image me-1"></i>Signature <span class="text-danger">*</span>
+                </label>
+                {{ form.signature }}
+                {% if form.signature.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.signature.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+                {% if form.signature.help_text %}
+                <small class="form-text text-muted">{{ form.signature.help_text }}</small>
+                {% endif %}
+                
+                <!-- Current Signature Preview -->
+                {% if form.instance.signature %}
+                <div class="mt-3">
+                  <div class="d-flex align-items-center gap-3">
+                    <img src="{{ form.instance.signature.url }}" alt="Current Signature" class="signature-preview">
+                    <div>
+                      <p class="mb-1 text-muted small">Current signature</p>
+                      <small class="text-muted">Upload a new file to replace this signature</small>
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <label class="form-label">
+                  <i class="fas fa-toggle-on me-1"></i>Status
+                </label>
+                <div class="form-check form-switch">
+                  {{ form.is_active }}
+                  <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                    Active
+                  </label>
+                </div>
+                {% if form.is_active.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.is_active.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+                <small class="form-text text-muted">Only active signatures will be used on documents</small>
+              </div>
+            </div>
+
+            {{ form.school }}
+
+            <!-- Form Actions -->
+            <div class="d-flex justify-content-end mt-4 gap-2">
+              <a href="{% url 'authority_signature_list' school_id=school.id %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-1"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-1"></i>
+                {% if form.instance.pk %}Update Signature{% else %}Save Signature{% endif %}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Help Sidebar -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i>Help Information
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-4">
+            <h6 class="text-primary">
+              <i class="fas fa-signature me-2"></i>Authority Signatures
+            </h6>
+            <p class="text-muted">
+              Authority signatures are used on official documents such as report cards and certificates to authenticate them.
+            </p>
+          </div>
+
+          <div class="mb-4">
+            <h6 class="text-primary">
+              <i class="fas fa-list me-2"></i>Authority Types
+            </h6>
+            <div class="list-group list-group-flush">
+              <div class="list-group-item px-0 py-2 border-0">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-user-tie text-primary me-2"></i>
+                  <div>
+                    <strong>Headmaster/Principal</strong>
+                    <small class="d-block text-muted">The head of the school</small>
+                  </div>
+                </div>
+              </div>
+              <div class="list-group-item px-0 py-2 border-0">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-graduation-cap text-primary me-2"></i>
+                  <div>
+                    <strong>Academic Headmaster</strong>
+                    <small class="d-block text-muted">The head of academics</small>
+                  </div>
+                </div>
+              </div>
+              <div class="list-group-item px-0 py-2 border-0">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-user-friends text-primary me-2"></i>
+                  <div>
+                    <strong>Deputy Headmaster</strong>
+                    <small class="d-block text-muted">The deputy head of the school</small>
+                  </div>
+                </div>
+              </div>
+              <div class="list-group-item px-0 py-2 border-0">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-clipboard-check text-primary me-2"></i>
+                  <div>
+                    <strong>Examination Officer</strong>
+                    <small class="d-block text-muted">The officer in charge of examinations</small>
+                  </div>
+                </div>
+              </div>
+              <div class="list-group-item px-0 py-2 border-0">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-user-plus text-primary me-2"></i>
+                  <div>
+                    <strong>Other Authority</strong>
+                    <small class="d-block text-muted">Any other authority figure</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert alert-info">
+            <i class="fas fa-lightbulb me-2"></i>
+            <small>
+              <strong>Important:</strong> For each authority type, you can have multiple signatures, but only one can be active at a time.
+            </small>
+          </div>
+
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <small>
+              <strong>Note:</strong> Signature images should be clear and professional. Recommended format: PNG or JPG, maximum 500KB.
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Get form elements
+    const authorityTypeSelect = document.getElementById('{{ form.authority_type.id_for_label }}');
+    const customTitleField = document.querySelector('.custom-title-field');
+    const customTitleInput = document.getElementById('{{ form.custom_title.id_for_label }}');
+
+    // Function to toggle custom title field visibility
+    function toggleCustomTitleField() {
+        if (authorityTypeSelect.value === 'other') {
+            customTitleField.style.display = 'block';
+            customTitleInput.required = true;
+        } else {
+            customTitleField.style.display = 'none';
+            customTitleInput.required = false;
+            customTitleInput.value = ''; // Clear the field when hidden
+        }
+    }
+
+    // Add Bootstrap classes to form elements
+    const formControls = document.querySelectorAll('input, select, textarea');
+    formControls.forEach(function (element) {
+        if (element.type !== 'checkbox' && element.type !== 'file') {
+            element.classList.add('form-control');
+        } else if (element.type === 'checkbox') {
+            element.classList.add('form-check-input');
+        } else if (element.type === 'file') {
+            element.classList.add('form-control');
+        }
+    });
+
+    // Add file input preview functionality
+    const signatureInput = document.getElementById('{{ form.signature.id_for_label }}');
+    if (signatureInput) {
+        signatureInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Validate file type
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                if (!allowedTypes.includes(file.type)) {
+                    alert('Please select a valid image file (JPG, PNG)');
+                    e.target.value = '';
+                    return;
+                }
+
+                // Validate file size (500KB max)
+                if (file.size > 500 * 1024) {
+                    alert('File size must be less than 500KB');
+                    e.target.value = '';
+                    return;
+                }
+
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Remove existing preview
+                    const existingPreview = document.querySelector('.signature-preview-new');
+                    if (existingPreview) {
+                        existingPreview.remove();
+                    }
+
+                    // Create new preview
+                    const previewContainer = document.createElement('div');
+                    previewContainer.className = 'mt-3';
+                    previewContainer.innerHTML = `
+                        <div class="d-flex align-items-center gap-3">
+                            <img src="${e.target.result}" alt="New Signature Preview" class="signature-preview signature-preview-new">
+                            <div>
+                                <p class="mb-1 text-success small">New signature preview</p>
+                                <small class="text-muted">This will replace the current signature</small>
+                            </div>
+                        </div>
+                    `;
+                    
+                    signatureInput.parentNode.appendChild(previewContainer);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // Form validation enhancement
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Validate custom title if authority type is 'other'
+            if (authorityTypeSelect.value === 'other' && !customTitleInput.value.trim()) {
+                e.preventDefault();
+                alert('Please enter a custom title for the authority type "Other"');
+                customTitleInput.focus();
+                return false;
+            }
+        });
+    }
+
+    // Initialize on page load
+    toggleCustomTitleField();
+
+    // Add event listener to the select element
+    authorityTypeSelect.addEventListener('change', toggleCustomTitleField);
+});
+</script>
+{% endblock %}

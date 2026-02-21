@@ -1,0 +1,578 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Mock Exam Management{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.min.css' %}">
+<style>
+    .status-badge {
+        font-size: 0.85rem;
+        padding: 0.35rem 0.65rem;
+    }
+  .mock-exam-card {
+        transition: transform 0.2s;
+    }
+  .mock-exam-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-clipboard-check me-2"></i>
+                        Mock Exam Management
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Create and manage mock exam scenarios for practice assessments
+          </p>
+        </div>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-primary" onclick="addMockExam()">
+                        <i class="fas fa-plus me-1"></i>
+                        Create Mock Exam
+                    </button>
+          </div>
+        </div>
+    </div>
+  </div>
+
+    <!-- Filters -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+    <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="academic_year" class="form-label">Academic Year</label>
+                            <select name="academic_year" id="academic_year" class="form-select">
+                                <option value="">All Academic Years</option>
+                                {% for year in academic_years %}
+                                <option value="{{ year.id }}" {% if selected_academic_year_id == year.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ year.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+        </div>
+                        <div class="col-md-4">
+                            <label for="status" class="form-label">Status</label>
+                            <select name="status" id="status" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active Only</option>
+                                <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive Only</option>
+                            </select>
+          </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-outline-primary me-2">
+                                <i class="fas fa-filter me-1"></i>Filter
+                            </button>
+                            <a href="{% url 'mock_exam_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>Clear
+                            </a>
+        </div>
+                    </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- CSRF Token for AJAX requests -->
+    {% csrf_token %}
+
+    <!-- Mock Exams List -->
+    <div class="row">
+        {% for item in mock_exam_stats %}
+        {% with mock_exam=item.mock_exam %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card mock-exam-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clipboard-check me-2"></i>
+                        {{ mock_exam.name }}
+                    </h5>
+                    {% if mock_exam.is_active %}
+                    <span class="badge bg-success status-badge">Active</span>
+                    {% else %}
+                    <span class="badge bg-secondary status-badge">Inactive</span>
+                    {% endif %}
+                </div>
+    <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted d-block">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            <strong>Exam Date:</strong> {{ mock_exam.exam_date|date:"M d, Y" }}
+                        </small>
+                        <small class="text-muted d-block mt-1">
+                            <i class="fas fa-graduation-cap me-1"></i>
+                            <strong>Academic Year:</strong> {{ mock_exam.academic_year.name }}
+                        </small>
+                        {% if mock_exam.description %}
+                        <small class="text-muted d-block mt-2">
+                            <i class="fas fa-info-circle me-1"></i>
+                            {{ mock_exam.description|truncatewords:15 }}
+                        </small>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row text-center mb-3">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <div class="h4 mb-0 text-primary">{{ item.assessment_count }}</div>
+                                <small class="text-muted">Assessments</small>
+                            </div>
+          </div>
+                        <div class="col-6">
+                            <div class="h4 mb-0 text-info">{{ item.student_count }}</div>
+                            <small class="text-muted">Students</small>
+          </div>
+        </div>
+
+                    {% if mock_exam.created_by %}
+                    <small class="text-muted d-block">
+                        <i class="fas fa-user me-1"></i>
+                        Created by: {{ mock_exam.created_by.full_name }}
+                    </small>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent">
+                    <div class="btn-group w-100" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="editMockExam({{ mock_exam.id }})">
+                            <i class="fas fa-edit me-1"></i>Edit
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-{% if mock_exam.is_active %}warning{% else %}success{% endif %}" 
+                                onclick="toggleActive({{ mock_exam.id }}, '{{ mock_exam.name|escapejs }}', {{ mock_exam.is_active|lower }})">
+                            <i class="fas fa-{% if mock_exam.is_active %}eye-slash{% else %}eye{% endif %} me-1"></i>
+                            {% if mock_exam.is_active %}Deactivate{% else %}Activate{% endif %}
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                onclick="deleteMockExam({{ mock_exam.id }}, '{{ mock_exam.name|escapejs }}', {{ item.assessment_count }})">
+                            <i class="fas fa-trash me-1"></i>Delete
+                        </button>
+        </div>
+          </div>
+            </div>
+        </div>
+        {% endwith %}
+        {% empty %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-clipboard-check fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted mb-3">No Mock Exams Found</h4>
+                    <p class="text-muted mb-4">
+                        {% if status_filter or selected_academic_year_id %}
+                            No mock exams match your filters. Try adjusting your search criteria.
+                        {% else %}
+                            Create your first mock exam to get started with practice assessments.
+                        {% endif %}
+                    </p>
+                    <button type="button" class="btn btn-primary" onclick="addMockExam()">
+                        <i class="fas fa-plus me-2"></i>
+                        Create Mock Exam
+                    </button>
+          </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+          </div>
+
+<!-- Mock Exam Form Modal -->
+<div class="modal fade" id="mockExamModal" tabindex="-1" aria-labelledby="mockExamModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mockExamModalLabel">
+                    <i class="fas fa-clipboard-check me-2"></i>
+                    <span id="modalTitle">Create Mock Exam</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="mockExamForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="mockExamId" name="mock_exam_id" />
+                    
+                    <div class="mb-3">
+                        <label for="mockExamName" class="form-label">
+                            <i class="fas fa-tag me-1"></i>
+                            Mock Exam Name <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="mockExamName" 
+                               name="name" 
+                               placeholder="e.g., Mock Exam 1, Mid-Term Practice, Final Prep Test"
+                               required>
+                        <div class="invalid-feedback" id="nameError"></div>
+                        <small class="form-text text-muted">
+                            Enter a descriptive name for this mock exam scenario.
+                        </small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="mockExamDate" class="form-label">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                Exam Date <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" 
+                                   class="form-control" 
+                                   id="mockExamDate" 
+                                   name="exam_date" 
+                                   required>
+                            <div class="invalid-feedback" id="examDateError"></div>
+                            <small class="form-text text-muted">
+                                Date when this mock exam was/will be conducted.
+                            </small>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="mockExamAcademicYear" class="form-label">
+                                <i class="fas fa-graduation-cap me-1"></i>
+                                Academic Year <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="mockExamAcademicYear" name="academic_year" required>
+                                <option value="">Select Academic Year...</option>
+                            </select>
+                            <div class="invalid-feedback" id="academicYearError"></div>
+                            <small class="form-text text-muted">
+                                Select the academic year this mock exam belongs to.
+                            </small>
+          </div>
+        </div>
+
+                    <div class="mb-3">
+                        <label for="mockExamDescription" class="form-label">
+                            <i class="fas fa-align-left me-1"></i>
+                            Description
+                        </label>
+                        <textarea class="form-control" 
+                                  id="mockExamDescription" 
+                                  name="description" 
+                                  rows="3"
+                                  placeholder="Optional description or notes about this mock exam"></textarea>
+                        <div class="invalid-feedback" id="descriptionError"></div>
+                        <small class="form-text text-muted">
+                            Provide additional details about this mock exam (optional).
+          </small>
+        </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   id="mockExamIsActive" 
+                                   name="is_active"
+                                   checked>
+                            <label class="form-check-label" for="mockExamIsActive">
+                                <strong>Active</strong>
+                            </label>
+                        </div>
+                        <small class="form-text text-muted">
+                            Only active mock exams are displayed for score entry. Uncheck to hide this mock exam from teachers.
+          </small>
+        </div>
+                </form>
+      </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="saveMockExamBtn" onclick="saveMockExam()">
+                    <i class="fas fa-save me-1"></i>Save Mock Exam
+                </button>
+    </div>
+  </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.min.js' %}"></script>
+<script>
+    // Academic years data from server
+    const academicYears = {{ academic_years_json|safe }};
+    const currentAcademicYearId = {% if current_academic_year %}{{ current_academic_year.id }}{% else %}null{% endif %};
+    const today = '{{ today }}';
+    
+    // Initialize academic years dropdown
+    function populateAcademicYears(selectedId = null) {
+        const select = document.getElementById('mockExamAcademicYear');
+        select.innerHTML = '<option value="">Select Academic Year...</option>';
+        
+        academicYears.forEach(year => {
+            const option = document.createElement('option');
+            option.value = year.id;
+            option.textContent = year.name;
+            if (selectedId && year.id == selectedId) {
+                option.selected = true;
+            } else if (!selectedId && year.is_current) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+    }
+    
+    // Reset form modal
+    function resetMockExamModal() {
+        document.getElementById('mockExamForm').reset();
+        document.getElementById('mockExamId').value = '';
+        document.getElementById('mockExamDate').value = today;
+        document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+        populateAcademicYears();
+    }
+    
+    // Add new mock exam
+    function addMockExam() {
+        resetMockExamModal();
+        document.getElementById('modalTitle').textContent = 'Create Mock Exam';
+        document.getElementById('mockExamModalLabel').innerHTML = '<i class="fas fa-clipboard-check me-2"></i>Create Mock Exam';
+        const modal = new bootstrap.Modal(document.getElementById('mockExamModal'));
+        modal.show();
+    }
+    
+    // Edit mock exam
+    function editMockExam(mockExamId) {
+        resetMockExamModal();
+        document.getElementById('modalTitle').textContent = 'Edit Mock Exam';
+        document.getElementById('mockExamModalLabel').innerHTML = '<i class="fas fa-edit me-2"></i>Edit Mock Exam';
+        
+        // Show loading state
+        const saveBtn = document.getElementById('saveMockExamBtn');
+        const originalHTML = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Loading...';
+        saveBtn.disabled = true;
+        
+        // Fetch mock exam data
+        fetch(`{% url 'mock_exam_update' 0 %}`.replace('0', mockExamId), {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('mockExamId').value = data.id;
+            document.getElementById('mockExamName').value = data.name;
+            document.getElementById('mockExamDate').value = data.exam_date;
+            document.getElementById('mockExamDescription').value = data.description || '';
+            document.getElementById('mockExamIsActive').checked = data.is_active;
+            populateAcademicYears(data.academic_year_id);
+            
+            const modal = new bootstrap.Modal(document.getElementById('mockExamModal'));
+            modal.show();
+            
+            saveBtn.innerHTML = originalHTML;
+            saveBtn.disabled = false;
+        })
+        .catch(error => {
+            console.error('Error fetching mock exam:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'Could not load mock exam data. Please try again.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            saveBtn.innerHTML = originalHTML;
+            saveBtn.disabled = false;
+        });
+    }
+    
+    // Save mock exam
+    function saveMockExam() {
+        const form = document.getElementById('mockExamForm');
+        const formData = new FormData(form);
+        const mockExamId = document.getElementById('mockExamId').value;
+        const isNew = !mockExamId;
+        
+        // Prepare data
+        const data = {
+            name: formData.get('name'),
+            exam_date: formData.get('exam_date'),
+            academic_year: formData.get('academic_year'),
+            description: formData.get('description') || '',
+            is_active: document.getElementById('mockExamIsActive').checked
+        };
+        
+        // Clear previous errors
+        document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+        
+        // Show loading state
+        const saveBtn = document.getElementById('saveMockExamBtn');
+        const originalHTML = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+        saveBtn.disabled = true;
+        
+        // Get CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        // Determine URL and method
+        const url = isNew 
+            ? '{% url "mock_exam_create" %}'
+            : `{% url 'mock_exam_update' 0 %}`.replace('0', mockExamId);
+        const method = isNew ? 'POST' : 'PUT';
+        
+        // Send request
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('mockExamModal'));
+                modal.hide();
+                
+                // Show success message
+                Swal.fire({
+                    title: 'Success',
+                    text: result.message,
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    // Reload page to refresh list
+                    location.reload();
+                });
+            } else {
+                // Show validation errors
+                if (result.errors) {
+                    Object.keys(result.errors).forEach(field => {
+                        const fieldMap = {
+                            'name': 'mockExamName',
+                            'exam_date': 'mockExamDate',
+                            'academic_year': 'mockExamAcademicYear',
+                            'description': 'mockExamDescription',
+                            '__all__': null
+                        };
+                        
+                        const fieldId = fieldMap[field];
+                        if (fieldId) {
+                            const input = document.getElementById(fieldId);
+                            input.classList.add('is-invalid');
+                            const errorDiv = document.getElementById(fieldId.replace('mockExam', '').toLowerCase() + 'Error');
+                            if (errorDiv) {
+                                errorDiv.textContent = Array.isArray(result.errors[field]) 
+                                    ? result.errors[field][0] 
+                                    : result.errors[field];
+                            }
+                        } else if (field === '__all__') {
+                            Swal.fire({
+                                title: 'Validation Error',
+                                text: Array.isArray(result.errors[field]) 
+                                    ? result.errors[field][0] 
+                                    : result.errors[field],
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error',
+                        text: result.message || 'An error occurred while saving the mock exam.',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                }
+                
+                saveBtn.innerHTML = originalHTML;
+                saveBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error saving mock exam:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'An error occurred while saving the mock exam. Please try again.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            saveBtn.innerHTML = originalHTML;
+            saveBtn.disabled = false;
+        });
+    }
+    
+    // Toggle active status
+    function toggleActive(mockExamId, mockExamName, isActive) {
+        const action = isActive ? 'deactivate' : 'activate';
+        
+        Swal.fire({
+            title: `Are you sure?`,
+            text: `You are about to ${action} "${mockExamName}". ${isActive ? 'This will hide it from score entry.' : 'This will make it available for score entry.'}`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: isActive ? '#ffc107' : '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: `Yes, ${action} it!`,
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = `{% url 'mock_exam_toggle_active' 0 %}`.replace('0', mockExamId);
+            }
+        });
+    }
+    
+    // Delete mock exam
+    function deleteMockExam(mockExamId, mockExamName, assessmentCount) {
+        if (assessmentCount > 0) {
+            Swal.fire({
+                title: 'Cannot Delete',
+                text: `This mock exam has ${assessmentCount} assessment(s). Please delete or reassign the assessments first.`,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+        
+        Swal.fire({
+            title: 'Are you sure?',
+            text: `You are about to delete "${mockExamName}". This action cannot be undone!`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `{% url 'mock_exam_delete' 0 %}`.replace('0', mockExamId);
+                
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (csrfToken) {
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrfmiddlewaretoken';
+                    csrfInput.value = csrfToken.value;
+                    form.appendChild(csrfInput);
+                }
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        populateAcademicYears();
+  });
+</script>
+{% endblock %}

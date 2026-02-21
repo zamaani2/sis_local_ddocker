@@ -1,0 +1,264 @@
+{% extends 'super_admin/base.html' %}
+{% load static %}
+
+{% block title %}Platform Settings - {{ block.super }}{% endblock %}
+
+{% block page_title %}Platform Settings{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Platform Settings</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Settings Navigation Tabs -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <ul class="nav nav-tabs card-header-tabs">
+        <li class="nav-item">
+          <a class="nav-link active" href="{% url 'super_admin:settings_update' %}">General</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'super_admin:settings_update' %}?tab=email">Email</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'super_admin:settings_update' %}?tab=appearance">Appearance</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'super_admin:settings_update' %}?tab=security">Security</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'super_admin:settings_update' %}?tab=integrations">Integrations</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'super_admin:settings_update' %}?tab=maintenance">Maintenance</a>
+        </li>
+      </ul>
+    </div>
+    <div class="card-body">
+      {% if messages %}
+      <div class="mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="row mb-4">
+          <div class="col-lg-6">
+            <h5 class="mb-3">Platform Information</h5>
+            
+            <div class="mb-3">
+              <label for="platform_name" class="form-label">Platform Name</label>
+              <input type="text" class="form-control" id="platform_name" name="platform_name" value="{{ settings.platform_name }}" required>
+              <div class="form-text">The name of your platform as it appears throughout the system.</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="platform_description" class="form-label">Platform Description</label>
+              <textarea class="form-control" id="platform_description" name="platform_description" rows="3">{{ settings.platform_description }}</textarea>
+              <div class="form-text">A brief description of your platform.</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="contact_email" class="form-label">Contact Email</label>
+              <input type="email" class="form-control" id="contact_email" name="contact_email" value="{{ settings.contact_email }}" required>
+              <div class="form-text">Primary contact email for platform-related inquiries.</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="support_phone" class="form-label">Support Phone</label>
+              <input type="tel" class="form-control" id="support_phone" name="support_phone" value="{{ settings.support_phone }}">
+              <div class="form-text">Optional phone number for support inquiries.</div>
+            </div>
+          </div>
+          
+          <div class="col-lg-6">
+            <h5 class="mb-3">Branding</h5>
+            
+            <div class="mb-3">
+              <label for="logo" class="form-label">Platform Logo</label>
+              <div class="d-flex align-items-center mb-2">
+                {% if settings.logo %}
+                <img src="{{ settings.logo.url }}" alt="Platform Logo" class="me-3" style="max-height: 50px;">
+                {% endif %}
+                <input type="file" class="form-control" id="logo" name="logo" accept="image/*">
+              </div>
+              <div class="form-text">Recommended size: 200x50 pixels. PNG or SVG with transparent background.</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="favicon" class="form-label">Favicon</label>
+              <div class="d-flex align-items-center mb-2">
+                {% if settings.favicon %}
+                <img src="{{ settings.favicon.url }}" alt="Favicon" class="me-3" style="max-height: 32px;">
+                {% endif %}
+                <input type="file" class="form-control" id="favicon" name="favicon" accept="image/x-icon,image/png">
+              </div>
+              <div class="form-text">Recommended size: 32x32 pixels. ICO or PNG format.</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="primary_color" class="form-label">Primary Color</label>
+              <div class="input-group">
+                <span class="input-group-text">
+                  <div id="color-preview" style="width: 20px; height: 20px; background-color: {{ settings.primary_color|default:'#4e73df' }};"></div>
+                </span>
+                <input type="text" class="form-control" id="primary_color" name="primary_color" value="{{ settings.primary_color|default:'#4e73df' }}">
+              </div>
+              <div class="form-text">Primary brand color used throughout the platform.</div>
+            </div>
+          </div>
+        </div>
+        
+        <hr class="my-4">
+        
+        <div class="row mb-4">
+          <div class="col-lg-6">
+            <h5 class="mb-3">Localization</h5>
+            
+            <div class="mb-3">
+              <label for="default_language" class="form-label">Default Language</label>
+              <select class="form-select" id="default_language" name="default_language">
+                <option value="en" {% if settings.default_language == 'en' %}selected{% endif %}>English</option>
+                <option value="es" {% if settings.default_language == 'es' %}selected{% endif %}>Spanish</option>
+                <option value="fr" {% if settings.default_language == 'fr' %}selected{% endif %}>French</option>
+                <option value="de" {% if settings.default_language == 'de' %}selected{% endif %}>German</option>
+                <option value="pt" {% if settings.default_language == 'pt' %}selected{% endif %}>Portuguese</option>
+                <option value="ar" {% if settings.default_language == 'ar' %}selected{% endif %}>Arabic</option>
+                <option value="zh" {% if settings.default_language == 'zh' %}selected{% endif %}>Chinese</option>
+              </select>
+              <div class="form-text">Default language for new schools and users.</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="default_timezone" class="form-label">Default Timezone</label>
+              <select class="form-select" id="default_timezone" name="default_timezone">
+                <option value="UTC" {% if settings.default_timezone == 'UTC' %}selected{% endif %}>UTC</option>
+                <option value="America/New_York" {% if settings.default_timezone == 'America/New_York' %}selected{% endif %}>Eastern Time (US & Canada)</option>
+                <option value="America/Chicago" {% if settings.default_timezone == 'America/Chicago' %}selected{% endif %}>Central Time (US & Canada)</option>
+                <option value="America/Denver" {% if settings.default_timezone == 'America/Denver' %}selected{% endif %}>Mountain Time (US & Canada)</option>
+                <option value="America/Los_Angeles" {% if settings.default_timezone == 'America/Los_Angeles' %}selected{% endif %}>Pacific Time (US & Canada)</option>
+                <option value="Europe/London" {% if settings.default_timezone == 'Europe/London' %}selected{% endif %}>London</option>
+                <option value="Europe/Paris" {% if settings.default_timezone == 'Europe/Paris' %}selected{% endif %}>Paris</option>
+                <option value="Asia/Tokyo" {% if settings.default_timezone == 'Asia/Tokyo' %}selected{% endif %}>Tokyo</option>
+                <option value="Australia/Sydney" {% if settings.default_timezone == 'Australia/Sydney' %}selected{% endif %}>Sydney</option>
+              </select>
+              <div class="form-text">Default timezone for new schools and users.</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="date_format" class="form-label">Date Format</label>
+              <select class="form-select" id="date_format" name="date_format">
+                <option value="MM/DD/YYYY" {% if settings.date_format == 'MM/DD/YYYY' %}selected{% endif %}>MM/DD/YYYY</option>
+                <option value="DD/MM/YYYY" {% if settings.date_format == 'DD/MM/YYYY' %}selected{% endif %}>DD/MM/YYYY</option>
+                <option value="YYYY-MM-DD" {% if settings.date_format == 'YYYY-MM-DD' %}selected{% endif %}>YYYY-MM-DD</option>
+              </select>
+              <div class="form-text">Default date format used throughout the platform.</div>
+            </div>
+          </div>
+          
+          <div class="col-lg-6">
+            <h5 class="mb-3">Registration & Onboarding</h5>
+            
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input" type="checkbox" id="allow_registration" name="allow_registration" {% if settings.allow_registration %}checked{% endif %}>
+              <label class="form-check-label" for="allow_registration">Allow New School Registrations</label>
+              <div class="form-text">If disabled, only super admins can create new schools.</div>
+            </div>
+            
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input" type="checkbox" id="require_email_verification" name="require_email_verification" {% if settings.require_email_verification %}checked{% endif %}>
+              <label class="form-check-label" for="require_email_verification">Require Email Verification</label>
+              <div class="form-text">Require new users to verify their email address before accessing the platform.</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="default_trial_days" class="form-label">Default Trial Period (days)</label>
+              <input type="number" class="form-control" id="default_trial_days" name="default_trial_days" value="{{ settings.default_trial_days }}" min="0" max="365">
+              <div class="form-text">Default trial period for new schools (0 to disable trials).</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="default_plan" class="form-label">Default Subscription Plan</label>
+              <select class="form-select" id="default_plan" name="default_plan">
+                <option value="">None (Manual Assignment)</option>
+                {% for plan in subscription_plans %}
+                <option value="{{ plan.id }}" {% if settings.default_plan_id == plan.id %}selected{% endif %}>{{ plan.name }}</option>
+                {% endfor %}
+              </select>
+              <div class="form-text">Default plan assigned to new schools after registration.</div>
+            </div>
+          </div>
+        </div>
+        
+        <hr class="my-4">
+        
+        <div class="row mb-4">
+          <div class="col-12">
+            <h5 class="mb-3">Legal Information</h5>
+            
+            <div class="mb-3">
+              <label for="terms_of_service" class="form-label">Terms of Service</label>
+              <textarea class="form-control" id="terms_of_service" name="terms_of_service" rows="5">{{ settings.terms_of_service }}</textarea>
+              <div class="form-text">Terms of service displayed during registration. Supports HTML formatting.</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="privacy_policy" class="form-label">Privacy Policy</label>
+              <textarea class="form-control" id="privacy_policy" name="privacy_policy" rows="5">{{ settings.privacy_policy }}</textarea>
+              <div class="form-text">Privacy policy displayed during registration. Supports HTML formatting.</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="company_name" class="form-label">Company Name</label>
+              <input type="text" class="form-control" id="company_name" name="company_name" value="{{ settings.company_name }}">
+              <div class="form-text">Your company name as it appears in legal documents.</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="company_address" class="form-label">Company Address</label>
+              <textarea class="form-control" id="company_address" name="company_address" rows="2">{{ settings.company_address }}</textarea>
+              <div class="form-text">Your company address as it appears in legal documents.</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+          <button type="reset" class="btn btn-outline-secondary me-md-2">Reset Changes</button>
+          <button type="submit" class="btn btn-primary">Save Settings</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Color picker preview
+    const colorInput = document.getElementById('primary_color');
+    const colorPreview = document.getElementById('color-preview');
+    
+    colorInput.addEventListener('input', function() {
+      colorPreview.style.backgroundColor = this.value;
+    });
+    
+    // Form submission confirmation
+    const settingsForm = document.querySelector('form');
+    settingsForm.addEventListener('submit', function(e) {
+      const confirmSubmit = confirm('Are you sure you want to save these settings? Some changes may affect all schools on the platform.');
+      if (!confirmSubmit) {
+        e.preventDefault();
+      }
+    });
+  });
+</script>
+{% endblock %} 

@@ -1,0 +1,336 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% load static %}
+{% block title %}Alumni Detail{% endblock %}
+
+{% block page_title %}Alumni Detail{% endblock %}
+
+{% block extra_css %}
+<style>
+  .alumni-header {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    border-radius: 0.5rem;
+  }
+  
+  .alumni-badge {
+    background: linear-gradient(45deg, #28a745, #20c997);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+  }
+  
+  .profile-picture-large {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+  }
+  
+  .info-card {
+    border-left: 4px solid #28a745;
+  }
+  
+  .report-card-item {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    transition: all 0.3s ease;
+  }
+  
+  .report-card-item:hover {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transform: translateY(-2px);
+  }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{% url 'student_list' %}">Students</a></li>
+<li class="breadcrumb-item"><a href="{% url 'alumni_list' %}">Alumni</a></li>
+<li class="breadcrumb-item active">{{ archived_student.student.full_name }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="alumni-header p-4">
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <div class="d-flex align-items-center">
+              <div class="flex-shrink-0 me-3">
+                {% if archived_student.student.profile_picture %}
+                  <img src="{{ archived_student.student.profile_picture.url }}" 
+                       alt="Profile" class="rounded-circle profile-picture-large">
+                {% else %}
+                  <div class="bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center" 
+                       style="width: 120px; height: 120px;">
+                    <i class="bi bi-person text-white" style="font-size: 3rem;"></i>
+                  </div>
+                {% endif %}
+              </div>
+              <div class="flex-grow-1">
+                <h2 class="mb-1">{{ archived_student.student.full_name }}</h2>
+                <p class="mb-2 opacity-75">
+                  <i class="bi bi-mortarboard-fill me-2"></i>
+                  Graduated on {{ archived_student.completion_date|date:"F d, Y" }}
+                </p>
+                <div class="d-flex gap-2">
+                  <span class="alumni-badge">
+                    {{ archived_student.final_form.name|default:"Form Not Specified" }}
+                  </span>
+                  <span class="badge bg-light text-dark">
+                    {{ archived_student.final_learning_area.name|default:"Learning Area Not Specified" }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4 text-md-end">
+            <div class="d-flex flex-column gap-2">
+              <a href="{% url 'alumni_list' %}" class="btn btn-light">
+                <i class="bi bi-arrow-left"></i> Back to Alumni
+              </a>
+              <button type="button" class="btn btn-outline-light" onclick="printAlumniRecord()">
+                <i class="bi bi-printer"></i> Print Record
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Student Information -->
+    <div class="col-md-6">
+      <div class="card info-card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-person-fill me-2"></i>
+            Student Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-sm-4">
+              <strong>Admission Number:</strong>
+            </div>
+            <div class="col-sm-8">
+              {{ archived_student.student.admission_number }}
+            </div>
+          </div>
+          <hr>
+          <div class="row">
+            <div class="col-sm-4">
+              <strong>Date of Birth:</strong>
+            </div>
+            <div class="col-sm-8">
+              {{ archived_student.student.date_of_birth|date:"F d, Y" }}
+              <small class="text-muted">(Age: {{ archived_student.student.age }})</small>
+            </div>
+          </div>
+          <hr>
+          <div class="row">
+            <div class="col-sm-4">
+              <strong>Gender:</strong>
+            </div>
+            <div class="col-sm-8">
+              {{ archived_student.student.get_gender_display }}
+            </div>
+          </div>
+          <hr>
+          <div class="row">
+            <div class="col-sm-4">
+              <strong>Parent Contact:</strong>
+            </div>
+            <div class="col-sm-8">
+              {{ archived_student.student.parent_contact }}
+            </div>
+          </div>
+          <hr>
+          <div class="row">
+            <div class="col-sm-4">
+              <strong>Email:</strong>
+            </div>
+            <div class="col-sm-8">
+              {{ archived_student.student.email|default:"Not provided" }}
+            </div>
+          </div>
+          <hr>
+          <div class="row">
+            <div class="col-sm-4">
+              <strong>Admission Date:</strong>
+            </div>
+            <div class="col-sm-8">
+              {{ archived_student.student.admission_date|date:"F d, Y" }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Graduation Information -->
+    <div class="col-md-6">
+      <div class="card info-card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-mortarboard-fill me-2"></i>
+            Graduation Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-sm-4">
+              <strong>Graduation Date:</strong>
+            </div>
+            <div class="col-sm-8">
+              {{ archived_student.completion_date|date:"F d, Y" }}
+            </div>
+          </div>
+          <hr>
+          <div class="row">
+            <div class="col-sm-4">
+              <strong>Final Form:</strong>
+            </div>
+            <div class="col-sm-8">
+              {{ archived_student.final_form.name|default:"Not specified" }}
+            </div>
+          </div>
+          <hr>
+          <div class="row">
+            <div class="col-sm-4">
+              <strong>Learning Area:</strong>
+            </div>
+            <div class="col-sm-8">
+              {{ archived_student.final_learning_area.name|default:"Not specified" }}
+            </div>
+          </div>
+          <hr>
+          <div class="row">
+            <div class="col-sm-4">
+              <strong>Archived By:</strong>
+            </div>
+            <div class="col-sm-8">
+              {{ archived_student.archived_by.full_name|default:"System" }}
+            </div>
+          </div>
+          <hr>
+          <div class="row">
+            <div class="col-sm-4">
+              <strong>Remarks:</strong>
+            </div>
+            <div class="col-sm-8">
+              {% if archived_student.remarks %}
+                <div class="bg-light p-3 rounded">
+                  {{ archived_student.remarks|linebreaks }}
+                </div>
+              {% else %}
+                <span class="text-muted">No remarks provided</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Cards History -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-file-text-fill me-2"></i>
+            Academic History (Report Cards)
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if report_cards %}
+            <div class="row">
+              {% for report_card in report_cards %}
+              <div class="col-md-6 col-lg-4 mb-3">
+                <div class="report-card-item p-3">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="mb-0">{{ report_card.term.academic_year.name }}</h6>
+                    <span class="badge bg-primary">{{ report_card.term.name }}</span>
+                  </div>
+                  <div class="mb-2">
+                    <small class="text-muted">Class: {{ report_card.class_assigned.name }}</small>
+                  </div>
+                  <div class="row text-center">
+                    <div class="col-4">
+                      <div class="fw-bold text-primary">{{ report_card.total_score|default:"N/A" }}</div>
+                      <small class="text-muted">Total Score</small>
+                    </div>
+                    <div class="col-4">
+                      <div class="fw-bold text-success">{{ report_card.position|default:"N/A" }}</div>
+                      <small class="text-muted">Position</small>
+                    </div>
+                    <div class="col-4">
+                      <div class="fw-bold text-info">{{ report_card.days_present|default:"N/A" }}</div>
+                      <small class="text-muted">Days Present</small>
+                    </div>
+                  </div>
+                  <div class="mt-2">
+                    <a href="{% url 'view_report_card_details' report_card.id %}" 
+                       class="btn btn-outline-primary w-100">
+                      <i class="bi bi-eye"></i> View Report Card
+                    </a>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center py-4">
+              <i class="bi bi-file-text text-muted" style="font-size: 3rem;"></i>
+              <h5 class="text-muted mt-2">No Report Cards Found</h5>
+              <p class="text-muted">No report cards are available for this alumni.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function printAlumniRecord() {
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    
+    // Get the content to print
+    const content = document.querySelector('.container-fluid').innerHTML;
+    
+    // Create the print document
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Alumni Record - {{ archived_student.student.full_name }}</title>
+        <style>
+          @media print {
+            .btn, .breadcrumb { display: none !important; }
+            .card { border: 1px solid #000 !important; }
+            .alumni-header { background: #f8f9fa !important; color: #000 !important; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container-fluid">
+          ${content}
+        </div>
+      </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.print();
+  }
+</script>
+{% endblock %}

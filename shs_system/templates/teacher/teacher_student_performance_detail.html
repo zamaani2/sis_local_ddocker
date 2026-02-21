@@ -1,0 +1,408 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% load static %}
+
+{% block title %}Student Performance Details{% endblock %}
+{% block page_title %}Student Performance Details{% endblock %}
+{% block extra_css %}
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'teacher_dashboard' %}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{% url 'teacher_promotion' %}">Student Promotion</a></li>
+<li class="breadcrumb-item active">Performance Details</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                      {% if current_academic_year %}
+                        {{ current_academic_year.name }}
+                        {% if current_term %}
+                          - {{ current_term.name }}
+                        {% endif %}
+                      {% else %}
+                        Student Performance Details
+                      {% endif %}
+                    </h2>
+                    <p class="text-muted mb-0">
+                      {% if current_academic_year %}
+                        Teacher view - Current academic year and term management
+                      {% else %}
+                        Detailed performance analysis for {{ student_performance.student.full_name }}
+                      {% endif %}
+                    </p>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'teacher_promotion' %}{% if request.GET.selected_class_id %}?selected_class_id={{ request.GET.selected_class_id }}{% endif %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> Back to Promotion
+                    </a>
+                    <a href="/student/{{ student_performance.student.id }}/detail/" class="btn btn-primary">
+                        <i class="bi bi-person"></i> Student Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up"></i> Performance Analysis
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Terms selector -->
+                    <form method="get" class="mb-4">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="input-group">
+                                    <label class="input-group-text" for="terms-select">Terms to Consider:</label>
+                                    <select class="form-select" id="terms-select" name="terms_to_consider">
+                                        <option value="1" {% if terms_to_consider == 1 %}selected{% endif %}>Current Term
+                                            Only</option>
+                                        <option value="2" {% if terms_to_consider == 2 %}selected{% endif %}>Last 2 Terms
+                                        </option>
+                                        <option value="3" {% if terms_to_consider == 3 %}selected{% endif %}>Last 3 Terms
+                                        </option>
+                                    </select>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-arrow-clockwise"></i> Update
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="alert alert-info mb-0 py-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>Terms Considered:</strong>
+                                            {% for term_num in student_performance.terms_data %}
+                                            <span class="badge bg-primary">Term {{ term_num }}</span>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="ms-2">
+                                            <strong>Overall Average:</strong>
+                                            <span
+                                                class="badge {% if student_performance.avg_score < 40 %}bg-danger{% elif student_performance.avg_score < 60 %}bg-warning{% else %}bg-success{% endif %}">
+                                                {{ student_performance.avg_score }}%
+                                            </span>
+                                        </div>
+                                        <div class="ms-2">
+                                            <strong>Status:</strong>
+                                            {% if status == 'promote' %}
+                                            <span class="badge bg-success">Ready to Promote</span>
+                                            {% elif status == 'graduate' %}
+                                            <span class="badge bg-primary">Ready to Graduate</span>
+                                            {% elif status == 'retained' %}
+                                            <span class="badge bg-danger">Retained</span>
+                                            {% else %}
+                                            <span class="badge bg-warning">Incomplete</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Student Info Card -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-person"></i> Student Information
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-borderless">
+                                        <tr>
+                                            <th width="40%">Full Name:</th>
+                                            <td>{{ student_performance.student.full_name }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Admission Number:</th>
+                                            <td>{{ student_performance.student.admission_number }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Gender:</th>
+                                            <td>{{ student_performance.student.gender }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-borderless">
+                                        <tr>
+                                            <th width="40%">Current Class:</th>
+                                            <td>{% if current_class %}{{ current_class.name }}{% else %}Not Assigned{% endif %}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Academic Year:</th>
+                                            <td>{{ current_academic_year.name }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Promotion Status:</th>
+                                            <td>
+                                                {% if status == 'promote' %}
+                                                <span class="badge bg-success">Ready to Promote</span>
+                                                {% elif status == 'graduate' %}
+                                                <span class="badge bg-primary">Ready to Graduate</span>
+                                                {% elif status == 'retained' %}
+                                                <span class="badge bg-danger">Retained</span>
+                                                {% else %}
+                                                <span class="badge bg-warning">Incomplete</span>
+                                                {% endif %}
+                                                <span class="ms-2 text-muted">{{ reason }}</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Subject Count:</th>
+                                            <td>
+                                                <span class="badge bg-info">{{ subject_count }} Required Subjects</span>
+                                                <span
+                                                    class="badge bg-{% if student_performance.total_subjects >= subject_count %}success{% else %}warning{% endif %}">
+                                                    {{ student_performance.total_subjects }} Assessed
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-book"></i> Subject Averages
+                                    </h5>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Subject</th>
+                                                    <th>Average</th>
+                                                    <th>Terms</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                        <tbody>
+                                            {% for subject in student_performance.subject_averages %}
+                                            <tr>
+                                                <td>{{ subject.subject_name }}</td>
+                                                <td>
+                                                    <span
+                                                        class="badge {% if subject.avg_score < 40 %}bg-danger{% elif subject.avg_score < 60 %}bg-warning{% else %}bg-success{% endif %}">
+                                                        {{ subject.avg_score }}%
+                                                    </span>
+                                                </td>
+                                                <td>{{ subject.terms_count }}</td>
+                                                <td>
+                                                    <span
+                                                        class="badge {% if subject.status == 'Pass' %}bg-success{% else %}bg-danger{% endif %}">
+                                                        {{ subject.status }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td colspan="4" class="text-center">No subject data available</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card mb-3">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">
+                                                <i class="bi bi-trophy"></i> Top Performing Subjects
+                                            </h6>
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-hover">
+                                                    <tbody>
+                                                    {% for subject in student_performance.top_subjects %}
+                                                    <tr>
+                                                        <td>{{ subject.subject_name }}</td>
+                                                        <td>
+                                                            <span class="badge bg-success">{{ subject.avg_score }}%</span>
+                                                        </td>
+                                                    </tr>
+                                                    {% empty %}
+                                                    <tr>
+                                                        <td>No data available</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card mb-3">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">
+                                                <i class="bi bi-exclamation-triangle"></i> Lowest Performing Subjects
+                                            </h6>
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-hover">
+                                                    <tbody>
+                                                    {% for subject in student_performance.bottom_subjects %}
+                                                    <tr>
+                                                        <td>{{ subject.subject_name }}</td>
+                                                        <td>
+                                                            <span
+                                                                class="badge {% if subject.avg_score < 40 %}bg-danger{% elif subject.avg_score < 60 %}bg-warning{% else %}bg-success{% endif %}">
+                                                                {{ subject.avg_score }}%
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                    {% empty %}
+                                                    <tr>
+                                                        <td>No data available</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Performance Summary Card -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-clipboard-data"></i> Performance Summary
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong>Total Subjects:</strong> {{ student_performance.total_subjects }}
+                                            </p>
+                                            <p><strong>Passed Subjects:</strong> {{ student_performance.passed_subjects }}</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p><strong>Failed Subjects:</strong> {{ student_performance.failed_subjects }}</p>
+                                            <p><strong>Pass Rate:</strong>
+                                                {% if student_performance.total_subjects > 0 %}
+                                                {% widthratio student_performance.passed_subjects student_performance.total_subjects 100 %}%
+                                                {% else %}
+                                                N/A
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Term by Term Performance -->
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-calendar3"></i> Term-by-Term Performance
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="nav nav-tabs" id="termTabs" role="tablist">
+                                        {% for term_num, term_data in student_performance.assessments_by_term.items %}
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link {% if forloop.first %}active{% endif %}"
+                                                id="term-{{ term_num }}-tab" data-bs-toggle="tab"
+                                                data-bs-target="#term-{{ term_num }}" type="button" role="tab">
+                                                {{ term_data.term_name }}
+                                            </button>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                    <div class="tab-content mt-3" id="termTabsContent">
+                                        {% for term_num, term_data in student_performance.assessments_by_term.items %}
+                                        <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
+                                            id="term-{{ term_num }}" role="tabpanel">
+                                            <div class="table-responsive">
+                                                <table class="table table-hover">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Subject</th>
+                                                            <th>Class Score ({% if scoring_config %}{{ scoring_config.class_score_percentage }}%{% else %}30%{% endif %})</th>
+                                                            <th>Exam Score ({% if scoring_config %}{{ scoring_config.exam_score_percentage }}%{% else %}70%{% endif %})</th>
+                                                            <th>Total Score(100%)</th>
+                                                            <th>Grade</th>
+                                                            <th>Remarks</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for assessment in term_data.assessments %}
+                                                        <tr>
+                                                            <td>{{ assessment.class_subject.subject.subject_name }}</td>
+                                                            <td>{{ assessment.class_score }}</td>
+                                                            <td>{{ assessment.exam_score }}</td>
+                                                            <td>
+                                                                <span
+                                                                    class="badge {% if assessment.total_score < 40 %}bg-danger{% elif assessment.total_score < 60 %}bg-warning{% else %}bg-success{% endif %}">
+                                                                    {{ assessment.total_score }}%
+                                                                </span>
+                                                            </td>
+                                                            <td>{{ assessment.grade }}</td>
+                                                            <td>{{ assessment.remarks }}</td>
+                                                        </tr>
+                                                        {% empty %}
+                                                        <tr>
+                                                            <td colspan="7" class="text-center">No assessments for this
+                                                                term</td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,124 @@
+<form id="classForm" method="post" action="{% if class %}{% url 'update_class' class.class_id %}{% else %}{% url 'create_class' %}{% endif %}">
+
+    {% csrf_token %}    
+
+    <!-- Display form errors -->
+    {% if form.errors %}
+    <div class="alert alert-danger">
+        <h5 class="alert-heading">Please correct the following errors:</h5>
+        <ul class="mb-0">
+            {% for field in form %}
+                {% for error in field.errors %}
+                    <li>{{ field.label }}: {{ error }}</li>
+                {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    <div class="row g-3">
+        <!-- Class Name -->
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="{{ form.name.id_for_label }}" class="form-label required">Class Name</label>
+                <input type="text" name="{{ form.name.name }}" id="{{ form.name.id_for_label }}" 
+                       class="form-control {% if form.name.errors %}is-invalid{% endif %}" 
+                       value="{{ form.name.value|default:'' }}" required>
+                {% if form.name.errors %}
+                <div class="invalid-feedback">{{ form.name.errors.0 }}</div>
+                {% endif %}
+                {% if form.name.help_text %}
+                <small class="form-text text-muted">{{ form.name.help_text }}</small>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Academic Year -->
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="{{ form.academic_year.id_for_label }}" class="form-label required">Academic Year</label>
+                <select name="{{ form.academic_year.name }}" id="{{ form.academic_year.id_for_label }}" 
+                        class="form-select {% if form.academic_year.errors %}is-invalid{% endif %}" required>
+                    <option value="">Select Academic Year</option>
+                    {% for option in form.academic_year.field.queryset %}
+                        <option value="{{ option.id }}" 
+                            {% if form.academic_year.value|stringformat:'s' == option.id|stringformat:'s' %}selected{% endif %}>
+                            {{ option.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if form.academic_year.errors %}
+                <div class="invalid-feedback">{{ form.academic_year.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Form -->
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="{{ form.form.id_for_label }}" class="form-label required">Form</label>
+                <select name="{{ form.form.name }}" id="{{ form.form.id_for_label }}" 
+                        class="form-select {% if form.form.errors %}is-invalid{% endif %}" required>
+                    <option value="">Select Form</option>
+                    {% for option in form.form.field.queryset %}
+                        <option value="{{ option.id }}" 
+                            {% if form.form.value|stringformat:'s' == option.id|stringformat:'s' %}selected{% endif %}>
+                            {{ option.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if form.form.errors %}
+                <div class="invalid-feedback">{{ form.form.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Learning Area -->
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="{{ form.learning_area.id_for_label }}" class="form-label required">Learning Area</label>
+                <select name="{{ form.learning_area.name }}" id="{{ form.learning_area.id_for_label }}" 
+                        class="form-select {% if form.learning_area.errors %}is-invalid{% endif %}" required>
+                    <option value="">Select Learning Area</option>
+                    {% for option in form.learning_area.field.queryset %}
+                        <option value="{{ option.id }}" 
+                            {% if form.learning_area.value|stringformat:'s' == option.id|stringformat:'s' %}selected{% endif %}>
+                            {{ option.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if form.learning_area.errors %}
+                <div class="invalid-feedback">{{ form.learning_area.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Maximum Students -->
+        <div class="col-md-12">
+            <div class="form-group">
+                <label for="{{ form.maximum_students.id_for_label }}" class="form-label">Maximum Students</label>
+                <input type="number" name="{{ form.maximum_students.name }}" id="{{ form.maximum_students.id_for_label }}" 
+                       class="form-control {% if form.maximum_students.errors %}is-invalid{% endif %}" 
+                       min="0" max="100" value="{{ form.maximum_students.value|default:'' }}">
+                {% if form.maximum_students.errors %}
+                <div class="invalid-feedback">{{ form.maximum_students.errors.0 }}</div>
+                {% endif %}
+                <small class="form-text text-muted">Enter the maximum number of students allowed in this class (0-100).</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4 d-flex justify-content-end">
+        <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle me-1"></i> Cancel
+        </button>
+        
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i>
+            {% if class %}Update{% else %}Create{% endif %} Class
+        </button>
+    </div>
+</form>

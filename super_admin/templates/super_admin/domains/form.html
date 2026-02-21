@@ -1,0 +1,109 @@
+{% extends 'super_admin/base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}{{ title }} - {{ block.super }}{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'super_admin:domain_list' %}">Domains</a></li>
+<li class="breadcrumb-item active">{{ title }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="card mb-4">
+    <div class="card-header">
+      <h6 class="m-0 font-weight-bold">{{ title }}</h6>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        
+        <div class="row mb-4">
+          <div class="col-md-12">
+            <h5 class="border-bottom pb-2">Domain Information</h5>
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="{{ form.school.id_for_label }}" class="form-label">School*</label>
+            {% render_field form.school class="form-select" %}
+            {% if form.school.errors %}
+              <div class="text-danger">{{ form.school.errors }}</div>
+            {% endif %}
+            <small class="form-text text-muted">Select the school this domain belongs to.</small>
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="{{ form.domain.id_for_label }}" class="form-label">Domain*</label>
+            {% render_field form.domain class="form-control" %}
+            {% if form.domain.errors %}
+              <div class="text-danger">{{ form.domain.errors }}</div>
+            {% endif %}
+            <small class="form-text text-muted">{{ form.domain.help_text }}</small>
+          </div>
+          
+          <div class="col-md-12 mb-3">
+            <div class="form-check">
+              {% render_field form.is_primary class="form-check-input" %}
+              <label class="form-check-label" for="{{ form.is_primary.id_for_label }}">
+                Primary Domain
+              </label>
+              {% if form.is_primary.errors %}
+                <div class="text-danger">{{ form.is_primary.errors }}</div>
+              {% endif %}
+              <div class="form-text">{{ form.is_primary.help_text }}</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="alert alert-info">
+          <h6 class="alert-heading">Domain Verification</h6>
+          <p>After adding a domain, you'll need to verify ownership before it can be used.</p>
+          <p class="mb-0">Verification involves adding a DNS record or uploading a verification file.</p>
+        </div>
+        
+        <div class="d-flex justify-content-between">
+          <a href="{% url 'super_admin:domain_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to List
+          </a>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i> Save Domain
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Domain format validation
+    const domainInput = document.getElementById('{{ form.domain.id_for_label }}');
+    
+    if (domainInput) {
+      domainInput.addEventListener('input', function() {
+        let value = this.value;
+        
+        // Remove http:// or https:// if entered
+        if (value.startsWith('http://')) {
+          value = value.substring(7);
+          this.value = value;
+        } else if (value.startsWith('https://')) {
+          value = value.substring(8);
+          this.value = value;
+        }
+        
+        // Remove trailing slash if entered
+        if (value.endsWith('/')) {
+          value = value.substring(0, value.length - 1);
+          this.value = value;
+        }
+      });
+    }
+  });
+</script>
+{% endblock %} 

@@ -1,0 +1,341 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<!-- SweetAlert2 CSS is already included in base template -->
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            <i class="fas fa-play text-success"></i> Apply Template
+          </h2>
+          <p class="text-muted mb-0">Create a new academic year using this template</p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'template_detail' template.id %}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left"></i> Back to Template
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template Preview -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-eye"></i> Template Preview: {{ template.name }}
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <div class="text-center">
+                <div class="h3 text-primary">{{ stats.total_classes }}</div>
+                <small class="text-muted">Classes</small>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-center">
+                <div class="h3 text-warning">{{ stats.total_subjects }}</div>
+                <small class="text-muted">Subjects</small>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-center">
+                <div class="h3 text-secondary">{{ stats.total_teachers }}</div>
+                <small class="text-muted">Teachers</small>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-center">
+                <div class="h3 text-success">{{ stats.total_subject_assignments }}</div>
+                <small class="text-muted">Subject Assignments</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Form -->
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-cog"></i> Academic Year Configuration
+          </h5>
+        </div>
+        <div class="card-body">
+          <form method="post" id="applyTemplateForm">
+            {% csrf_token %}
+            
+            <!-- Basic Information -->
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="{{ form.academic_year_name.id_for_label }}" class="form-label">
+                  {{ form.academic_year_name.label }}
+                </label>
+                {{ form.academic_year_name }}
+                {% if form.academic_year_name.help_text %}
+                  <div class="form-text">{{ form.academic_year_name.help_text }}</div>
+                {% endif %}
+                {% if form.academic_year_name.errors %}
+                  <div class="text-danger">{{ form.academic_year_name.errors }}</div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.template.id_for_label }}" class="form-label">
+                  {{ form.template.label }}
+                </label>
+                {{ form.template }}
+                {% if form.template.help_text %}
+                  <div class="form-text">{{ form.template.help_text }}</div>
+                {% endif %}
+                {% if form.template.errors %}
+                  <div class="text-danger">{{ form.template.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Date Configuration -->
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="{{ form.start_date.id_for_label }}" class="form-label">
+                  {{ form.start_date.label }}
+                </label>
+                {{ form.start_date }}
+                {% if form.start_date.errors %}
+                  <div class="text-danger">{{ form.start_date.errors }}</div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.end_date.id_for_label }}" class="form-label">
+                  {{ form.end_date.label }}
+                </label>
+                {{ form.end_date }}
+                {% if form.end_date.errors %}
+                  <div class="text-danger">{{ form.end_date.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Options -->
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <div class="form-check">
+                  {{ form.is_current }}
+                  <label class="form-check-label" for="{{ form.is_current.id_for_label }}">
+                    {{ form.is_current.label }}
+                  </label>
+                  {% if form.is_current.help_text %}
+                    <div class="form-text">{{ form.is_current.help_text }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-check">
+                  {{ form.customize_class_names }}
+                  <label class="form-check-label" for="{{ form.customize_class_names.id_for_label }}">
+                    {{ form.customize_class_names.label }}
+                  </label>
+                  {% if form.customize_class_names.help_text %}
+                    <div class="form-text">{{ form.customize_class_names.help_text }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Customization Options (hidden by default) -->
+            <div id="customizationOptions" style="display: none;">
+              <hr>
+              <h6>Class Name Customization</h6>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="class_prefixes" class="form-label">Class Prefix Mappings</label>
+                  <textarea class="form-control" id="class_prefixes" name="class_prefixes" rows="3" 
+                            placeholder="old_prefix=new_prefix&#10;1Science=2Science&#10;1Art=2Art"></textarea>
+                  <div class="form-text">Enter class prefix mappings (one per line): old_prefix=new_prefix</div>
+                </div>
+                <div class="col-md-6">
+                  <label for="year_suffix" class="form-label">Year Suffix</label>
+                  <input type="text" class="form-control" id="year_suffix" name="year_suffix" 
+                         placeholder="2024">
+                  <div class="form-text">Add a suffix to all class names (e.g., '2024')</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Errors -->
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <!-- Submit Button -->
+            <div class="d-flex justify-content-between">
+              <a href="{% url 'template_detail' template.id %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Cancel
+              </a>
+              <button type="submit" class="btn btn-success" id="applyTemplateBtn">
+                <i class="fas fa-play"></i> Apply Template
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Template Information -->
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-info-circle"></i> Template Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <dl class="row">
+            <dt class="col-sm-5">Name:</dt>
+            <dd class="col-sm-7">{{ template.name }}</dd>
+            
+            <dt class="col-sm-5">Description:</dt>
+            <dd class="col-sm-7">{{ template.description|default:"No description" }}</dd>
+            
+            <dt class="col-sm-5">Created:</dt>
+            <dd class="col-sm-7">{{ template.created_at|date:"M d, Y" }}</dd>
+            
+            {% if template.created_from_year %}
+              <dt class="col-sm-5">Source Year:</dt>
+              <dd class="col-sm-7">{{ template.created_from_year.name }}</dd>
+            {% endif %}
+          </dl>
+          
+          <hr>
+          
+          <h6>What will be created:</h6>
+          <ul class="list-unstyled">
+            <li><i class="fas fa-check text-success"></i> {{ stats.total_classes }} Classes</li>
+            <li><i class="fas fa-check text-success"></i> {{ stats.total_subject_assignments }} Subject Assignments</li>
+            <li><i class="fas fa-check text-success"></i> {{ stats.total_teacher_assignments }} Teacher Assignments</li>
+            <li><i class="fas fa-check text-success"></i> {{ stats.total_class_teachers }} Class Teachers</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- SweetAlert2 JS is already included in base template -->
+
+<script>
+$(document).ready(function() {
+    // Show/hide customization options
+    $('#{{ form.customize_class_names.id_for_label }}').on('change', function() {
+        if ($(this).is(':checked')) {
+            $('#customizationOptions').slideDown();
+        } else {
+            $('#customizationOptions').slideUp();
+        }
+    });
+    
+    // Set default dates
+    const today = new Date();
+    const defaultStart = new Date(today.getFullYear(), 8, 1); // September 1
+    const defaultEnd = new Date(today.getFullYear() + 1, 6, 31); // July 31 next year
+    
+    $('#{{ form.start_date.id_for_label }}').val(defaultStart.toISOString().split('T')[0]);
+    $('#{{ form.end_date.id_for_label }}').val(defaultEnd.toISOString().split('T')[0]);
+    
+    // Auto-generate academic year name
+    $('#{{ form.start_date.id_for_label }}, #{{ form.end_date.id_for_label }}').on('change', function() {
+        const startDate = new Date($('#{{ form.start_date.id_for_label }}').val());
+        const endDate = new Date($('#{{ form.end_date.id_for_label }}').val());
+        
+        if (startDate && endDate) {
+            const startYear = startDate.getFullYear();
+            const endYear = endDate.getFullYear();
+            $('#{{ form.academic_year_name.id_for_label }}').val(`${startYear}/${endYear}`);
+        }
+    });
+    
+    // Handle form submission
+    $('#applyTemplateForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const form = this;
+        const formData = new FormData(form);
+        
+        // Show loading state
+        const submitBtn = $('#applyTemplateBtn');
+        const originalText = submitBtn.html();
+        submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Applying Template...');
+        submitBtn.prop('disabled', true);
+        
+        // Submit form via AJAX
+        $.ajax({
+            url: form.action || window.location.href,
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Academic year created successfully.',
+                        icon: 'success',
+                        confirmButtonText: 'View Academic Year'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = response.redirect_url;
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: response.message || 'An error occurred while applying the template.',
+                        icon: 'error'
+                    });
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'An error occurred while applying the template.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                
+                Swal.fire({
+                    title: 'Error!',
+                    text: errorMessage,
+                    icon: 'error'
+                });
+            },
+            complete: function() {
+                submitBtn.html(originalText);
+                submitBtn.prop('disabled', false);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,203 @@
+{% extends 'super_admin/base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}{{ title }} - {{ block.super }}{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'super_admin:school_list' %}">Schools</a></li>
+<li class="breadcrumb-item active">{{ title }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="card mb-4">
+    <div class="card-header">
+      <h6 class="m-0 font-weight-bold">{{ title }}</h6>
+    </div>
+    <div class="card-body">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="row mb-4">
+          <div class="col-md-12">
+            <h5 class="border-bottom pb-2">Basic Information</h5>
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="{{ form.name.id_for_label }}" class="form-label">School Name*</label>
+            {% render_field form.name class="form-control" placeholder="Enter school name" %}
+            {% if form.name.errors %}
+              <div class="text-danger">{{ form.name.errors }}</div>
+            {% endif %}
+            {% if form.name.help_text %}
+              <small class="form-text text-muted">{{ form.name.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="{{ form.domain.id_for_label }}" class="form-label">Domain*</label>
+            {% render_field form.domain class="form-control" placeholder="school1" %}
+            {% if form.domain.errors %}
+              <div class="text-danger">{{ form.domain.errors }}</div>
+            {% endif %}
+            <small class="form-text text-muted">{{ form.domain.help_text }} <span class="text-info">For development: if you enter "school1", it will create "school1.localhost"</span></small>
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="{{ form.admin_name.id_for_label }}" class="form-label">Admin Name*</label>
+            {% render_field form.admin_name class="form-control" placeholder="Enter admin name" %}
+            {% if form.admin_name.errors %}
+              <div class="text-danger">{{ form.admin_name.errors }}</div>
+            {% endif %}
+            {% if form.admin_name.help_text %}
+              <small class="form-text text-muted">{{ form.admin_name.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="{{ form.admin_email.id_for_label }}" class="form-label">Admin Email*</label>
+            {% render_field form.admin_email class="form-control" placeholder="admin@example.com" %}
+            {% if form.admin_email.errors %}
+              <div class="text-danger">{{ form.admin_email.errors }}</div>
+            {% endif %}
+            {% if form.admin_email.help_text %}
+              <small class="form-text text-muted">{{ form.admin_email.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="{{ form.phone.id_for_label }}" class="form-label">Phone Number</label>
+            {% render_field form.phone_number class="form-control" placeholder="+1234567890" %}
+            {% if form.phone_number.errors %}
+              <div class="text-danger">{{ form.phone_number.errors }}</div>
+            {% endif %}
+            {% if form.phone_number.help_text %}
+              <small class="form-text text-muted">{{ form.phone_number.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="{{ form.email.id_for_label }}" class="form-label">School Email</label>
+            {% render_field form.email class="form-control" placeholder="school@example.com" %}
+            {% if form.email.errors %}
+              <div class="text-danger">{{ form.email.errors }}</div>
+            {% endif %}
+            {% if form.email.help_text %}
+              <small class="form-text text-muted">{{ form.email.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="{{ form.website.id_for_label }}" class="form-label">Website</label>
+            {% render_field form.website class="form-control" placeholder="https://www.example.com" %}
+            {% if form.website.errors %}
+              <div class="text-danger">{{ form.website.errors }}</div>
+            {% endif %}
+            {% if form.website.help_text %}
+              <small class="form-text text-muted">{{ form.website.help_text }}</small>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="row mb-4">
+          <div class="col-md-12">
+            <h5 class="border-bottom pb-2">Address Information</h5>
+          </div>
+          
+          <div class="col-md-12 mb-3">
+            <label for="{{ form.address.id_for_label }}" class="form-label">Address</label>
+            {% render_field form.address class="form-control" placeholder="Enter complete address" %}
+            {% if form.address.errors %}
+              <div class="text-danger">{{ form.address.errors }}</div>
+            {% endif %}
+            {% if form.address.help_text %}
+              <small class="form-text text-muted">{{ form.address.help_text }}</small>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="row mb-4">
+          <div class="col-md-12">
+            <h5 class="border-bottom pb-2">Additional Information</h5>
+          </div>
+          
+          <div class="col-md-12 mb-3">
+            <label for="{{ form.description.id_for_label }}" class="form-label">School Description</label>
+            {% render_field form.description class="form-control" rows="4" placeholder="Enter a description of the school" %}
+            {% if form.description.errors %}
+              <div class="text-danger">{{ form.description.errors }}</div>
+            {% endif %}
+            {% if form.description.help_text %}
+              <small class="form-text text-muted">{{ form.description.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="{{ form.logo.id_for_label }}" class="form-label">School Logo</label>
+            {% if school.logo %}
+              <div class="mb-2">
+                <img src="{{ school.logo.url }}" alt="Current Logo" class="img-thumbnail" style="max-height: 100px;">
+              </div>
+            {% endif %}
+            {% render_field form.logo class="form-control" %}
+            {% if form.logo.errors %}
+              <div class="text-danger">{{ form.logo.errors }}</div>
+            {% endif %}
+            {% if form.logo.help_text %}
+              <small class="form-text text-muted">{{ form.logo.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <div class="form-check mt-4">
+              {% render_field form.is_featured class="form-check-input" %}
+              <label class="form-check-label" for="{{ form.is_featured.id_for_label }}">
+                Feature this school on the platform
+              </label>
+              {% if form.is_featured.errors %}
+                <div class="text-danger">{{ form.is_featured.errors }}</div>
+              {% endif %}
+              {% if form.is_featured.help_text %}
+                <small class="form-text text-muted">{{ form.is_featured.help_text }}</small>
+              {% endif %}
+            </div>
+            
+            <div class="form-check">
+              {% render_field form.is_active class="form-check-input" %}
+              <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                Active (Uncheck to temporarily disable this school)
+              </label>
+              {% if form.is_active.errors %}
+                <div class="text-danger">{{ form.is_active.errors }}</div>
+              {% endif %}
+              {% if form.is_active.help_text %}
+                <small class="form-text text-muted">{{ form.is_active.help_text }}</small>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        
+        <div class="d-flex justify-content-between">
+          <a href="{% url 'super_admin:school_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to List
+          </a>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i> Save School
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize any form components that need JavaScript
+  });
+</script>
+{% endblock %} 

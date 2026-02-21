@@ -1,0 +1,555 @@
+{% extends "base.html" %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}Score Sheet - {{ school.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .score-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        background: white;
+    }
+    
+    .score-table th,
+    .score-table td {
+        padding: 12px 8px;
+        text-align: center;
+        border: 1px solid #dee2e6;
+    }
+    
+    .score-table th {
+        background: #007bff;
+        color: white;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .score-table tbody tr:nth-child(even) {
+        background: #f8f9fa;
+    }
+    
+    .score-table tbody tr:hover {
+        background: #e9ecef;
+    }
+    
+    .student-name {
+        text-align: left;
+        font-weight: bold;
+    }
+    
+    .position-cell {
+        font-weight: bold;
+        color: #007bff;
+    }
+    
+    .score-cell {
+        font-weight: bold;
+    }
+    
+    .grade-cell {
+        font-weight: bold;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+    
+    .grade-A { background: #d4edda; color: #155724; }
+    .grade-B { background: #cce5ff; color: #004085; }
+    .grade-C { background: #fff3cd; color: #856404; }
+    .grade-D { background: #f8d7da; color: #721c24; }
+    .grade-F { background: #f5c6cb; color: #721c24; }
+    .grade-N/A { background: #e2e3e5; color: #6c757d; }
+    
+    .no-data-message {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+    }
+    
+    .loading-message {
+        text-align: center;
+        padding: 40px;
+        color: #007bff;
+    }
+    
+    .loading-message i {
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">
+                        <i class="fas fa-chart-line"></i> Score Sheet
+                    </h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item active">Score Sheet</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            <!-- Filter Card -->
+            <div class="card card-primary">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-filter"></i> Score Sheet Filters
+                    </h3>
+                </div>
+                <div class="card-body">
+
+                    <!-- Score Sheet Type Toggle -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="btn-group" role="group" aria-label="Score Sheet Type">
+                                <input type="radio" class="btn-check" name="score-sheet-type" id="class-level" value="class" checked>
+                                <label class="btn btn-outline-primary" for="class-level">
+                                    <i class="fas fa-users"></i> Class Level
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="score-sheet-type" id="form-level" value="form">
+                                <label class="btn btn-outline-primary" for="form-level">
+                                    <i class="fas fa-layer-group"></i> Form Level
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Class Level Selection -->
+                        <div class="col-md-3" id="class-selection">
+
+                            <div class="form-group">
+                                <label for="class-select">Class:</label>
+                                <select id="class-select" class="form-control">
+                                    <option value="">Select a class...</option>
+                                    {% for class in classes %}
+                                        <option value="{{ class.class_id }}" 
+                                                {% if selected_class and selected_class.class_id == class.class_id %}selected{% endif %}>
+                                            {{ class.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+
+                        <!-- Form Level Selection -->
+                        <div class="col-md-3" id="form-selection" style="display: none;">
+                            <div class="form-group">
+                                <label for="form-select">Form:</label>
+                                <select id="form-select" class="form-control">
+                                    <option value="">Select a form...</option>
+                                    {% for form in forms %}
+                                        <option value="{{ form.id }}" 
+                                                {% if selected_form and selected_form.id == form.id %}selected{% endif %}>
+                                            {{ form.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="subject-select">Subject:</label>
+                                <select id="subject-select" class="form-control">
+                                    <option value="all" {% if not selected_subject %}selected{% endif %}>All Subjects</option>
+                                    {% for subject in subjects %}
+                                        <option value="{{ subject.id }}" 
+                                                {% if selected_subject and selected_subject.id == subject.id %}selected{% endif %}>
+                                            {{ subject.subject_name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="term-select">Term:</label>
+                                <select id="term-select" class="form-control">
+                                    {% for term in terms %}
+                                        <option value="{{ term.id }}" 
+                                                {% if selected_term and selected_term.id == term.id %}selected{% endif %}>
+                                            {{ term.get_term_number_display }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>&nbsp;</label>
+                                <div class="btn-group d-block">
+                                    <button type="button" class="btn btn-info" onclick="printScoreSheet()">
+                                        <i class="fas fa-print"></i> Print
+                                    </button>
+                                    <button type="button" class="btn btn-danger" onclick="exportToPDF()">
+                                        <i class="fas fa-file-pdf"></i> PDF
+                                    </button>
+                                    <button type="button" class="btn btn-success" onclick="exportToExcel()">
+                                        <i class="fas fa-file-excel"></i> Excel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Score Sheet Content Card -->
+            <div class="card">
+                <div class="card-body">
+                    <div id="score-sheet-content">
+                        {% if error %}
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle"></i> {{ error }}
+                            </div>
+                        {% else %}
+                            <div class="loading-message">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Loading score sheet data...</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+
+        // Get form elements
+        const classSelect = $('#class-select');
+        const formSelect = $('#form-select');
+        const subjectSelect = $('#subject-select');
+        const termSelect = $('#term-select');
+        const classSelection = $('#class-selection');
+        const formSelection = $('#form-selection');
+        
+        // Handle score sheet type toggle
+        $('input[name="score-sheet-type"]').on('change', function() {
+            const selectedType = $(this).val();
+            
+            if (selectedType === 'class') {
+                classSelection.show();
+                formSelection.hide();
+                formSelect.val(''); // Clear form selection
+            } else {
+                classSelection.hide();
+                formSelection.show();
+                classSelect.val(''); // Clear class selection
+            }
+            
+            // Clear content when switching types
+            $('#score-sheet-content').html('<div class="loading-message"><i class="fas fa-info-circle"></i><p>Please select a ' + selectedType + ' to view score sheet data.</p></div>');
+        });
+        
+        // Load initial data if class or form is selected
+        if (classSelect.val() || formSelect.val()) {
+
+            loadScoreSheetData();
+        }
+        
+        // Handle class selection change
+        classSelect.on('change', function() {
+            if ($(this).val()) {
+                loadScoreSheetData();
+            } else {
+                $('#score-sheet-content').html('<div class="loading-message"><i class="fas fa-info-circle"></i><p>Please select a class to view score sheet data.</p></div>');
+            }
+        });
+        
+
+        // Handle form selection change
+        formSelect.on('change', function() {
+            if ($(this).val()) {
+                loadScoreSheetData();
+            } else {
+                $('#score-sheet-content').html('<div class="loading-message"><i class="fas fa-info-circle"></i><p>Please select a form to view score sheet data.</p></div>');
+            }
+        });
+        
+        // Handle subject selection change
+        subjectSelect.on('change', function() {
+            if (classSelect.val() || formSelect.val()) {
+
+                loadScoreSheetData();
+            }
+        });
+        
+        // Handle term selection change
+        termSelect.on('change', function() {
+
+            if (classSelect.val() || formSelect.val()) {
+
+                loadScoreSheetData();
+            }
+        });
+        
+        function loadScoreSheetData() {
+
+            const selectedType = $('input[name="score-sheet-type"]:checked').val();
+            const classId = classSelect.val();
+            const formId = formSelect.val();
+            const subjectId = subjectSelect.val();
+            const termId = termSelect.val();
+            
+            if (!classId && !formId) return;
+            
+            $('#score-sheet-content').html('<div class="loading-message"><i class="fas fa-spinner fa-spin"></i><p>Loading score sheet data...</p></div>');
+            
+            let url, data;
+            
+            if (selectedType === 'class') {
+                url = '{% url "get_score_sheet_data_ajax" %}';
+                data = {
+                    'class_id': classId,
+                    'subject_id': subjectId,
+                    'term_id': termId
+                };
+            } else {
+                url = '{% url "get_form_level_score_sheet_data_ajax" %}';
+                data = {
+                    'form_id': formId,
+                    'subject_id': subjectId,
+                    'term_id': termId
+                };
+            }
+            
+            $.ajax({
+                url: url,
+                type: 'GET',
+                data: data,
+                success: function(response) {
+                    if (response.score_data) {
+                        // Form-level response format
+                        renderScoreSheet(response);
+                    } else if (response.success && response.html_content) {
+                        // Class-level response format
+                        $('#score-sheet-content').html(response.html_content);
+                    } else {
+                        $('#score-sheet-content').html('<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> Error loading data: ' + (response.error || 'Unknown error') + '</div>');
+
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#score-sheet-content').html('<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> Error loading score sheet data. Please try again.</div>');
+                }
+            });
+        }
+
+        
+        function renderScoreSheet(response) {
+            const scoreData = response.score_data;
+            const selectedType = $('input[name="score-sheet-type"]:checked').val();
+            
+            if (!scoreData || scoreData.length === 0) {
+                $('#score-sheet-content').html('<div class="no-data-message"><i class="fas fa-info-circle"></i><p>No score data available for the selected ' + selectedType + ' and subject combination.</p></div>');
+                return;
+            }
+            
+            let html = '<table class="score-table table table-striped table-bordered">';
+            
+            // Table header
+            html += '<thead><tr>';
+            html += '<th>Student Name</th>';
+            html += '<th>Student ID</th>';
+            
+            if (selectedType === 'form') {
+                html += '<th>Class</th>';
+            }
+            
+            if (response.selected_subject) {
+                // Single subject view
+                html += '<th>Pos</th>';
+                html += '<th>Class Score</th>';
+                html += '<th>Exam Score</th>';
+                html += '<th>Total Score</th>';
+                html += '<th>Grade</th>';
+                html += '<th>Remarks</th>';
+            } else {
+                // All subjects view
+                if (scoreData[0] && scoreData[0].subjects) {
+                    const subjects = Object.keys(scoreData[0].subjects);
+                    subjects.forEach(subject => {
+                        html += '<th>' + subject.substring(0, 15) + '</th>';
+                    });
+                }
+                html += '<th>Average</th>';
+                html += '<th>Pos</th>';
+            }
+            
+            html += '</tr></thead><tbody>';
+            
+            // Table body
+            scoreData.forEach(studentData => {
+                html += '<tr>';
+                html += '<td class="student-name">' + studentData.student.full_name + '</td>';
+                html += '<td>' + studentData.student.admission_number + '</td>';
+                
+                if (selectedType === 'form') {
+                    html += '<td>' + studentData.student_class.name + '</td>';
+                }
+                
+                if (response.selected_subject) {
+                    // Single subject view
+                    const subjectData = studentData.subjects[response.selected_subject.subject_name];
+                    html += '<td class="position-cell">' + studentData.position + '</td>';
+                    html += '<td class="score-cell">' + (subjectData.class_score || 0).toFixed(2) + '</td>';
+                    html += '<td class="score-cell">' + (subjectData.exam_score || 0).toFixed(2) + '</td>';
+                    html += '<td class="score-cell">' + (subjectData.score || 0).toFixed(2) + '</td>';
+                    html += '<td class="grade-cell grade-' + (subjectData.grade || 'N/A') + '">' + (subjectData.grade || 'N/A') + '</td>';
+                    html += '<td>' + studentData.remarks + '</td>';
+                } else {
+                    // All subjects view
+                    if (scoreData[0] && scoreData[0].subjects) {
+                        const subjects = Object.keys(scoreData[0].subjects);
+                        subjects.forEach(subject => {
+                            const subjectData = studentData.subjects[subject];
+                            html += '<td class="score-cell">' + (subjectData.score || 0).toFixed(2) + '</td>';
+                        });
+                    }
+                    html += '<td class="score-cell">' + (studentData.average_score || 0).toFixed(2) + '</td>';
+                    html += '<td class="position-cell">' + studentData.position + '</td>';
+                }
+                
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            
+            // Add summary section
+            html += '<div class="mt-4">';
+            html += '<div class="row">';
+            html += '<div class="col-md-6">';
+            html += '<div class="card">';
+            html += '<div class="card-header"><h6>' + (selectedType === 'form' ? 'Form' : 'Class') + ' Statistics</h6></div>';
+            html += '<div class="card-body">';
+            html += '<p><strong>Total Students:</strong> ' + scoreData.length + '</p>';
+            html += '<p><strong>' + (selectedType === 'form' ? 'Form' : 'Class') + ' Average:</strong> ';
+            
+            if (response.selected_subject) {
+                const avgScore = scoreData.reduce((sum, s) => sum + (s.subjects[response.selected_subject.subject_name].score || 0), 0) / scoreData.length;
+                html += avgScore.toFixed(2);
+            } else {
+                const avgScore = scoreData.reduce((sum, s) => sum + (s.average_score || 0), 0) / scoreData.length;
+                html += avgScore.toFixed(2);
+            }
+            
+            html += '</p></div></div></div>';
+            
+            html += '<div class="col-md-6">';
+            html += '<div class="card">';
+            html += '<div class="card-header"><h6>Top Performers</h6></div>';
+            html += '<div class="card-body">';
+            
+            scoreData.slice(0, 3).forEach(studentData => {
+                html += '<p>' + studentData.position + '. ' + studentData.student.full_name + ' - ';
+                if (response.selected_subject) {
+                    html += (studentData.subjects[response.selected_subject.subject_name].score || 0).toFixed(2);
+                } else {
+                    html += (studentData.average_score || 0).toFixed(2);
+                }
+                html += '</p>';
+            });
+            
+            html += '</div></div></div>';
+            html += '</div></div>';
+            
+            $('#score-sheet-content').html(html);
+        }
+    });
+    
+    function printScoreSheet() {
+        const selectedType = $('input[name="score-sheet-type"]:checked').val();
+        const classId = $('#class-select').val();
+        const formId = $('#form-select').val();
+        const subjectId = $('#subject-select').val();
+        const termId = $('#term-select').val();
+        
+        if (!classId && !formId) {
+            alert('Please select a ' + selectedType + ' first.');
+            return;
+        }
+        
+        let printUrl;
+        if (selectedType === 'class') {
+            printUrl = `{% url "print_score_sheet" %}?class_id=${classId}&subject_id=${subjectId}&term_id=${termId}`;
+        } else {
+            printUrl = `{% url "print_form_level_score_sheet" %}?form_id=${formId}&subject_id=${subjectId}&term_id=${termId}`;
+        }
+        
+
+        window.open(printUrl, '_blank');
+    }
+    
+    function exportToPDF() {
+
+        const selectedType = $('input[name="score-sheet-type"]:checked').val();
+        const classId = $('#class-select').val();
+        const formId = $('#form-select').val();
+        const subjectId = $('#subject-select').val();
+        const termId = $('#term-select').val();
+        
+        if (!classId && !formId) {
+            alert('Please select a ' + selectedType + ' first.');
+            return;
+        }
+        
+        let exportUrl;
+        if (selectedType === 'class') {
+            exportUrl = `{% url "export_score_sheet_pdf" %}?class_id=${classId}&subject_id=${subjectId}&term_id=${termId}`;
+        } else {
+            exportUrl = `{% url "export_form_level_score_sheet_pdf" %}?form_id=${formId}&subject_id=${subjectId}&term_id=${termId}`;
+        }
+        
+        window.location.href = exportUrl;
+    }
+    
+    function exportToExcel() {
+        const selectedType = $('input[name="score-sheet-type"]:checked').val();
+        const classId = $('#class-select').val();
+        const formId = $('#form-select').val();
+        const subjectId = $('#subject-select').val();
+        const termId = $('#term-select').val();
+        
+        if (!classId && !formId) {
+            alert('Please select a ' + selectedType + ' first.');
+            return;
+        }
+        
+        // For now, only class-level Excel export is available
+        if (selectedType === 'form') {
+            alert('Excel export for form-level score sheets is not yet available.');
+
+            return;
+        }
+        
+        window.location.href = `{% url "export_score_sheet_excel" %}?class_id=${classId}&subject_id=${subjectId}&term_id=${termId}`;
+    }
+</script>
+{% endblock %}

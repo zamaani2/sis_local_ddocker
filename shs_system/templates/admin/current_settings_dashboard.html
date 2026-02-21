@@ -1,0 +1,538 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Current Academic Settings{% endblock %}
+{% block page_title %}Current Academic Settings{% endblock %}
+
+{% block extra_css %}
+<style>
+  .current-settings-card {
+    border-left: 4px solid #007bff;
+  }
+  
+  .current-settings-card .card-header {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+  }
+  
+  .quick-set-card {
+    border-left: 4px solid #28a745;
+  }
+  
+  .quick-set-card .card-header {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+    color: white;
+  }
+  
+  .current-display {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
+  }
+  
+  .current-display.current-academic-year {
+    border-left: 4px solid #007bff;
+  }
+  
+  .current-display.current-term {
+    border-left: 4px solid #28a745;
+  }
+  
+  .status-badge {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  .quick-set-form {
+    background: #f8f9fa;
+    border-radius: 0.375rem;
+    padding: 1.5rem;
+  }
+  
+  .form-floating {
+    margin-bottom: 1rem;
+  }
+  
+  .btn-quick-set {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+    border: none;
+    color: white;
+    padding: 0.75rem 2rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-quick-set:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    color: white;
+  }
+  
+  .alert-current {
+    border-left: 4px solid #ffc107;
+    background: #fff3cd;
+  }
+  
+  .loading-spinner {
+    display: none;
+  }
+  
+  .loading-spinner.show {
+    display: inline-block;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %}
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              Current Academic Settings
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if current_academic_year %}
+              Current academic year and term management
+            {% else %}
+              Manage current academic year and term for your school
+            {% endif %}
+          </p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'academic_year_list' %}" class="btn btn-outline-primary">
+            <i class="bi bi-calendar3"></i> Manage Academic Years
+          </a>
+          <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Current Settings Display -->
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <div class="card current-settings-card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-calendar-check"></i> Current Academic Year
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if current_academic_year %}
+            <div class="current-display current-academic-year">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h4 class="mb-1">{{ current_academic_year.name }}</h4>
+                  <p class="text-muted mb-2">
+                    <i class="bi bi-calendar-event"></i>
+                    {{ current_academic_year.start_date|date:"M d, Y" }} - {{ current_academic_year.end_date|date:"M d, Y" }}
+                  </p>
+                  <span class="badge bg-success status-badge">
+                    <i class="bi bi-check-circle"></i> Active
+                  </span>
+                </div>
+                <div class="text-end">
+                  <small class="text-muted">Duration</small><br>
+                  <strong>{{ current_academic_year.start_date|timesince:current_academic_year.end_date }}</strong>
+                </div>
+              </div>
+            </div>
+          {% else %}
+            <div class="alert alert-warning alert-current">
+              <i class="bi bi-exclamation-triangle"></i>
+              <strong>No Current Academic Year Set</strong><br>
+              Please set a current academic year to enable proper system functionality.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-6">
+      <div class="card current-settings-card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-calendar-week"></i> Current Term
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if current_term %}
+            <div class="current-display current-term">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h4 class="mb-1">{{ current_term.get_term_number_display }}</h4>
+                  <p class="text-muted mb-2">
+                    <i class="bi bi-calendar-event"></i>
+                    {{ current_term.start_date|date:"M d, Y" }} - {{ current_term.end_date|date:"M d, Y" }}
+                  </p>
+                  <span class="badge bg-success status-badge">
+                    <i class="bi bi-check-circle"></i> Active
+                  </span>
+                </div>
+                <div class="text-end">
+                  <small class="text-muted">Duration</small><br>
+                  <strong>{{ current_term.start_date|timesince:current_term.end_date }}</strong>
+                </div>
+              </div>
+            </div>
+          {% else %}
+            <div class="alert alert-warning alert-current">
+              <i class="bi bi-exclamation-triangle"></i>
+              <strong>No Current Term Set</strong><br>
+              Please set a current term to enable proper system functionality.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Set Forms -->
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card quick-set-card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-lightning"></i> Quick Set Current Settings
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="quick-set-form">
+            <form id="quickSetForm">
+              {% csrf_token %}
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-floating">
+                    <select class="form-select" id="academicYearSelect" name="academic_year_id" required>
+                      <option value="">Select Academic Year</option>
+                      {% for year in academic_years %}
+                        <option value="{{ year.id }}" {% if current_academic_year and year.id == current_academic_year.id %}selected{% endif %}>
+                          {{ year.name }} ({{ year.start_date|date:"Y" }} - {{ year.end_date|date:"Y" }})
+                        </option>
+                      {% endfor %}
+                    </select>
+                    <label for="academicYearSelect">Academic Year</label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-floating">
+                    <select class="form-select" id="termSelect" name="term_id" required>
+                      <option value="">Select Term</option>
+                      {% for term in all_terms %}
+                        <option value="{{ term.id }}" 
+                                data-academic-year="{{ term.academic_year.id }}"
+                                {% if current_term and term.id == current_term.id %}selected{% endif %}>
+                          {{ term.get_term_number_display }} - {{ term.academic_year.name }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                    <label for="termSelect">Term</label>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="row mt-3">
+                <div class="col-12">
+                  <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-quick-set">
+                      <span class="loading-spinner spinner-border spinner-border-sm me-2" role="status"></span>
+                      <i class="bi bi-check-circle"></i> Set Current Settings
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" id="setAcademicYearOnly">
+                      <i class="bi bi-calendar-check"></i> Set Academic Year Only
+                    </button>
+                    <button type="button" class="btn btn-outline-success" id="setTermOnly">
+                      <i class="bi bi-calendar-week"></i> Set Term Only
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="bi bi-info-circle"></i> Help & Tips
+          </h6>
+        </div>
+        <div class="card-body">
+          <h6>Quick Actions:</h6>
+          <ul class="list-unstyled">
+            <li class="mb-2">
+              <i class="bi bi-check-circle text-success"></i>
+              <strong>Set Both:</strong> Sets both academic year and term
+            </li>
+            <li class="mb-2">
+              <i class="bi bi-calendar-check text-primary"></i>
+              <strong>Academic Year Only:</strong> Sets just the academic year
+            </li>
+            <li class="mb-2">
+              <i class="bi bi-calendar-week text-success"></i>
+              <strong>Term Only:</strong> Sets just the term
+            </li>
+          </ul>
+          
+          <hr>
+          
+          <h6>Important Notes:</h6>
+          <ul class="small">
+            <li>Setting a new academic year will clear the current term if it doesn't belong to the new year</li>
+            <li>All reports and records will use these current settings</li>
+            <li>Changes take effect immediately across the system</li>
+          </ul>
+          
+          <div class="alert alert-info small mt-3">
+            <i class="bi bi-lightbulb"></i>
+            <strong>Tip:</strong> Use the "Set Both" option for the most reliable setup.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vendor/sweetalert2/11.4.8/dist/sweetalert2.all.min.js' %}"></script>
+<script>
+$(document).ready(function() {
+    // Filter terms based on selected academic year
+    $('#academicYearSelect').change(function() {
+        const selectedYearId = $(this).val();
+        const termSelect = $('#termSelect');
+        
+        // Clear current selection
+        termSelect.val('');
+        
+        if (selectedYearId) {
+            // Hide all options first
+            termSelect.find('option').hide();
+            termSelect.find('option[value=""]').show(); // Keep the placeholder
+            
+            // Show only terms for the selected academic year
+            termSelect.find(`option[data-academic-year="${selectedYearId}"]`).show();
+        } else {
+            // Show all options if no academic year selected
+            termSelect.find('option').show();
+        }
+    });
+    
+    // Set both academic year and term
+    $('#quickSetForm').submit(function(e) {
+        e.preventDefault();
+        
+        const academicYearId = $('#academicYearSelect').val();
+        const termId = $('#termSelect').val();
+        
+        if (!academicYearId || !termId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Selection',
+                text: 'Please select both academic year and term.'
+            });
+            return;
+        }
+        
+        setCurrentSettings(academicYearId, termId);
+    });
+    
+    // Set academic year only
+    $('#setAcademicYearOnly').click(function() {
+        const academicYearId = $('#academicYearSelect').val();
+        
+        if (!academicYearId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Selection',
+                text: 'Please select an academic year.'
+            });
+            return;
+        }
+        
+        setCurrentAcademicYear(academicYearId);
+    });
+    
+    // Set term only
+    $('#setTermOnly').click(function() {
+        const termId = $('#termSelect').val();
+        
+        if (!termId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Selection',
+                text: 'Please select a term.'
+            });
+            return;
+        }
+        
+        setCurrentTerm(termId);
+    });
+    
+    function setCurrentSettings(academicYearId, termId) {
+        showLoading();
+        
+        $.ajax({
+            url: '{% url "set_current_settings_both" %}',
+            type: 'POST',
+            data: {
+                'academic_year_id': academicYearId,
+                'term_id': termId,
+                'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(response) {
+                hideLoading();
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Settings Updated!',
+                        text: response.message,
+                        timer: 2000
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message
+                    });
+                }
+            },
+            error: function(xhr) {
+                hideLoading();
+                let errorMessage = 'An error occurred while updating settings.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: errorMessage
+                });
+            }
+        });
+    }
+    
+    function setCurrentAcademicYear(academicYearId) {
+        showLoading();
+        
+        $.ajax({
+            url: '{% url "set_current_academic_year" %}',
+            type: 'POST',
+            data: {
+                'academic_year_id': academicYearId,
+                'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(response) {
+                hideLoading();
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Academic Year Updated!',
+                        text: response.message,
+                        timer: 2000
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message
+                    });
+                }
+            },
+            error: function(xhr) {
+                hideLoading();
+                let errorMessage = 'An error occurred while updating academic year.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: errorMessage
+                });
+            }
+        });
+    }
+    
+    function setCurrentTerm(termId) {
+        showLoading();
+        
+        $.ajax({
+            url: '{% url "set_current_term" %}',
+            type: 'POST',
+            data: {
+                'term_id': termId,
+                'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(response) {
+                hideLoading();
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Term Updated!',
+                        text: response.message,
+                        timer: 2000
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message
+                    });
+                }
+            },
+            error: function(xhr) {
+                hideLoading();
+                let errorMessage = 'An error occurred while updating term.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: errorMessage
+                });
+            }
+        });
+    }
+    
+    function showLoading() {
+        $('.loading-spinner').addClass('show');
+        $('button[type="submit"], #setAcademicYearOnly, #setTermOnly').prop('disabled', true);
+    }
+    
+    function hideLoading() {
+        $('.loading-spinner').removeClass('show');
+        $('button[type="submit"], #setAcademicYearOnly, #setTermOnly').prop('disabled', false);
+    }
+    
+    // Initialize term filtering on page load
+    if ($('#academicYearSelect').val()) {
+        $('#academicYearSelect').trigger('change');
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}Academic Year Templates{% endblock %}
+{% block page_title %}Academic Year Templates{% endblock %}
+
+{% block extra_css %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="{% static 'vendor/datatables/1.13.7/css/dataTables.bootstrap5.min.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'vendor/datatables-responsive/2.5.0/css/responsive.bootstrap5.min.css' %}">
+<!-- SweetAlert2 CSS -->
+<link rel="stylesheet" href="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.min.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Academic Year Templates</h2>
+          <p class="text-muted mb-0">Manage templates for quick academic year setup</p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'template_create_from_academic_year' %}" class="btn btn-success">
+            <i class="fas fa-copy"></i> Create from Academic Year
+          </a>
+          <a href="{% url 'template_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Create New Template
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Templates List -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-templates"></i> Available Templates
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if templates %}
+            <div class="table-responsive">
+              <table class="table table-hover" id="templatesTable">
+                <thead>
+                  <tr>
+                    <th>Template Name</th>
+                    <th>Description</th>
+                    <th>Classes</th>
+                    <th>Subjects</th>
+                    <th>Teachers</th>
+                    <th>Created</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for template_data in templates %}
+                    <tr>
+                      <td>
+                        <div class="d-flex align-items-center">
+                          <i class="fas fa-file-alt text-primary me-2"></i>
+                          <div>
+                            <strong>{{ template_data.template.name }}</strong>
+                            {% if template_data.template.is_default %}
+                              <span class="badge bg-success ms-2">Default</span>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="text-muted">
+                          {{ template_data.template.description|truncatechars:50|default:"No description" }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="badge bg-info">{{ template_data.stats.total_classes }}</span>
+                      </td>
+                      <td>
+                        <span class="badge bg-warning">{{ template_data.stats.total_subjects }}</span>
+                      </td>
+                      <td>
+                        <span class="badge bg-secondary">{{ template_data.stats.total_teachers }}</span>
+                      </td>
+                      <td>
+                        <small class="text-muted">
+                          {{ template_data.template.created_at|date:"M d, Y" }}
+                        </small>
+                      </td>
+                      <td>
+                        {% if template_data.template.is_active %}
+                          <span class="badge bg-success">Active</span>
+                        {% else %}
+                          <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        <div class="btn-group" role="group">
+                          <a href="{% url 'template_detail' template_data.template.id %}" 
+                             class="btn btn-sm btn-outline-primary" title="View Details">
+                            <i class="fas fa-eye"></i>
+                          </a>
+                          <a href="{% url 'template_apply' template_data.template.id %}" 
+                             class="btn btn-sm btn-outline-success" title="Apply Template">
+                            <i class="fas fa-play"></i>
+                          </a>
+                          <a href="{% url 'template_edit' template_data.template.id %}" 
+                             class="btn btn-sm btn-outline-warning" title="Edit">
+                            <i class="fas fa-edit"></i>
+                          </a>
+                          <a href="{% url 'template_duplicate' template_data.template.id %}" 
+                             class="btn btn-sm btn-outline-info" title="Duplicate">
+                            <i class="fas fa-copy"></i>
+                          </a>
+                          {% if not template_data.template.is_default %}
+                            <a href="{% url 'template_set_default' template_data.template.id %}" 
+                               class="btn btn-sm btn-outline-success" title="Set as Default">
+                              <i class="fas fa-star"></i>
+                            </a>
+                          {% endif %}
+                          <a href="{% url 'template_delete' template_data.template.id %}" 
+                             class="btn btn-sm btn-outline-danger" title="Delete">
+                            <i class="fas fa-trash"></i>
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="text-center py-5">
+              <i class="fas fa-templates fa-3x text-muted mb-3"></i>
+              <h5 class="text-muted">No Templates Found</h5>
+              <p class="text-muted">Create your first template to streamline academic year setup.</p>
+              <a href="{% url 'template_create_from_academic_year' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create from Academic Year
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- DataTables JS -->
+<script src="{% static 'vendor/datatables/1.13.7/js/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'vendor/datatables/1.13.7/js/dataTables.bootstrap5.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-responsive/2.5.0/js/dataTables.responsive.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-responsive/2.5.0/js/responsive.bootstrap5.min.js' %}"></script>
+<!-- SweetAlert2 JS -->
+<script src="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.min.js' %}"></script>
+
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    $('#templatesTable').DataTable({
+        responsive: true,
+        pageLength: 25,
+        order: [[5, 'desc']], // Sort by created date
+        columnDefs: [
+            { orderable: false, targets: [7] } // Disable sorting on actions column
+        ]
+    });
+    
+    // Handle delete confirmation
+    $('a[href*="template_delete"]').on('click', function(e) {
+        e.preventDefault();
+        const url = $(this).attr('href');
+        const templateName = $(this).closest('tr').find('strong').text();
+        
+        Swal.fire({
+            title: 'Delete Template?',
+            text: `Are you sure you want to delete "${templateName}"? This action cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = url;
+            }
+        });
+    });
+    
+    // Handle set default confirmation
+    $('a[href*="template_set_default"]').on('click', function(e) {
+        e.preventDefault();
+        const url = $(this).attr('href');
+        const templateName = $(this).closest('tr').find('strong').text();
+        
+        Swal.fire({
+            title: 'Set as Default Template?',
+            text: `Are you sure you want to set "${templateName}" as the default template?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, set as default!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = url;
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

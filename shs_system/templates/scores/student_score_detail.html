@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+{% load static %}
+{% load score_filters %}
+
+{% block title %}Student Score Details{% endblock %}
+{% block page_title %}Student Score Details{% endblock %}
+
+{% block extra_css %}
+<!-- Chart.js for data visualization (local) -->
+<script src="{% static 'vendor/chartjs/4.4.0/dist/chart.umd.min.js' %}"></script>
+<!-- Link to the class assignment CSS for consistent styling -->
+<style>
+    .score-cell {
+        width: 80px;
+    }
+    .student-info-card {
+        border-left: 5px solid #4e73df;
+    }
+    .term-tab {
+        cursor: pointer;
+    }
+    .term-tab.active {
+        background-color: #eaecf4 !important;
+        border-color: #4e73df !important;
+    }
+    .academic-year-selector {
+        max-width: 300px;
+    }
+    .subject-performance-card {
+        transition: transform 0.2s;
+    }
+    .subject-performance-card:hover {
+        transform: translateY(-5px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h3 mb-0 text-gray-800">
+                <i class="bi bi-person-badge me-2"></i>
+                {% if current_academic_year %}
+                  {{ current_academic_year.name }}
+                  {% if current_term %}
+                    - {{ current_term.name }}
+                  {% endif %}
+                {% else %}
+                  Student Score Details
+                {% endif %}
+            </h2>
+            <p class="text-muted mb-0">View detailed performance analysis for {{ student.full_name }}</p>
+        </div>
+        <div class="btn-group">
+            <a href="javascript:history.back()" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <!-- Student Information Section -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card shadow student-info-card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 d-flex justify-content-center align-items-center">
+                            <div class="text-center">
+                                <div class="mb-3">
+                                    <i class="bi bi-person-circle" style="font-size: 4rem; color: #6c757d;"></i>
+                                </div>
+                                <h6 class="font-weight-bold">{{ student.full_name }}</h6>
+                                <span class="badge bg-primary">{{ student.admission_number }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <h5 class="card-title border-bottom pb-2">Student Information</h5>
+                            <div class="row mb-1">
+                                <div class="col-sm-4">
+                                    <strong>Gender:</strong>
+                                </div>
+                                <div class="col-sm-8">
+                                    {{ student.get_gender_display }}
+                                </div>
+                            </div>
+                            <div class="row mb-1">
+                                <div class="col-sm-4">
+                                    <strong>Form:</strong>
+                                </div>
+                                <div class="col-sm-8">
+                                    {{ student.current_form.name }}
+                                </div>
+                            </div>
+                            <div class="row mb-1">
+                                <div class="col-sm-4">
+                                    <strong>Class:</strong>
+                                </div>
+                                <div class="col-sm-8">
+                                    {% if current_class %}
+                                        {{ current_class.name }}
+                                    {% else %}
+                                        Not Assigned
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="row mb-1">
+                                <div class="col-sm-4">
+                                    <strong>Learning Area:</strong>
+                                </div>
+                                <div class="col-sm-8">
+                                    {{ student.current_learning_area.name }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h5 class="m-0 font-weight-bold text-primary">
+                        <i class="bi bi-graph-up me-2"></i>Academic Performance Summary
+                    </h5>
+                    <form action="{% url 'student_score_detail' student.id %}" method="GET" class="academic-year-selector">
+                        <div class="form-group mb-0">
+                            <select class="form-select form-select-sm" id="academic_year_id" name="academic_year_id" onchange="this.form.submit()">
+                                {% for academic_year in academic_years %}
+                                <option value="{{ academic_year.id }}" {% if academic_year.id == selected_academic_year.id %}selected{% endif %}>
+                                    {{ academic_year.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:250px;">
+                        <canvas id="termPerformanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance by Term Section -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h5 class="m-0 font-weight-bold text-primary">
+                <i class="bi bi-calendar3 me-2"></i>Term Performance for {{ selected_academic_year.name }}
+            </h5>
+        </div>
+        <div class="card-body">
+            <ul class="nav nav-tabs" id="termTabs" role="tablist">
+                {% for term in terms %}
+                <li class="nav-item">
+                    <a class="nav-link {% if forloop.first %}active{% endif %}" id="term-{{ term.id }}-tab" data-toggle="tab" href="#term-{{ term.id }}" role="tab" aria-controls="term-{{ term.id }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                        {{ term.get_term_number_display }}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            <div class="tab-content mt-3" id="termTabsContent">
+                {% for term in terms %}
+                <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" id="term-{{ term.id }}" role="tabpanel" aria-labelledby="term-{{ term.id }}-tab">
+                    {% if term_averages|get_item:term.id %}
+                    <div class="row mb-3">
+                        <div class="col-md-3 mb-2">
+                            <div class="card shadow border-left-primary h-100">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                Term Average</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ term_averages|get_item:term.id|floatformat:2 }}</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="bi bi-calculator" style="font-size: 2rem; color: #6c757d;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="table-responsive">
+                        <table class="table table-hover" width="100%" cellspacing="0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Subject</th>
+                                    <th class="text-center score-cell">Class Score<br>({% if scoring_config %}{{ scoring_config.class_score_percentage }}%{% else %}30%{% endif %})</th>
+                                    <th class="text-center score-cell">Exam Score<br>({% if scoring_config %}{{ scoring_config.exam_score_percentage }}%{% else %}70%{% endif %})</th>
+                                    <th class="text-center score-cell">Total Score<br>(100%)</th>
+                                    <th class="text-center">Grade</th>
+                                    <th>Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for subject in subject_data %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ subject.subject.subject_name }}</td>
+                                    <td class="text-center">
+                                        {% with assessment=subject.terms|get_item:term.id|get_item:'assessment' %}
+                                        {% if assessment %}
+                                        {{ assessment.class_score|default:"--" }}
+                                        {% else %}
+                                        --
+                                        {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% with assessment=subject.terms|get_item:term.id|get_item:'assessment' %}
+                                        {% if assessment %}
+                                        {{ assessment.exam_score|default:"--" }}
+                                        {% else %}
+                                        --
+                                        {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="text-center font-weight-bold">
+                                        {% with assessment=subject.terms|get_item:term.id|get_item:'assessment' %}
+                                        {% if assessment and assessment.total_score %}
+                                        {{ assessment.total_score|floatformat:2 }}
+                                        {% else %}
+                                        --
+                                        {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% with assessment=subject.terms|get_item:term.id|get_item:'assessment' %}
+                                        {% if assessment and assessment.grade %}
+                                        <span class="badge {% if assessment.grade == 'A1' %}bg-success text-white
+                                            {% elif assessment.grade == 'B2' %}bg-success text-white
+                                            {% elif assessment.grade == 'B3' %}bg-primary text-white
+                                            {% elif assessment.grade == 'C4' %}bg-info text-white
+                                            {% elif assessment.grade == 'C5' %}bg-info text-white
+                                            {% elif assessment.grade == 'C6' %}bg-warning text-dark
+                                            {% elif assessment.grade == 'D7' %}bg-warning text-dark
+                                            {% elif assessment.grade == 'E8' %}bg-danger text-white
+                                            {% elif assessment.grade == 'F9' %}bg-danger text-white
+                                            {% else %}bg-secondary text-white{% endif %}">
+                                            {{ assessment.grade }}
+                                        </span>
+                                        {% else %}
+                                        --
+                                        {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td>
+                                        {% with assessment=subject.terms|get_item:term.id|get_item:'assessment' %}
+                                        {% if assessment %}
+                                        {{ assessment.remarks|default:"--" }}
+                                        {% else %}
+                                        --
+                                        {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center">No assessment data available for this term.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Subject Performance Analysis -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h5 class="m-0 font-weight-bold text-primary">
+                <i class="bi bi-graph-up me-2"></i>Subject Performance Analysis
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="chart-container mb-4" style="position: relative; height:300px;">
+                <canvas id="subjectPerformanceChart"></canvas>
+            </div>
+
+            <div class="row">
+                {% for subject in subject_data %}
+                {% if subject.average is not None %}
+                <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                    <div class="card shadow border-left-primary subject-performance-card h-100">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        {{ subject.subject.subject_name }}</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ subject.average|floatformat:2 }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <span class="badge rounded-pill 
+                                    {% if subject.average >= 80 %}bg-success
+                                    {% elif subject.average >= 70 %}bg-primary
+                                    {% elif subject.average >= 60 %}bg-info
+                                    {% elif subject.average >= 50 %}bg-warning
+                                    {% else %}bg-danger{% endif %}">
+                                        {% if subject.average >= 80 %}Excellent
+                                        {% elif subject.average >= 70 %}Very Good
+                                        {% elif subject.average >= 60 %}Good
+                                        {% elif subject.average >= 50 %}Average
+                                        {% else %}Below Average{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Custom template filter to get dict items
+    django.jinja2.filters.get_item = function(dict, key) {
+        return dict[key];
+    };
+
+    // Term Performance Chart
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if performance_graph %}
+        var ctx = document.getElementById('termPerformanceChart').getContext('2d');
+        var termChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ performance_graph.labels|safe }},
+                datasets: [{
+                    label: 'Term Average',
+                    data: {{ performance_graph.overall_data|safe }},
+                    backgroundColor: 'rgba(78, 115, 223, 0.2)',
+                    borderColor: 'rgba(78, 115, 223, 1)',
+                    pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Average Score'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Term'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Subject Performance Chart
+        var subjectCtx = document.getElementById('subjectPerformanceChart').getContext('2d');
+        var subjectChart = new Chart(subjectCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ performance_graph.labels|safe }},
+                datasets: [
+                    {% for dataset in performance_graph.subject_datasets %}
+                    {
+                        label: '{{ dataset.label }}',
+                        data: {{ dataset.data|safe }},
+                        backgroundColor: 'rgba({{ forloop.counter0|multiply:50 }}, {{ 100|add:forloop.counter0|multiply:30 }}, {{ 200|add:forloop.counter0|multiply:-20 }}, 0.7)',
+                        borderColor: 'rgba({{ forloop.counter0|multiply:50 }}, {{ 100|add:forloop.counter0|multiply:30 }}, {{ 200|add:forloop.counter0|multiply:-20 }}, 1)',
+                        borderWidth: 1
+                    }{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Score'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Term'
+                        }
+                    }
+                }
+            }
+        });
+        {% endif %}
+    });
+</script>
+{% endblock %} 

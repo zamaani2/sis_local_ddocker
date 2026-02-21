@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+{% load static %}
+{% load score_filters %}
+
+{% block title %}Class Scores Management{% endblock %}
+{% block page_title %}Class Scores Management{% endblock %}
+
+{% block extra_css %}
+<style>
+    .score-input {
+        width: 70px;
+        text-align: center;
+    }
+    .save-scores-btn {
+        position: sticky;
+        bottom: 20px;
+        z-index: 100;
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    }
+    .student-row:hover {
+        background-color: rgba(78, 115, 223, 0.05);
+    }
+    .invalid-score {
+        border-color: #e74a3b;
+    }
+    .table-responsive {
+        overflow-x: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        {% if current_academic_year %}
+                          {{ current_academic_year.name }}
+                          {% if current_term %}
+                            - {{ current_term.name }}
+                          {% endif %}
+                        {% else %}
+                          Class Scores Management
+                        {% endif %}
+                    </h2>
+                    <p class="text-muted mb-0">
+                        {% if current_academic_year %}
+                          Current academic year and term management
+                        {% else %}
+                          Enter and manage student scores for classes and subjects
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'score_management_dashboard' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-funnel"></i> Select Class
+                    </h5>
+                </div>
+                <div class="card-body">
+            <form action="{% url 'class_scores' %}" method="GET" class="filter-form">
+                <div class="row">
+                    <!-- Academic Year Filter -->
+                    <div class="col-md-3">
+                        <label for="academic_year_id" class="form-label">Academic Year</label>
+                        <select class="form-select" id="academic_year_id" name="academic_year_id">
+                            {% for academic_year in academic_years %}
+                            <option value="{{ academic_year.id }}" {% if selected_academic_year and academic_year.id == selected_academic_year.id %}selected{% endif %}>
+                                {{ academic_year.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Term Filter -->
+                    <div class="col-md-3">
+                        <label for="term_id" class="form-label">Term</label>
+                        <select class="form-select" id="term_id" name="term_id">
+                            {% for term in terms %}
+                            <option value="{{ term.id }}" {% if selected_term and term.id == selected_term.id %}selected{% endif %}>
+                                {{ term.get_term_number_display }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Form/Grade Filter -->
+                    <div class="col-md-3">
+                        <label for="form_id" class="form-label">Form/Grade</label>
+                        <select class="form-select" id="form_id" name="form_id">
+                            {% for form in forms %}
+                            <option value="{{ form.id }}" {% if selected_form and form.id == selected_form.id %}selected{% endif %}>
+                                {{ form.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Class Filter -->
+                    <div class="col-md-3">
+                        <label for="class_id" class="form-label">Class</label>
+                        <select class="form-select" id="class_id" name="class_id" {% if not classes %}disabled{% endif %}>
+                            {% for class in classes %}
+                            <option value="{{ class.id }}" {% if selected_class and class.id == selected_class.id %}selected{% endif %}>
+                                {{ class.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <!-- Subject Filter -->
+                    <div class="col-md-6">
+                        <label for="subject_id" class="form-label">Subject</label>
+                        <select class="form-select" id="subject_id" name="subject_id" {% if not class_subjects %}disabled{% endif %}>
+                            {% for class_subject in class_subjects %}
+                            <option value="{{ class_subject.id }}" {% if selected_class_subject and class_subject.id == selected_class_subject.id %}selected{% endif %}>
+                                {{ class_subject.subject.subject_name }} ({{ class_subject.subject.subject_code }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-12 text-end">
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> Apply Filters
+                            </button>
+                            <a href="{% url 'class_scores' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-clockwise"></i> Reset
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if selected_class_subject and selected_class and selected_term %}
+    <!-- Class Information -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Class:</strong> {{ selected_class.name }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Subject:</strong> {{ selected_class_subject.subject.subject_name }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Term:</strong> {{ selected_term.get_term_number_display }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Teacher:</strong> {{ selected_class_subject.teacher.user.get_full_name|default:"Not Assigned" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Score Entry Form -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clipboard-check"></i> Student Scores
+                        </h5>
+                        <div>
+                            <a href="{% url 'export_class_scores' %}?class_subject_id={{ selected_class_subject.id }}&term_id={{ selected_term.id }}" class="btn btn-outline-success">
+                                <i class="bi bi-download"></i> Export
+                            </a>
+                        </div>
+                    </div>
+                </div>
+        <div class="card-body">
+            {% if students %}
+            <form action="{% url 'save_class_scores' %}" method="POST" id="scoreForm">
+                {% csrf_token %}
+                <input type="hidden" name="class_subject_id" value="{{ selected_class_subject.id }}">
+                <input type="hidden" name="term_id" value="{{ selected_term.id }}">
+                
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 5%">#</th>
+                                <th style="width: 25%">Student Name</th>
+                                <th style="width: 15%">Admission No.</th>
+                                <th style="width: 15%" class="text-center">Class Score ({% if scoring_config %}{{ scoring_config.class_score_percentage }}%{% else %}30%{% endif %})</th>
+                                <th style="width: 15%" class="text-center">Exam Score ({% if scoring_config %}{{ scoring_config.exam_score_percentage }}%{% else %}70%{% endif %})</th>
+                                <th style="width: 15%" class="text-center">Total Score</th>
+                                <th style="width: 10%" class="text-center">Grade</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr class="student-row">
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    <a href="{% url 'student_score_detail' student.id %}" class="text-decoration-none">
+                                        {{ student.full_name }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">{{ student.admission_number }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <input type="number" class="form-control form-control-sm score-input class-score"
+                                           name="class_score_{{ student.id }}" 
+                                           value="{{ assessments|get_item:student.id|get_item:'class_score'|default:'' }}"
+                                           min="0" max="30" step="0.1" 
+                                           data-student-id="{{ student.id }}">
+                                </td>
+                                <td class="text-center">
+                                    <input type="number" class="form-control form-control-sm score-input exam-score"
+                                           name="exam_score_{{ student.id }}" 
+                                           value="{{ assessments|get_item:student.id|get_item:'exam_score'|default:'' }}"
+                                           min="0" max="70" step="0.1" 
+                                           data-student-id="{{ student.id }}">
+                                </td>
+                                <td class="text-center">
+                                    <span class="total-score font-weight-bold" id="total_{{ student.id }}">
+                                        {{ assessments|get_item:student.id|get_item:'total_score'|default:"--" }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="grade-badge" id="grade_{{ student.id }}">
+                                        {% with total_score=assessments|get_item:student.id|get_item:'total_score' %}
+                                            {% if total_score %}
+                                                <span class="badge {% if total_score >= 80 %}bg-success{% elif total_score >= 70 %}bg-primary{% elif total_score >= 60 %}bg-info{% elif total_score >= 50 %}bg-warning{% elif total_score >= 40 %}bg-secondary{% else %}bg-danger{% endif %} text-white">
+                                                    {% if total_score >= 80 %}A
+                                                    {% elif total_score >= 70 %}B
+                                                    {% elif total_score >= 60 %}C
+                                                    {% elif total_score >= 50 %}D
+                                                    {% elif total_score >= 40 %}E
+                                                    {% else %}F
+                                                    {% endif %}
+                                                </span>
+                                            {% else %}
+                                                --
+                                            {% endif %}
+                                        {% endwith %}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="text-center">
+                    <button type="submit" class="btn btn-lg btn-success save-scores-btn">
+                        <i class="bi bi-save"></i> Save Scores
+                    </button>
+                </div>
+            </form>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i> No students found in this class.
+            </div>
+            {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> Please select academic year, term, form/grade, class and subject to view and enter scores.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Enable/disable class selector based on form selection
+        $('#form_id').change(function() {
+            // Reset class and subject selection
+            $('#class_id').empty().prop('disabled', true);
+            $('#subject_id').empty().prop('disabled', true);
+            
+            if ($(this).val()) {
+                // AJAX call to load classes for the selected form
+                $.ajax({
+                    url: "{% url 'get_form_classes' %}",
+                    data: {
+                        'form_id': $(this).val()
+                    },
+                    dataType: 'json',
+                    success: function(data) {
+                        $('#class_id').prop('disabled', false);
+                        $.each(data.classes, function(key, value) {
+                            $('#class_id').append($('<option>').attr('value', value.id).text(value.name));
+                        });
+                    }
+                });
+            }
+        });
+        
+        // Enable/disable subject selector based on class selection
+        $('#class_id').change(function() {
+            // Reset subject selection
+            $('#subject_id').empty().prop('disabled', true);
+            
+            if ($(this).val()) {
+                // AJAX call to load subjects for the selected class
+                $.ajax({
+                    url: "{% url 'get_class_subjects' %}",
+                    data: {
+                        'class_id': $(this).val()
+                    },
+                    dataType: 'json',
+                    success: function(data) {
+                        $('#subject_id').prop('disabled', false);
+                        $.each(data.subjects, function(key, value) {
+                            $('#subject_id').append($('<option>').attr('value', value.id).text(value.subject_name + ' (' + value.subject_code + ')'));
+                        });
+                    }
+                });
+            }
+        });
+        
+        // Calculate total score when class or exam score changes
+        $('.class-score, .exam-score').on('input', function() {
+            var studentId = $(this).data('student-id');
+            var classScore = parseFloat($('input[name="class_score_' + studentId + '"]').val()) || 0;
+            var examScore = parseFloat($('input[name="exam_score_' + studentId + '"]').val()) || 0;
+            
+            // Validate scores
+            if (classScore > 30) {
+                $('input[name="class_score_' + studentId + '"]').addClass('invalid-score');
+            } else {
+                $('input[name="class_score_' + studentId + '"]').removeClass('invalid-score');
+            }
+            
+            if (examScore > 70) {
+                $('input[name="exam_score_' + studentId + '"]').addClass('invalid-score');
+            } else {
+                $('input[name="exam_score_' + studentId + '"]').removeClass('invalid-score');
+            }
+            
+            // Calculate total
+            var totalScore = classScore + examScore;
+            $('#total_' + studentId).text(totalScore.toFixed(1));
+            
+            // Update grade badge
+            var gradeBadge = '';
+            if (totalScore >= 80) {
+                gradeBadge = '<span class="badge bg-success text-white">A</span>';
+            } else if (totalScore >= 70) {
+                gradeBadge = '<span class="badge bg-primary text-white">B</span>';
+            } else if (totalScore >= 60) {
+                gradeBadge = '<span class="badge bg-info text-white">C</span>';
+            } else if (totalScore >= 50) {
+                gradeBadge = '<span class="badge bg-warning text-white">D</span>';
+            } else if (totalScore >= 40) {
+                gradeBadge = '<span class="badge bg-secondary text-white">E</span>';
+            } else if (totalScore > 0) {
+                gradeBadge = '<span class="badge bg-danger text-white">F</span>';
+            } else {
+                gradeBadge = '--';
+            }
+            
+            $('#grade_' + studentId).html(gradeBadge);
+        });
+        
+        // Form validation before submit
+        $('#scoreForm').submit(function(e) {
+            var hasInvalidScores = false;
+            
+            $('.score-input').each(function() {
+                var value = parseFloat($(this).val());
+                if (!isNaN(value)) {
+                    if ($(this).hasClass('class-score') && value > 30) {
+                        hasInvalidScores = true;
+                        $(this).addClass('invalid-score');
+                    } else if ($(this).hasClass('exam-score') && value > 70) {
+                        hasInvalidScores = true;
+                        $(this).addClass('invalid-score');
+                    }
+                }
+            });
+            
+            if (hasInvalidScores) {
+                e.preventDefault();
+                alert('Please correct the invalid scores before saving.');
+            }
+        });
+    });
+</script>
+{% endblock %} 

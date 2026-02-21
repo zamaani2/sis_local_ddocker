@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            <i class="fas fa-trash text-danger"></i> {{ title }}
+          </h2>
+          <p class="text-muted mb-0">Permanently delete template to manage storage</p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'template_detail' template.id %}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left"></i> Back to Template
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Card -->
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-exclamation-triangle"></i> Delete Template
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-warning">
+            <h6 class="alert-heading">
+              <i class="fas fa-exclamation-triangle"></i> Warning!
+            </h6>
+            <p class="mb-0">
+              You are about to <strong>permanently delete</strong> the template <strong>"{{ template.name }}"</strong>. 
+              This will free up storage space and cannot be undone.
+            </p>
+          </div>
+
+          <!-- Template Information -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <h6>Template Details:</h6>
+              <dl class="row">
+                <dt class="col-sm-4">Name:</dt>
+                <dd class="col-sm-8">{{ template.name }}</dd>
+                
+                <dt class="col-sm-4">Description:</dt>
+                <dd class="col-sm-8">{{ template.description|default:"No description" }}</dd>
+                
+                <dt class="col-sm-4">Created:</dt>
+                <dd class="col-sm-8">{{ template.created_at|date:"M d, Y" }}</dd>
+                
+                <dt class="col-sm-4">Status:</dt>
+                <dd class="col-sm-8">
+                  {% if template.is_default %}
+                    <span class="badge bg-primary">Default Template</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Regular Template</span>
+                  {% endif %}
+                </dd>
+              </dl>
+            </div>
+            <div class="col-md-6">
+              <h6>What will be affected:</h6>
+              <ul class="list-unstyled">
+                <li><i class="fas fa-times text-danger"></i> Template will be permanently deleted</li>
+                <li><i class="fas fa-times text-danger"></i> Cannot be used for new academic years</li>
+                <li><i class="fas fa-times text-danger"></i> Will not appear in template list</li>
+                <li><i class="fas fa-check text-success"></i> Storage space will be freed up</li>
+                <li><i class="fas fa-check text-success"></i> Existing academic years using this template remain unchanged</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Confirmation Form -->
+          <form method="post">
+            {% csrf_token %}
+            <div class="d-flex justify-content-between">
+              <a href="{% url 'template_detail' template.id %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Cancel
+              </a>
+              <button type="submit" class="btn btn-danger" id="deleteBtn">
+                <i class="fas fa-trash"></i> Permanently Delete Template
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Add confirmation to delete button
+    $('#deleteBtn').on('click', function(e) {
+        e.preventDefault();
+        
+        Swal.fire({
+            title: 'Permanently Delete Template?',
+            text: "This will free up storage space and cannot be undone!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, permanently delete!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Submit the form
+                $(this).closest('form').submit();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

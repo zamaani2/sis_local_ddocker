@@ -1,0 +1,376 @@
+{% extends "base.html" %} {% load static %} {% load custom_filters %} {% block title %}Terminal Reports Analytics{% endblock %} {% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="fas fa-chart-bar"></i> Terminal Reports Analytics
+          </h3>
+          <div class="card-tools">
+            <a
+              href="{% url 'auto_terminal_reports_dashboard' %}"
+              class="btn btn-secondary btn-sm"
+            >
+              <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Filters -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="card-title">Analytics Filters</h5>
+            </div>
+            <div class="card-body">
+              <form method="get" id="analyticsFilterForm">
+                <div class="row">
+                  <div class="col-md-4">
+                    <div class="form-group">
+                      <label for="academic_year">Academic Year</label>
+                      <select
+                        class="form-control"
+                        id="academic_year"
+                        name="academic_year"
+                      >
+                        <option value="">All Years</option>
+                        {% for year in academic_years %}
+                        <option value="{{ year.id }}">{{ year.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-group">
+                      <label for="term">Term</label>
+                      <select class="form-control" id="term" name="term">
+                        <option value="">All Terms</option>
+                        {% for term in terms %}
+                        <option value="{{ term.id }}">
+                          {{ term.get_term_number_display }}
+                        </option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-group">
+                      <label for="class">Class</label>
+                      <select class="form-control" id="class" name="class">
+                        <option value="">All Classes</option>
+                        {% for class in classes %}
+                        <option value="{{ class.id }}">{{ class.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                      <i class="fas fa-chart-line"></i> Update Analytics
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Summary Statistics -->
+          <div class="row mb-4">
+            <div class="col-lg-3 col-6">
+              <div class="small-box bg-info">
+                <div class="inner">
+                  <h3>{{ total_reports }}</h3>
+                  <p>Total Reports</p>
+                </div>
+                <div class="icon">
+                  <i class="fas fa-file-alt"></i>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-3 col-6">
+              <div class="small-box bg-success">
+                <div class="inner">
+                  <h3>{{ approved_reports }}</h3>
+                  <p>Approved Reports</p>
+                </div>
+                <div class="icon">
+                  <i class="fas fa-check-circle"></i>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-3 col-6">
+              <div class="small-box bg-warning">
+                <div class="inner">
+                  <h3>{{ pending_reports }}</h3>
+                  <p>Pending Reports</p>
+                </div>
+                <div class="icon">
+                  <i class="fas fa-clock"></i>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-3 col-6">
+              <div class="small-box bg-danger">
+                <div class="inner">
+                  <h3>{{ performance_distribution.below_average }}</h3>
+                  <p>Below Average</p>
+                </div>
+                <div class="icon">
+                  <i class="fas fa-exclamation-triangle"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Performance Distribution Chart -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title">Performance Distribution</h5>
+                </div>
+                <div class="card-body">
+                  <canvas
+                    id="performanceChart"
+                    width="400"
+                    height="200"
+                  ></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title">Status Distribution</h5>
+                </div>
+                <div class="card-body">
+                  <canvas id="statusChart" width="400" height="200"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Class Performance Table -->
+          <div class="row">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title">Class Performance Summary</h5>
+                </div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-striped">
+                      <thead>
+                        <tr>
+                          <th>Class</th>
+                          <th>Total Reports</th>
+                          <th>Average Score</th>
+                          <th>Performance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for stat in class_stats %}
+                        <tr>
+                          <td>
+                            <strong>{{ stat.class_assigned__name }}</strong>
+                          </td>
+                          <td>
+                            <span class="badge badge-info"
+                              >{{ stat.count }}</span
+                            >
+                          </td>
+                          <td>
+                            <span
+                              class="badge badge-{% if stat.avg_score >= 80 %}success{% elif stat.avg_score >= 60 %}warning{% else %}danger{% endif %}"
+                            >
+                              {{ stat.avg_score|floatformat:1 }}%
+                            </span>
+                          </td>
+                          <td>
+                            {% if stat.avg_score >= 80 %}
+                            <span class="text-success">
+                              <i class="fas fa-star"></i> Excellent
+                            </span>
+                            {% elif stat.avg_score >= 70 %}
+                            <span class="text-info">
+                              <i class="fas fa-thumbs-up"></i> Good
+                            </span>
+                            {% elif stat.avg_score >= 60 %}
+                            <span class="text-warning">
+                              <i class="fas fa-minus"></i> Average
+                            </span>
+                            {% else %}
+                            <span class="text-danger">
+                              <i class="fas fa-exclamation-triangle"></i> Below
+                              Average
+                            </span>
+                            {% endif %}
+                          </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                          <td colspan="4" class="text-center py-4">
+                            <i
+                              class="fas fa-chart-bar fa-3x text-muted mb-3"
+                            ></i>
+                            <p class="text-muted">
+                              No data available for the selected criteria
+                            </p>
+                          </td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Performance Breakdown -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title">Performance Breakdown</h5>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-3">
+                      <div class="info-box">
+                        <span class="info-box-icon bg-success">
+                          <i class="fas fa-star"></i>
+                        </span>
+                        <div class="info-box-content">
+                          <span class="info-box-text">Excellent (80%+)</span>
+                          <span class="info-box-number"
+                            >{{ performance_distribution.excellent }}</span
+                          >
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="info-box">
+                        <span class="info-box-icon bg-info">
+                          <i class="fas fa-thumbs-up"></i>
+                        </span>
+                        <div class="info-box-content">
+                          <span class="info-box-text">Good (70-79%)</span>
+                          <span class="info-box-number"
+                            >{{ performance_distribution.good }}</span
+                          >
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="info-box">
+                        <span class="info-box-icon bg-warning">
+                          <i class="fas fa-minus"></i>
+                        </span>
+                        <div class="info-box-content">
+                          <span class="info-box-text">Average (60-69%)</span>
+                          <span class="info-box-number"
+                            >{{ performance_distribution.average }}</span
+                          >
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="info-box">
+                        <span class="info-box-icon bg-danger">
+                          <i class="fas fa-exclamation-triangle"></i>
+                        </span>
+                        <div class="info-box-content">
+                          <span class="info-box-text"
+                            >Below Average (<60%)</span
+                          >
+                          <span class="info-box-number"
+                            >{{ performance_distribution.below_average }}</span
+                          >
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="{% static 'vendor/chartjs/4.4.0/chart.min.js' %}"></script>
+<script>
+  $(document).ready(function() {
+      // Performance Distribution Chart
+      var performanceCtx = document.getElementById('performanceChart').getContext('2d');
+      var performanceChart = new Chart(performanceCtx, {
+          type: 'doughnut',
+          data: {
+              labels: ['Excellent (80%+)', 'Good (70-79%)', 'Average (60-69%)', 'Below Average (<60%)'],
+              datasets: [{
+                  data: [
+                      {{ performance_distribution.excellent }},
+                      {{ performance_distribution.good }},
+                      {{ performance_distribution.average }},
+                      {{ performance_distribution.below_average }}
+                  ],
+                  backgroundColor: [
+                      '#28a745',
+                      '#17a2b8',
+                      '#ffc107',
+                      '#dc3545'
+                  ],
+                  borderWidth: 2,
+                  borderColor: '#fff'
+              }]
+          },
+          options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                  legend: {
+                      position: 'bottom'
+                  }
+              }
+          }
+      });
+
+      // Status Distribution Chart
+      var statusCtx = document.getElementById('statusChart').getContext('2d');
+      var statusChart = new Chart(statusCtx, {
+          type: 'pie',
+          data: {
+              labels: ['Approved', 'Pending'],
+              datasets: [{
+                  data: [{{ approved_reports }}, {{ pending_reports }}],
+                  backgroundColor: [
+                      '#28a745',
+                      '#ffc107'
+                  ],
+                  borderWidth: 2,
+                  borderColor: '#fff'
+              }]
+          },
+          options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                  legend: {
+                      position: 'bottom'
+                  }
+              }
+          }
+      });
+
+      // Auto-submit form on filter change
+      $('#academic_year, #term, #class').change(function() {
+          $('#analyticsFilterForm').submit();
+      });
+  });
+</script>
+{% endblock %}

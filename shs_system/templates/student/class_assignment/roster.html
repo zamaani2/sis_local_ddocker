@@ -1,0 +1,791 @@
+
+{% extends "base.html" %} {% load static %} {% block title %}Class Roster - {{ class_obj.name }}{% endblock %} {% block page_title %}Class Roster - {{ class_obj.name }}{% endblock %} {% block extra_css %} {% endblock %} {% block content %}
+
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+
+            {% if current_academic_year %} {{ current_academic_year.name }} {% if current_term %} - {{ current_term.name }} {% endif %} {% else %}
+            Class Roster {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if current_academic_year %} Current academic year and term
+            management {% else %} {{ class_obj.name }} - {{ class_obj.academic_year.name }} {% endif %}
+
+          </p>
+        </div>
+        <div class="btn-group">
+          <a
+            href="{% url 'student_class_assignment_dashboard' %}"
+            class="btn btn-outline-primary"
+          >
+            <i class="fas fa-tachometer-alt"></i> Dashboard
+          </a>
+          <a
+            href="{% url 'student_class_assignment_list' %}"
+            class="btn btn-outline-secondary"
+          >
+            <i class="fas fa-list"></i> All Students
+          </a>
+
+          <button class="btn btn-outline-success" onclick="exportRoster('pdf')" >
+
+            <i class="fas fa-print"></i> Print Roster
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Class Information -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Class Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <p><strong>Class Name:</strong> {{ class_obj.name }}</p>
+              <p>
+
+                <strong>Academic Year:</strong> {{ class_obj.academic_year.name}}
+
+              </p>
+            </div>
+            <div class="col-md-3">
+              <p>
+
+                <strong>Form:</strong> {{ class_obj.form.name|default:"Not set"}}
+
+              </p>
+              <p>
+                <strong>Learning Area:</strong> {{ class_obj.learning_area.name|default:"Not set" }}
+              </p>
+            </div>
+            <div class="col-md-3">
+              <p>
+                <strong>Total Students:</strong>
+                <span class="badge bg-primary">{{ students|length }}</span>
+              </p>
+              <p>
+                <strong>Capacity:</strong> {{ class_obj.maximum_students|default:"Not set" }}
+              </p>
+            </div>
+            <div class="col-md-3">
+              <p>
+                <strong>Class Teacher:</strong> {{ class_obj.class_teacher.full_name|default:"Not assigned" }}
+              </p>
+              <p>
+                <strong>Status:</strong>
+                {% if class_obj.academic_year.is_current %}
+                <span class="badge bg-success">Active</span>
+                {% else %}
+                <span class="badge bg-secondary">Inactive</span>
+                {% endif %}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Students Roster -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Students in {{ class_obj.name }}</h5>
+            <div class="btn-group btn-group-sm">
+              <button
+
+                type="button" hidden
+
+                class="btn btn-outline-primary"
+                onclick="exportRoster('csv')"
+              >
+                <i class="fas fa-file-csv"></i> Export CSV
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-success"
+                onclick="exportRoster('excel')"
+              >
+                <i class="fas fa-file-excel"></i> Export Excel
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-danger"
+
+                onclick="exportRoster('pdf')" hidden
+              >
+                <i class="fas fa-file-pdf"></i> Export/Print
+
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          {% if students %}
+          <div class="table-responsive">
+            <table class="table table-hover" id="rosterTable">
+              <thead>
+                <tr>
+                  <th width="50">#</th>
+
+                  <th>Admission Number</th>
+                  <th>Name</th>
+                  <th>Gender</th>
+                  <th>Age</th>
+                  <th>Parent Contact</th>
+                  <th></th>
+
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for student in students %} {% with assignment=assignments|first %}
+                <tr>
+                  <td>{{ forloop.counter }}</td>
+                  <td>
+
+                    <span class="badge bg-primary"
+                      >{{ student.admission_number }}</span
+                    >
+                  </td>
+                  <td>
+
+                    <div class="d-flex align-items-center">
+                      {% if student.profile_picture %}
+                      <img
+                        src="{{ student.profile_picture.url }}"
+                        alt="{{ student.full_name }}"
+                        class="rounded-circle me-2"
+                        width="32"
+                        height="32"
+                      />
+                      {% else %}
+                      <div
+                        class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center"
+                        style="width: 32px; height: 32px"
+                      >
+                        <i class="fas fa-user text-white"></i>
+                      </div>
+                      {% endif %}
+                      <div>
+                        <strong>{{ student.full_name }}</strong>
+                        {% if student.email %}
+                        <br /><small class="text-muted"
+                          >{{ student.email }}</small
+                        >
+                        {% endif %}
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+
+                    {% if student.gender == "M" %}
+                    <span class="badge bg-info">Male</span>
+                    {% elif student.gender == "F" %}
+                    <span class="badge bg-danger">Female</span>
+
+                    {% else %}
+                    <span class="badge bg-secondary">Not set</span>
+                    {% endif %}
+                  </td>
+
+                  <td>{{ student.calculated_age }}</td>
+                  <td>{{ student.parent_contact|default:"Not provided" }}</td>
+                  <td></td>
+
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <a
+                        href="{% url 'class_assignment_history' student.id %}"
+                        class="btn btn-outline-info"
+                        title="View Assignment History"
+                      >
+                        <i class="fas fa-history"></i>
+                      </a>
+                      <button
+                        type="button"
+                        class="btn btn-outline-warning"
+                        onclick="unassignStudent({{ student.id }}, '{{ student.full_name }}')"
+                        title="Unassign from Class"
+                      >
+                        <i class="fas fa-user-minus"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% endwith %} {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-5">
+            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No Students Assigned</h5>
+            <p class="text-muted">
+              This class currently has no students assigned to it.
+            </p>
+            <a
+              href="{% url 'student_class_assignment_list' %}"
+              class="btn btn-primary"
+            >
+              <i class="fas fa-user-plus"></i> Assign Students
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics -->
+  {% if students %}
+  <div class="row mt-4">
+    <div class="col-md-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body text-center">
+          <h4 class="mb-0">{{ students|length }}</h4>
+          <p class="mb-0">Total Students</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body text-center">
+
+          <h4 class="mb-0">{{ male_count }}</h4>
+
+          <p class="mb-0">Male Students</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-pink text-white">
+        <div class="card-body text-center">
+
+          <h4 class="mb-0">{{ female_count }}</h4>
+
+          <p class="mb-0">Female Students</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body text-center">
+          <h4 class="mb-0">
+            {% if class_obj.maximum_students %} {% widthratio students|length class_obj.maximum_students 100 %}% {% else %} N/A {% endif %}
+          </h4>
+          <p class="mb-0">Capacity Used</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Unassign Confirmation Modal -->
+<div class="modal fade" id="unassignModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-exclamation-triangle text-warning"></i> Confirm
+          Unassignment
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Are you sure you want to unassign
+          <strong id="studentName"></strong> from
+          <strong>{{ class_obj.name }}</strong>?
+        </p>
+        <div class="alert alert-warning">
+          <i class="fas fa-info-circle"></i>
+          <strong>Note:</strong> This action will deactivate the student's
+          current class assignment. The student will need to be reassigned to a
+          class to access class-specific features.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+        <button type="button" class="btn btn-warning" id="confirmUnassignBtn">
+          <i class="fas fa-user-minus"></i> Unassign Student
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  let studentToUnassign = null;
+
+  function unassignStudent(studentId, studentName) {
+    studentToUnassign = studentId;
+    document.getElementById("studentName").textContent = studentName;
+    const modal = new bootstrap.Modal(document.getElementById("unassignModal"));
+    modal.show();
+  }
+
+  document
+    .getElementById("confirmUnassignBtn")
+    .addEventListener("click", function () {
+      if (!studentToUnassign) return;
+
+      const btn = this;
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Unassigning...';
+      btn.disabled = true;
+
+      fetch(`/student/${studentToUnassign}/unassign-class/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
+            .value,
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            showAlert("success", data.message);
+            setTimeout(() => {
+              location.reload();
+            }, 1000);
+          } else {
+            showAlert("error", data.message);
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          showAlert(
+            "error",
+            "An error occurred while unassigning the student."
+          );
+          btn.innerHTML = originalHTML;
+          btn.disabled = false;
+        });
+    });
+
+  function printRoster() {
+    window.print();
+  }
+
+  function exportRoster(format) {
+    // Show loading state
+    Swal.fire({
+      title: 'Preparing Export',
+      text: `Generating ${format.toUpperCase()} file...`,
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    // Prepare export data
+    const exportData = prepareExportData();
+
+
+
+    if (format === 'csv') {
+      exportToCSV(exportData);
+    } else if (format === 'excel') {
+      exportToExcel(exportData);
+    } else if (format === 'pdf') {
+      exportToPDF(exportData);
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Unsupported Format',
+        text: 'The requested export format is not supported.',
+        confirmButtonText: 'OK'
+      });
+    }
+  }
+
+  function prepareExportData() {
+    const classInfo = {
+
+      classId: {{ class_obj.id }},
+
+      name: '{{ class_obj.name }}',
+      academicYear: '{{ class_obj.academic_year.name }}',
+      form: '{{ class_obj.form.name|default:"Not set" }}',
+      learningArea: '{{ class_obj.learning_area.name|default:"Not set" }}',
+      classTeacher: '{{ class_obj.class_teacher.full_name|default:"Not assigned" }}',
+      totalStudents: {{ students|length }},
+      exportDate: new Date().toLocaleDateString()
+    };
+
+    const students = [];
+    const tableRows = document.querySelectorAll('#rosterTable tbody tr');
+
+
+
+    tableRows.forEach((row, index) => {
+      const cells = row.querySelectorAll('td');
+      if (cells.length > 0) {
+        const student = {
+          number: index + 1,
+
+          admissionNumber: cells[1].querySelector('.badge').textContent.trim(),
+          name: cells[2].querySelector('strong').textContent.trim(),
+          gender: cells[3].querySelector('.badge').textContent.trim(),
+          age: cells[4].textContent.trim(),
+          parentContact: cells[5].textContent.trim()
+
+        };
+        students.push(student);
+      }
+    });
+
+    return { classInfo, students };
+  }
+
+  function exportToCSV(data) {
+
+    const { classInfo } = data;
+
+    // Fetch all students data from server for complete export
+    fetch(`/api/class/${classInfo.classId}/roster-export/`, {
+      method: 'GET',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    })
+    .then(response => response.json())
+    .then(serverData => {
+      const { students } = serverData;
+
+      // Create CSV content
+      let csvContent = '';
+
+      // Add class information header
+      csvContent += 'CLASS ROSTER EXPORT\n';
+      csvContent += `Class: ${classInfo.name}\n`;
+      csvContent += `Academic Year: ${classInfo.academicYear}\n`;
+      csvContent += `Form: ${classInfo.form}\n`;
+      csvContent += `Learning Area: ${classInfo.learningArea}\n`;
+      csvContent += `Class Teacher: ${classInfo.classTeacher}\n`;
+      csvContent += `Total Students: ${students.length}\n`;
+      csvContent += `Export Date: ${classInfo.exportDate}\n\n`;
+
+      // Add students data with empty column
+      csvContent += 'No.,Admission Number,Name,Gender,Age,Parent Contact,\n';
+
+      students.forEach((student, index) => {
+        csvContent += `"${index + 1}","${student.admission_number}","${student.full_name}","${student.gender === 'M' ? 'Male' : student.gender === 'F' ? 'Female' : 'Not set'}","${student.age}","${student.parent_contact}",""\n`;
+      });
+
+      // Download CSV file
+      downloadFile(csvContent, `class_roster_${classInfo.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`, 'text/csv');
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Export Complete',
+        text: 'CSV file has been downloaded successfully.',
+        confirmButtonText: 'OK'
+      });
+    })
+    .catch(error => {
+      console.error('Error fetching data:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Export Error',
+        text: 'Failed to fetch complete student data for export.',
+        confirmButtonText: 'OK'
+      });
+
+    });
+  }
+
+  function exportToExcel(data) {
+
+    const { classInfo } = data;
+
+    // Fetch all students data from server for complete export
+    fetch(`/api/class/${classInfo.classId}/roster-export/`, {
+      method: 'GET',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    })
+    .then(response => response.json())
+    .then(serverData => {
+      const { students } = serverData;
+
+      // Create Excel content using HTML table format
+      let excelContent = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8">
+          <meta name="ExcelCreated" content="01/01/2023">
+          <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Class Roster</x:Name><x:WorksheetOptions><x:DefaultRowHeight>285</x:DefaultRowHeight></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+        </head>
+        <body>
+          <table>
+            <tr><td colspan="7" style="font-weight:bold;font-size:16px;">CLASS ROSTER EXPORT</td></tr>
+            <tr><td colspan="7">&nbsp;</td></tr>
+            <tr><td style="font-weight:bold;">Class:</td><td>${classInfo.name}</td><td style="font-weight:bold;">Academic Year:</td><td>${classInfo.academicYear}</td></tr>
+            <tr><td style="font-weight:bold;">Form:</td><td>${classInfo.form}</td><td style="font-weight:bold;">Learning Area:</td><td>${classInfo.learningArea}</td></tr>
+            <tr><td style="font-weight:bold;">Class Teacher:</td><td>${classInfo.classTeacher}</td><td style="font-weight:bold;">Total Students:</td><td>${students.length}</td></tr>
+            <tr><td style="font-weight:bold;">Export Date:</td><td>${classInfo.exportDate}</td></tr>
+            <tr><td colspan="7">&nbsp;</td></tr>
+            <tr style="background-color:#f0f0f0;font-weight:bold;">
+              <td>No.</td><td>Admission Number</td><td>Name</td><td>Gender</td><td>Age</td><td>Parent Contact</td><td></td>
+            </tr>
+      `;
+
+      students.forEach((student, index) => {
+        excelContent += `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${student.admission_number}</td>
+            <td>${student.full_name}</td>
+            <td>${student.gender === 'M' ? 'Male' : student.gender === 'F' ? 'Female' : 'Not set'}</td>
+            <td>${student.age}</td>
+            <td>${student.parent_contact}</td>
+            <td></td>
+          </tr>
+        `;
+      });
+
+      excelContent += `
+          </table>
+        </body>
+        </html>
+      `;
+
+      // Download Excel file
+      downloadFile(excelContent, `class_roster_${classInfo.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xls`, 'application/vnd.ms-excel');
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Export Complete',
+        text: 'Excel file has been downloaded successfully.',
+        confirmButtonText: 'OK'
+      });
+    })
+    .catch(error => {
+      console.error('Error fetching data:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Export Error',
+        text: 'Failed to fetch complete student data for export.',
+        confirmButtonText: 'OK'
+      });
+
+    });
+  }
+
+  function exportToPDF(data) {
+
+    const { classInfo } = data;
+
+    // Fetch all students data from server for complete export
+    fetch(`/api/class/${classInfo.classId}/roster-export/`, {
+      method: 'GET',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    })
+    .then(response => response.json())
+    .then(serverData => {
+      const { students } = serverData;
+
+      // Create a new window for PDF generation
+      const printWindow = window.open('', '_blank');
+
+      const pdfContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Class Roster - ${classInfo.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .header h1 { color: #333; margin-bottom: 10px; }
+            .class-info { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+            .class-info table { width: 100%; }
+            .class-info td { padding: 5px; }
+            .class-info .label { font-weight: bold; width: 150px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>CLASS ROSTER</h1>
+            <p>${classInfo.name} - ${classInfo.academicYear}</p>
+          </div>
+
+          <div class="class-info">
+            <table>
+              <tr>
+                <td class="label">Class Name:</td>
+                <td>${classInfo.name}</td>
+                <td class="label">Academic Year:</td>
+                <td>${classInfo.academicYear}</td>
+              </tr>
+              <tr>
+                <td class="label">Form:</td>
+                <td>${classInfo.form}</td>
+                <td class="label">Learning Area:</td>
+                <td>${classInfo.learningArea}</td>
+              </tr>
+              <tr>
+                <td class="label">Class Teacher:</td>
+                <td>${classInfo.classTeacher}</td>
+                <td class="label">Total Students:</td>
+                <td>${students.length}</td>
+              </tr>
+              <tr>
+                <td class="label">Export Date:</td>
+                <td>${classInfo.exportDate}</td>
+              </tr>
+            </table>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>No.</th>
+                <th>Admission Number</th>
+                <th>Name</th>
+                <th>Gender</th>
+                <th>Age</th>
+                <th>Parent Contact</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${students.map((student, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${student.admission_number}</td>
+                  <td>${student.full_name}</td>
+                  <td>${student.gender === 'M' ? 'Male' : student.gender === 'F' ? 'Female' : 'Not set'}</td>
+                  <td>${student.age}</td>
+                  <td>${student.parent_contact}</td>
+                  <td></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <p>Generated on ${new Date().toLocaleString()}</p>
+          </div>
+
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(pdfContent);
+      printWindow.document.close();
+
+      // Add print functionality after document is loaded
+      printWindow.onload = function() {
+        printWindow.print();
+        setTimeout(() => {
+          printWindow.close();
+        }, 1000);
+      };
+
+      Swal.fire({
+        icon: 'success',
+        title: 'PDF Export',
+        text: 'PDF export window opened. Use your browser\'s print function to save as PDF.',
+        confirmButtonText: 'OK'
+      });
+    })
+    .catch(error => {
+      console.error('Error fetching data:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Export Error',
+        text: 'Failed to fetch complete student data for export.',
+        confirmButtonText: 'OK'
+      });
+
+    });
+  }
+
+  function downloadFile(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
+
+  function showAlert(type, message) {
+    const alertDiv = document.createElement("div");
+    alertDiv.className = `alert alert-${
+      type === "success" ? "success" : "danger"
+    } alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+      <i class="fas fa-${
+        type === "success" ? "check-circle" : "exclamation-triangle"
+      }"></i>
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    const container = document.querySelector(".container-fluid");
+    container.insertBefore(alertDiv, container.firstChild);
+
+    setTimeout(() => {
+      if (alertDiv.parentNode) {
+        alertDiv.remove();
+      }
+    }, 5000);
+  }
+
+  // Initialize DataTable if available
+  document.addEventListener("DOMContentLoaded", function () {
+    if (typeof $.fn.DataTable !== "undefined") {
+      $("#rosterTable").DataTable({
+        pageLength: 25,
+        responsive: true,
+
+        order: [[2, "asc"]],
+        columnDefs: [{ orderable: false, targets: [0, 6, 7] }],
+
+      });
+    }
+  });
+</script>
+{% endblock %}

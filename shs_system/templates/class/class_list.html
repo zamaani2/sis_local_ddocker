@@ -1,0 +1,2164 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<!-- DataTables CSS (local) -->
+
+<link rel="stylesheet" type="text/css" href="{% static 'vendor/datatables/1.13.7/css/dataTables.bootstrap5.min.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'vendor/datatables-responsive/2.5.0/css/responsive.bootstrap5.min.css' %}">
+<!-- SweetAlert2 CSS (local) -->
+<link rel="stylesheet" href="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.min.css' %}">
+
+<style>
+/* Dropdown Styling */
+.btn-group .dropdown-toggle {
+    min-width: 150px;
+    font-weight: 500;
+}
+
+.dropdown-menu {
+    z-index: 9999 !important;
+    position: absolute !important;
+    top: 100% !important;
+    right: 0 !important;
+    left: auto !important;
+    min-width: 200px;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 0.375rem;
+    background-color: white;
+    display: none !important; /* Hidden by default */
+}
+
+.dropdown-item {
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    color: #333;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    transform: translateX(5px);
+    color: #333;
+}
+
+.dropdown-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Subject count badge styling */
+.badge.bg-success {
+    background-color: #28a745 !important;
+}
+
+.badge.bg-info {
+    background-color: #17a2b8 !important;
+}
+
+/* Ensure dropdown is visible */
+.dropdown-menu.show {
+    display: block !important;
+    z-index: 9999 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .d-flex {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .btn-group {
+        width: 100%;
+    }
+    
+    .btn-group .dropdown-toggle {
+        width: 100%;
+    }
+    
+    .dropdown-menu {
+        position: static !important;
+        width: 100%;
+        box-shadow: none;
+        border: none;
+        border-top: 1px solid #dee2e6;
+        right: auto !important;
+        left: 0 !important;
+    }
+}
+</style>
+
+
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %}
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              Class Management
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if current_academic_year %}
+              Current academic year and term management
+            {% else %}
+              Manage classes, assign teachers and subjects
+            {% endif %}
+          </p>
+        </div>
+        <div class="btn-group">
+
+          <a href="{% url 'class_teacher_list' %}" class="btn btn-outline-primary">
+            <i class="fas fa-chalkboard-teacher me-2"></i>Manage Class Teachers
+          </a>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+    
+  <!-- Filters -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="true" aria-controls="filterCollapse">
+              <i class="fas fa-filter"></i> Advanced Filters
+            </button>
+          </h5>
+        </div>
+
+        <div class="collapse" id="filterCollapse">
+
+          <div class="card-body">
+            <form id="filterForm" method="GET" action="{% url 'class_list' %}" class="row g-3">
+              <!-- Academic Year Filter -->
+              <div class="col-md-3">
+                <label for="academic_year" class="form-label">Academic Year</label>
+                <select class="form-select" id="academic_year" name="academic_year">
+                  {% for year in academic_years %}
+                    <option value="{{ year.id }}" {% if current_year_id == year.id %}selected{% endif %}>
+                      {{ year.name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+              
+              <!-- Form Filter -->
+              <div class="col-md-3">
+                <label for="form" class="form-label">Form</label>
+                <select class="form-select" id="form" name="form">
+                  <option value="">All Forms</option>
+                  {% for form_id, form_name in forms %}
+                    <option value="{{ form_id }}" {% if form_filter == form_id %}selected{% endif %}>
+                      {{ form_name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+              
+              <!-- Learning Area Filter -->
+              <div class="col-md-3">
+                <label for="learning_area" class="form-label">Learning Area</label>
+                <select class="form-select" id="learning_area" name="learning_area">
+                  <option value="">All Learning Areas</option>
+                  {% for area_id, area_name in learning_areas %}
+                    <option value="{{ area_id }}" {% if learning_area_filter == area_id %}selected{% endif %}>
+                      {{ area_name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+              
+              <!-- Teacher Filter -->
+              <div class="col-md-3">
+                <label for="teacher" class="form-label">Class Teacher</label>
+                <select class="form-select" id="teacher" name="teacher">
+                  <option value="">All Teachers</option>
+                  {% for teacher in teachers %}
+                    <option value="{{ teacher.id }}" {% if teacher_filter == teacher.id %}selected{% endif %}>
+                      {{ teacher.full_name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+              
+              <!-- Student Count Filter -->
+              <div class="col-md-3">
+                <label for="min_students" class="form-label">Min Students</label>
+                <input type="number" class="form-control" id="min_students" name="min_students" 
+                       value="{{ min_students|default:'' }}" min="0" placeholder="Minimum">
+              </div>
+              
+              <div class="col-md-3">
+                <label for="max_students" class="form-label">Max Students</label>
+                <input type="number" class="form-control" id="max_students" name="max_students" 
+                       value="{{ max_students|default:'' }}" min="0" placeholder="Maximum">
+              </div>
+              
+              <!-- Search by name -->
+              <div class="col-md-3">
+                <label for="search" class="form-label">Search</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       value="{{ search_query|default:'' }}" placeholder="Class name...">
+              </div>
+              
+              <!-- Button for AJAX filter -->
+              <div class="col-md-3 d-flex align-items-end">
+                <div class="btn-group w-100">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Apply Filters
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary" id="resetFiltersBtn">
+                    <i class="fas fa-times"></i> Reset
+                  </button>
+                </div>
+              </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+
+  <!-- Debug Information (remove in production) -->
+  {% if user.is_superuser %}
+  <div class="alert alert-info">
+    <strong>Debug Info:</strong><br>
+    Current Academic Year: {{ current_academic_year.name|default:"None" }}<br>
+    Selected Academic Year ID: {{ current_year_id|default:"None" }}<br>
+    Academic Year Object: {{ academic_year.name|default:"None" }}
+  </div>
+  {% endif %}
+  
+  <!-- Action Buttons Above Table -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex gap-2 align-items-center">
+          <div class="btn-group" role="group">
+            <button type="button" class="btn btn-primary dropdown-toggle" aria-expanded="false" id="bulkActionsDropdown">
+              <i class="fas fa-cog me-2"></i> Bulk Actions
+              <span class="badge bg-light text-dark ms-2" id="selectedCount">0</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="#" id="bulkAssignSubjectsBtn">
+                <i class="fas fa-book me-2 text-primary"></i> Assign Subjects
+              </a></li>
+              <li><a class="dropdown-item" href="#" id="bulkAssignTeachersBtn">
+                <i class="fas fa-user-tie me-2 text-info"></i> Assign Subject Teachers
+              </a></li>
+              <li><a class="dropdown-item" href="#" id="bulkAssignClassTeachersBtn">
+                <i class="fas fa-chalkboard-teacher me-2 text-success"></i> Assign Class Teachers
+              </a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" href="#" id="bulkDeleteBtn">
+                <i class="fas fa-trash me-2"></i> Delete Selected
+              </a></li>
+            </ul>
+          </div>
+          <small class="text-muted">Select classes below to enable bulk operations</small>
+        </div>
+        <div>
+          <button type="button" class="btn btn-success" id="createClassBtn" data-bs-toggle="modal" data-bs-target="#classModal">
+            <i class="fas fa-plus me-2"></i> Create New Class
+          </button>
+        </div>
+            </div>
+        </div>
+    </div>
+    
+
+  <!-- Classes Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-school me-2"></i>Classes</h5>
+            <span class="badge bg-primary">{{ classes|length }} Classes</span>
+          </div>
+        </div>
+        <div class="card-body">
+          {% if classes %}
+          <div class="table-responsive">
+            <table id="classesTable" class="table table-hover dt-responsive nowrap" style="width:100%">
+              <thead class="table-light">
+                <tr>
+                  <th>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="selectAllClasses">
+                    </div>
+                  </th>
+                  <th>Class Name</th>
+                  <th>Form</th>
+                  <th>Learning Area</th>
+                  <th>Teacher</th>
+                  <th>Academic Year</th>
+                  <th>Students</th>
+
+                  <th>Subjects</th>
+
+                  <th data-orderable="false">Actions</th>
+                </tr>
+              </thead>
+                <tbody>
+                    {% for class in classes %}
+                        <tr data-id="{{ class.class_id }}">
+                            <td>
+                                <div class="form-check">
+                                    <input class="form-check-input class-checkbox" type="checkbox" value="{{ class.class_id }}">
+                                </div>
+                            </td>
+                            <td>{{ class.name }}</td>
+                            <td>
+                                {% if class.form %}
+                                    {{ class.form.name }}
+                                {% else %}
+                                    <span class="text-muted">Not Assigned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if class.learning_area %}
+                                    {{ class.learning_area.name }}
+                                {% else %}
+                                    <span class="text-muted">Not Assigned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if class.class_teacher_name %}
+
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-2">
+                                            <i class="fas fa-user-tie text-success"></i>
+                                        </div>
+                                        <div>
+                                            <strong>{{ class.class_teacher_name }}</strong>
+                                            <br>
+                                            <small class="text-muted">
+                                                <a href="{% url 'class_teacher_list' %}" class="text-decoration-none">
+                                                    <i class="fas fa-cog me-1"></i>Manage Teachers
+                                                </a>
+                                            </small>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">
+                                        <i class="fas fa-user-times me-1"></i>
+                                        Not Assigned
+                                    </span>
+
+                                {% endif %}
+                            </td>
+                            <td>{{ class.academic_year.name }}</td>
+                            <td><span class="badge bg-info">{{ class.student_count }}</span></td>
+
+                            <td><span class="badge bg-success">{{ class.subject_count|default:0 }}</span></td>
+
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'class_detail' class.class_id %}" class="btn btn-outline-info" title="View Class">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-primary edit-class-btn" 
+                                            data-id="{{ class.class_id }}" 
+                                            data-url="{% url 'update_class' class.class_id %}" title="Edit Class">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+
+                                    <button type="button" class="btn btn-outline-success assign-teacher-btn" 
+                                            data-id="{{ class.class_id }}" 
+                                            data-name="{{ class.name }}" 
+                                            title="{% if class.class_teacher_name %}Reassign Class Teacher{% else %}Assign Class Teacher{% endif %}">
+                                        <i class="fas fa-user-tie"></i>
+                                    </button>
+
+                                    <button type="button" class="btn btn-outline-danger delete-class-btn" 
+                                            data-id="{{ class.class_id }}" 
+                                            data-name="{{ class.name }}" title="Delete Class">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+          {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="fas fa-school fa-3x mb-3"></i>
+            <h5>No Classes Found</h5>
+            <p>Use the filters above or create a new class to get started.</p>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#classModal">
+              <i class="fas fa-plus"></i> Create New Class
+            </button>
+          </div>
+          {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Class Modal - Used for both Create and Edit -->
+<div class="modal fade" id="classModal" tabindex="-1" aria-labelledby="classModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="classModalLabel">Create New Class</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="classFormContainer">
+                    <!-- Form will be loaded here via AJAX -->
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Bulk Subject Assignment Modal -->
+<div class="modal fade" id="bulkSubjectModal" tabindex="-1" aria-labelledby="bulkSubjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkSubjectModalLabel">
+                    <i class="fas fa-book me-2"></i>Bulk Assign Subjects
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="bulkSubjectFormContainer">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading subjects...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" id="bulkSubjectModalFooter" style="display: none;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="bulkAssignSubjectsSubmit">
+                    <i class="fas fa-check me-1"></i> Assign Subjects
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Teacher Assignment Modal -->
+<div class="modal fade" id="bulkTeacherModal" tabindex="-1" aria-labelledby="bulkTeacherModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkTeacherModalLabel">
+                    <i class="fas fa-user-tie me-2"></i>Bulk Assign Class Teacher
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="bulkTeacherFormContainer">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading teachers...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" id="bulkTeacherModalFooter" style="display: none;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="bulkAssignTeachersSubmit">
+                    <i class="fas fa-check me-1"></i> Assign Teacher
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Individual Class Teacher Assignment Modal -->
+<div class="modal fade" id="assignTeacherModal" tabindex="-1" aria-labelledby="assignTeacherModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="assignTeacherModalLabel">
+                    <i class="fas fa-user-tie me-2"></i>Assign Class Teacher
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="assignTeacherFormContainer">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading teachers...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" id="assignTeacherModalFooter" style="display: none;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-success" id="assignTeacherSubmit">
+                    <i class="fas fa-check me-1"></i> Assign Teacher
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">Delete Class</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong id="deleteClassName"></strong>?</p>
+                <p>This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+
+<!-- DataTables JS - Basic version without export buttons -->
+<script src="{% static 'vendor/datatables/1.13.7/js/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'vendor/datatables/1.13.7/js/dataTables.bootstrap5.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-responsive/2.5.0/js/dataTables.responsive.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-responsive/2.5.0/js/responsive.bootstrap5.min.js' %}"></script>
+
+
+<!-- SweetAlert2 JS (local) -->
+<script src="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.all.min.js' %}"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        // Temporarily disable preloading to debug the issue
+        // preloadFormData().catch(function(error) {
+        //     console.warn('Failed to preload form data:', error);
+        // });
+        
+        // Initialize DataTable without export buttons to avoid 404 errors
+        const table = $('#classesTable').DataTable({
+            responsive: true,
+
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search classes...",
+                emptyTable: "No classes found",
+                info: "Showing _START_ to _END_ of _TOTAL_ classes",
+                infoEmpty: "Showing 0 to 0 of 0 classes",
+                infoFiltered: "(filtered from _MAX_ total classes)"
+            }
+        });
+        
+
+
+        
+        // Select all checkbox
+        $('#selectAllClasses').on('change', function() {
+            $('.class-checkbox').prop('checked', $(this).is(':checked'));
+            updateBulkActionButtons();
+        });
+        
+        // Individual checkboxes
+        $(document).on('change', '.class-checkbox', function() {
+            updateBulkActionButtons();
+            
+            // If any checkbox is unchecked, uncheck the "select all" checkbox
+            if (!$(this).is(':checked')) {
+                $('#selectAllClasses').prop('checked', false);
+            }
+            
+            // If all checkboxes are checked, check the "select all" checkbox
+            if ($('.class-checkbox:checked').length === $('.class-checkbox').length) {
+                $('#selectAllClasses').prop('checked', true);
+            }
+        });
+        
+        // Update bulk action buttons based on selection
+        function updateBulkActionButtons() {
+            const selectedCount = $('.class-checkbox:checked').length;
+            
+
+            // Update the selected count badge
+            $('#selectedCount').text(selectedCount);
+            
+            if (selectedCount > 0) {
+                // Enable bulk action buttons
+                $('#bulkAssignSubjectsBtn').removeClass('disabled').css('pointer-events', 'auto');
+                $('#bulkAssignTeachersBtn').removeClass('disabled').css('pointer-events', 'auto');
+                $('#bulkDeleteBtn').removeClass('disabled').css('pointer-events', 'auto');
+                
+                // Update dropdown button appearance
+                $('#bulkActionsDropdown').removeClass('btn-outline-secondary').addClass('btn-primary');
+                
+                // Show visual feedback
+                $('#bulkActionsDropdown').html(`
+                    <i class="fas fa-cog me-2"></i> Bulk Actions
+                    <span class="badge bg-light text-dark ms-2">${selectedCount}</span>
+                `);
+            } else {
+                // Disable bulk action buttons
+                $('#bulkAssignSubjectsBtn').addClass('disabled').css('pointer-events', 'none');
+                $('#bulkAssignTeachersBtn').addClass('disabled').css('pointer-events', 'none');
+                $('#bulkDeleteBtn').addClass('disabled').css('pointer-events', 'none');
+                
+                // Update dropdown button appearance
+                $('#bulkActionsDropdown').removeClass('btn-primary').addClass('btn-outline-secondary');
+                
+                // Reset visual feedback
+                $('#bulkActionsDropdown').html(`
+                    <i class="fas fa-cog me-2"></i> Bulk Actions
+                    <span class="badge bg-light text-dark ms-2">0</span>
+                `);
+
+            }
+        }
+        
+        // Initialize bulk action buttons
+        updateBulkActionButtons();
+        
+
+        // Ensure dropdown is properly positioned
+        $('#bulkActionsDropdown').on('show.bs.dropdown', function() {
+            // Force dropdown to be visible
+            const dropdown = $(this).next('.dropdown-menu');
+            dropdown.css({
+                'z-index': '9999',
+                'position': 'absolute',
+                'top': '100%',
+                'left': '0',
+                'display': 'block'
+            });
+        });
+        
+        // Fix dropdown toggle behavior - completely override Bootstrap's behavior
+        $(document).on('click', '#bulkActionsDropdown', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const dropdown = $(this).next('.dropdown-menu');
+            const isOpen = dropdown.hasClass('show');
+            
+            console.log('Dropdown clicked, isOpen:', isOpen); // Debug log
+            
+            // Close all dropdowns first
+            $('.dropdown-menu').removeClass('show');
+            
+            // Toggle the current dropdown
+            if (!isOpen) {
+                dropdown.addClass('show');
+                console.log('Opening dropdown'); // Debug log
+                
+                // Position dropdown properly
+                dropdown.css({
+                    'z-index': '9999',
+                    'position': 'absolute',
+                    'top': '100%',
+                    'right': '0',
+                    'left': 'auto',
+                    'display': 'block'
+                });
+            } else {
+                console.log('Closing dropdown'); // Debug log
+            }
+        });
+        
+        // Close dropdown when clicking outside
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.btn-group').length) {
+                console.log('Clicking outside, closing dropdown'); // Debug log
+                $('.dropdown-menu').removeClass('show').css('display', 'none');
+            }
+        });
+        
+        // Close dropdown when clicking on dropdown items
+        $(document).on('click', '.dropdown-item', function(e) {
+            console.log('Dropdown item clicked, closing dropdown'); // Debug log
+            $('.dropdown-menu').removeClass('show');
+        });
+        
+        // Prevent Bootstrap from interfering
+        $(document).on('hide.bs.dropdown', '.dropdown-menu', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        
+        // Additional fix - remove Bootstrap data attributes that might interfere
+        $('#bulkActionsDropdown').removeAttr('data-bs-toggle').removeAttr('data-bs-auto-close');
+        
+        // Completely disable Bootstrap dropdown for this element
+        $('#bulkActionsDropdown').off('click.dropdown.data-api');
+        
+        // Force close any open dropdowns on page load
+        $('.dropdown-menu').removeClass('show');
+        
+        // Alternative approach - use a simple toggle function
+        function toggleDropdown() {
+            const dropdown = $('#bulkActionsDropdown').next('.dropdown-menu');
+            const isOpen = dropdown.hasClass('show');
+            
+            console.log('Toggle function called, isOpen:', isOpen);
+            
+            if (isOpen) {
+                dropdown.removeClass('show');
+                dropdown.css('display', 'none'); // Force hide
+                console.log('Closing dropdown via toggle');
+            } else {
+                // Close all other dropdowns first
+                $('.dropdown-menu').removeClass('show').css('display', 'none');
+                dropdown.addClass('show');
+                console.log('Opening dropdown via toggle');
+                
+                // Position dropdown properly and force show
+                dropdown.css({
+                    'z-index': '9999',
+                    'position': 'absolute',
+                    'top': '100%',
+                    'right': '0',
+                    'left': 'auto',
+                    'display': 'block'
+                });
+            }
+        }
+        
+        // Bind the toggle function directly to the button
+        $('#bulkActionsDropdown').on('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleDropdown();
+        });
+        
+
+        // Filter form submission with AJAX
+        $('#filterForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            // Show loading spinner
+            Swal.fire({
+                title: 'Loading...',
+                html: 'Fetching class data',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            $.ajax({
+                url: $(this).attr('action'),
+                type: 'GET',
+                data: $(this).serialize(),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function(response) {
+                    // Redirect to the filtered URL rather than handling the response
+                    // This ensures the browser URL is updated with the filter parameters
+                    window.location.href = '?' + $('#filterForm').serialize();
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to apply filters: ' + error
+                    });
+                }
+            });
+        });
+        
+        // Reset filters
+        $('#resetFiltersBtn').on('click', function() {
+            // Reset all form fields
+            $('#filterForm')[0].reset();
+            
+            // Set academic year to current year
+            $('#academic_year').val('{{ current_year_id }}');
+            
+            // Submit the form
+            $('#filterForm').submit();
+        });
+        
+        // Auto-submit on academic year change
+        $('#academic_year').on('change', function() {
+            $('#filterForm').submit();
+        });
+        
+
+        // Preload form data for better performance
+        let formDataCache = null;
+        
+        function preloadFormData() {
+            if (formDataCache) {
+                console.log('Using cached form data:', formDataCache);
+                return Promise.resolve(formDataCache);
+            }
+            
+            console.log('Fetching form data from server...');
+            return $.ajax({
+                url: "{% url 'get_class_form_data' %}",
+                type: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                timeout: 10000 // 10 second timeout
+            }).then(function(data) {
+                console.log('Form data received:', data);
+                formDataCache = data;
+                return data;
+            }).catch(function(error) {
+                console.error('Error fetching form data:', error);
+                throw error;
+            });
+        }
+        
+        function buildClassForm(data) {
+            const formsOptions = data.forms.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+            const learningAreasOptions = data.learning_areas.map(la => `<option value="${la.id}">${la.name}</option>`).join('');
+            const academicYearsOptions = data.academic_years.map(ay => `<option value="${ay.id}">${ay.name}</option>`).join('');
+            
+            return `
+                <form id="classForm" method="post" action="{% url 'create_class' %}">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <!-- Class Name -->
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="id_name" class="form-label required">Class Name</label>
+                                <input type="text" name="name" id="id_name" class="form-control" required>
+                            </div>
+                        </div>
+                        
+                        <!-- Academic Year -->
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="id_academic_year" class="form-label required">Academic Year</label>
+                                <select name="academic_year" id="id_academic_year" class="form-select" required>
+                                    <option value="">Select Academic Year</option>
+                                    ${academicYearsOptions}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Form -->
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="id_form" class="form-label required">Form</label>
+                                <select name="form" id="id_form" class="form-select" required>
+                                    <option value="">Select Form</option>
+                                    ${formsOptions}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Learning Area -->
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="id_learning_area" class="form-label required">Learning Area</label>
+                                <select name="learning_area" id="id_learning_area" class="form-select" required>
+                                    <option value="">Select Learning Area</option>
+                                    ${learningAreasOptions}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Maximum Students -->
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label for="id_maximum_students" class="form-label">Maximum Students</label>
+                                <input type="number" name="maximum_students" id="id_maximum_students" 
+                                       class="form-control" min="0" max="100">
+                                <small class="form-text text-muted">Enter the maximum number of students allowed in this class (0-100).</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 d-flex justify-content-end">
+                        <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle me-1"></i> Cancel
+                        </button>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i> Create Class
+                        </button>
+                    </div>
+                </form>
+            `;
+        }
+        
+        // Create class button - use original method with timeout
+
+        $('#createClassBtn').on('click', function() {
+            $('#classModalLabel').text('Create New Class');
+            $('#classFormContainer').html('<div class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+            
+
+            console.log('Loading create class form...');
+            
+
+            $.ajax({
+                url: "{% url 'create_class' %}",
+                type: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+
+                timeout: 15000, // 15 second timeout
+
+                success: function(response) {
+                    console.log('Form loaded successfully', response);
+                    if (response.html) {
+                        $('#classFormContainer').html(response.html);
+                        initFormSubmission();
+                    } else {
+                        console.error('No HTML in response:', response);
+                        $('#classFormContainer').html(`
+                            <div class="alert alert-danger">
+                                <strong>Error:</strong> Invalid response format - no HTML received.
+                            </div>
+                        `);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading form:', {xhr: xhr, status: status, error: error});
+                    let errorMessage = error;
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMessage = xhr.responseJSON.error;
+                    } else if (xhr.responseText) {
+                        console.error('Response text:', xhr.responseText);
+                        errorMessage = 'Server error - check console for details';
+                    }
+                    $('#classFormContainer').html(`
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> Could not load form. ${errorMessage}
+                            <br><small>Status: ${xhr.status} - ${status}</small>
+
+                            <br><button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="$('#createClassBtn').click()">Try Again</button>
+
+                        </div>
+                    `);
+                }
+            });
+        });
+        
+        // Edit class button - load form via AJAX
+        $(document).on('click', '.edit-class-btn', function() {
+            const url = $(this).data('url');
+            $('#classModalLabel').text('Edit Class');
+            $('#classModal').modal('show');
+            $('#classFormContainer').html('<div class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+            
+            $.ajax({
+                url: url,
+                type: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function(response) {
+                    console.log('Edit form loaded successfully', response);
+                    if (response.html) {
+                        $('#classFormContainer').html(response.html);
+                        initFormSubmission();
+                    } else {
+                        console.error('No HTML in response:', response);
+                        $('#classFormContainer').html(`
+                            <div class="alert alert-danger">
+                                <strong>Error:</strong> Invalid response format - no HTML received.
+                            </div>
+                        `);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading edit form:', {xhr: xhr, status: status, error: error});
+                    let errorMessage = error;
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMessage = xhr.responseJSON.error;
+                    } else if (xhr.responseText) {
+                        console.error('Response text:', xhr.responseText);
+                        errorMessage = 'Server error - check console for details';
+                    }
+                    $('#classFormContainer').html(`
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> Could not load form. ${errorMessage}
+                            <br><small>Status: ${xhr.status} - ${status}</small>
+                        </div>
+                    `);
+                }
+            });
+        });
+        
+
+        // Assign class teacher button - open modal
+        $(document).on('click', '.assign-teacher-btn', function() {
+            const classId = $(this).data('id');
+            const className = $(this).data('name');
+            
+            $('#assignTeacherModalLabel').html(`<i class="fas fa-user-tie me-2"></i>Assign Class Teacher - ${className}`);
+            $('#assignTeacherModal').modal('show');
+            loadIndividualClassTeacherForm(classId, className);
+        });
+        
+
+        // Delete class button - open confirmation modal
+        $(document).on('click', '.delete-class-btn', function() {
+            const classId = $(this).data('id');
+            const className = $(this).data('name');
+            
+            $('#deleteClassName').text(className);
+            $('#confirmDelete').data('id', classId).data('name', className);
+            $('#deleteConfirmModal').modal('show');
+        });
+        
+        // Confirm delete button
+        $('#confirmDelete').on('click', function() {
+            const classId = $(this).data('id');
+            const className = $(this).data('name');
+            
+            $('#deleteConfirmModal').modal('hide');
+            
+            // Show loading
+            Swal.fire({
+                title: 'Deleting...',
+                html: 'Please wait',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Send AJAX request to delete
+            $.ajax({
+                url: `/classes/${classId}/delete/`,
+                type: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                success: function(response) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Deleted!',
+                        text: `${className} has been deleted successfully.`,
+                        timer: 1500
+                    }).then(() => {
+                        // Remove row from table
+                        table.row($(`tr[data-id="${classId}"]`)).remove().draw();
+                    });
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: xhr.responseJSON?.message || `Failed to delete class: ${error}`
+                    });
+                }
+            });
+        });
+        
+        // Bulk assign subjects
+        $('#bulkAssignSubjectsBtn').on('click', function() {
+            const selectedClassIds = getSelectedClassIds();
+            
+            if (selectedClassIds.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Classes Selected',
+                    text: 'Please select at least one class to assign subjects to.'
+                });
+                return;
+            }
+            
+
+            // Show modal and load subjects
+            $('#bulkSubjectModal').modal('show');
+            loadBulkSubjectForm(selectedClassIds);
+        });
+        
+        // Bulk assign subject teachers
+        $('#bulkAssignTeachersBtn').on('click', function() {
+            const selectedClassIds = getSelectedClassIds();
+            
+            if (selectedClassIds.length === 0) {
+                        Swal.fire({
+                            icon: 'warning',
+                    title: 'No Classes Selected',
+                    text: 'Please select at least one class to assign subject teachers to.'
+
+                        });
+                        return;
+                    }
+                    
+
+            // Show modal and load teachers
+            $('#bulkTeacherModal').modal('show');
+            loadBulkTeacherForm(selectedClassIds);
+        });
+        
+        // Bulk assign class teachers
+        $('#bulkAssignClassTeachersBtn').on('click', function() {
+            const selectedClassIds = getSelectedClassIds();
+            
+            if (selectedClassIds.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Classes Selected',
+                    text: 'Please select at least one class to assign class teachers to.'
+                });
+                return;
+            }
+            
+            // Show modal and load teachers for class teacher assignment
+            $('#bulkTeacherModal').modal('show');
+            loadBulkClassTeacherForm(selectedClassIds);
+        });
+        
+        // Bulk delete
+        $('#bulkDeleteBtn').on('click', function() {
+            const selectedClassIds = getSelectedClassIds();
+            
+            if (selectedClassIds.length === 0) {
+                    Swal.fire({
+                    icon: 'warning',
+                    title: 'No Classes Selected',
+                    text: 'Please select at least one class to delete.'
+                });
+                return;
+            }
+            
+            Swal.fire({
+                title: 'Delete Selected Classes?',
+                html: `Are you sure you want to delete <strong>${selectedClassIds.length}</strong> selected classes?<br>This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete them!',
+                cancelButtonText: 'Cancel'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Show loading
+                            Swal.fire({
+                        title: 'Deleting...',
+
+                                html: 'Please wait',
+                                allowOutsideClick: false,
+                                didOpen: () => {
+                                    Swal.showLoading();
+                                }
+                            });
+                            
+
+                    // Send AJAX request to delete
+                            $.ajax({
+                        url: '/api/bulk-delete-classes/',
+                                type: 'POST',
+                                data: {
+                            class_ids: selectedClassIds
+
+                                },
+                                headers: {
+                                    'X-CSRFToken': getCookie('csrftoken')
+                                },
+                                success: function(response) {
+                                    Swal.fire({
+                                        icon: 'success',
+
+                                title: 'Deleted!',
+                                text: `${selectedClassIds.length} classes have been deleted successfully.`,
+
+                                        timer: 1500
+                                    }).then(() => {
+                                        window.location.reload();
+                                    });
+                                },
+                                error: function(xhr, status, error) {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Error',
+
+                                text: 'Failed to delete classes: ' + (xhr.responseJSON?.message || error)
+
+                                    });
+                                }
+                            });
+                        }
+                    });
+
+        });
+        
+        // Helper function to get selected class IDs
+        function getSelectedClassIds() {
+            const selectedIds = [];
+            $('.class-checkbox:checked').each(function() {
+                selectedIds.push($(this).val());
+            });
+            return selectedIds;
+        }
+        
+        // Load bulk subject assignment form
+        function loadBulkSubjectForm(selectedClassIds) {
+            $('#bulkSubjectFormContainer').html(`
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading subjects...</p>
+                </div>
+            `);
+            
+            // Try multiple API endpoints for subjects
+            const subjectEndpoints = [
+                '/api/subjects/',
+                '/subjects/api/',
+                '/api/subject-list/',
+                '/subjects/'
+            ];
+            
+            let currentEndpointIndex = 0;
+            
+            function tryNextSubjectEndpoint() {
+                if (currentEndpointIndex >= subjectEndpoints.length) {
+                    // Fallback: Create sample subjects for testing
+                    console.log('All API endpoints failed, using fallback subjects');
+                    const fallbackSubjects = [
+                        { id: 1, name: 'Mathematics' },
+                        { id: 2, name: 'English Language' },
+                        { id: 3, name: 'Science' },
+                        { id: 4, name: 'Social Studies' },
+                        { id: 5, name: 'Physical Education' },
+                        { id: 6, name: 'Art' },
+                        { id: 7, name: 'Music' },
+                        { id: 8, name: 'Computer Studies' }
+                    ];
+                    
+                    let subjectOptions = '';
+                    fallbackSubjects.forEach(subject => {
+                        subjectOptions += `<option value="${subject.id}">${subject.name}</option>`;
+                    });
+                    
+                    $('#bulkSubjectFormContainer').html(`
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Using Sample Subjects</strong><br>
+                            API endpoints are not available. Using sample subjects for testing.
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Selected Classes: <span class="badge bg-primary">${selectedClassIds.length}</span>
+                            </label>
+                            <div class="alert alert-info">
+                                <small>You are about to assign subjects to ${selectedClassIds.length} selected classes.</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="subject_ids" class="form-label required">Select Subjects</label>
+                            <select id="subject_ids" name="subject_ids" class="form-select" multiple size="8" required>
+                                ${subjectOptions}
+                            </select>
+                            <div class="form-text">
+                                <i class="fas fa-lightbulb me-1"></i>
+                                Hold Ctrl (or Command on Mac) to select multiple subjects
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Warning:</strong> This will assign the selected subjects to all ${selectedClassIds.length} classes. 
+                            Existing subject assignments will be preserved.
+                        </div>
+                    `);
+                    
+                    // Show modal footer and add submit handler
+                    $('#bulkSubjectModalFooter').show();
+                    initBulkSubjectFormSubmission(selectedClassIds);
+                    return;
+                }
+                
+                $.ajax({
+                    url: subjectEndpoints[currentEndpointIndex],
+                    type: 'GET',
+                    success: function(response) {
+                    console.log('Subjects API Response:', response); // Debug log
+                    
+                    // Handle different response structures
+                    let subjects = [];
+                    if (response.subjects) {
+                        subjects = response.subjects;
+                    } else if (Array.isArray(response)) {
+                        subjects = response;
+                    } else if (response.data && Array.isArray(response.data)) {
+                        subjects = response.data;
+                    }
+                    
+                    if (!subjects || subjects.length === 0) {
+                        $('#bulkSubjectFormContainer').html(`
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>No Subjects Available</strong><br>
+                                There are no subjects available to assign.
+                            </div>
+                        `);
+                        return;
+                    }
+                    
+                    // Create subject options HTML
+                    let subjectOptions = '';
+                    subjects.forEach(subject => {
+                        // Handle different subject object structures
+                        const subjectId = subject.id || subject.subject_id || subject.pk;
+                        const subjectName = subject.name || subject.subject_name || subject.title || 'Unnamed Subject';
+                        
+                        console.log('Subject object:', subject); // Debug log
+                        subjectOptions += `<option value="${subjectId}">${subjectName}</option>`;
+                    });
+                    
+                    $('#bulkSubjectFormContainer').html(`
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Selected Classes: <span class="badge bg-primary">${selectedClassIds.length}</span>
+                            </label>
+                            <div class="alert alert-info">
+                                <small>You are about to assign subjects to ${selectedClassIds.length} selected classes.</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="subject_ids" class="form-label required">Select Subjects</label>
+                            <select id="subject_ids" name="subject_ids" class="form-select" multiple size="8" required>
+                                ${subjectOptions}
+                            </select>
+                            <div class="form-text">
+                                <i class="fas fa-lightbulb me-1"></i>
+                                Hold Ctrl (or Command on Mac) to select multiple subjects
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Warning:</strong> This will assign the selected subjects to all ${selectedClassIds.length} classes. 
+                            Existing subject assignments will be preserved.
+                        </div>
+                    `);
+                    
+                    // Show modal footer and add submit handler
+                    $('#bulkSubjectModalFooter').show();
+                    initBulkSubjectFormSubmission(selectedClassIds);
+                    },
+                    error: function(xhr, status, error) {
+                        console.log(`Failed to load subjects from ${subjectEndpoints[currentEndpointIndex]}:`, error);
+                        currentEndpointIndex++;
+                        tryNextSubjectEndpoint();
+                    }
+                });
+            }
+            
+            // Start trying endpoints
+            tryNextSubjectEndpoint();
+        }
+        
+        // Load individual class teacher assignment form
+        function loadIndividualClassTeacherForm(classId, className) {
+            $('#assignTeacherFormContainer').html(`
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading teachers...</p>
+                </div>
+            `);
+            
+            // Try multiple API endpoints for teachers
+            const teacherEndpoints = [
+                '/api/teachers/available/',
+                '/api/teachers/',
+                '/teachers/api/',
+                '/teachers/'
+            ];
+            
+            let currentEndpointIndex = 0;
+            
+            function tryNextTeacherEndpoint() {
+                if (currentEndpointIndex >= teacherEndpoints.length) {
+                    // Fallback: Create sample teachers for testing
+                    console.log('All API endpoints failed, using fallback teachers');
+                    const fallbackTeachers = [
+                        { id: 1, full_name: 'John Doe' },
+                        { id: 2, full_name: 'Jane Smith' },
+                        { id: 3, full_name: 'Michael Johnson' },
+                        { id: 4, full_name: 'Sarah Wilson' },
+                        { id: 5, full_name: 'David Brown' }
+                    ];
+                    
+                    let teacherOptions = '';
+                    fallbackTeachers.forEach(teacher => {
+                        teacherOptions += `<option value="${teacher.id}">${teacher.full_name}</option>`;
+                    });
+                    
+                    $('#assignTeacherFormContainer').html(`
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Using Sample Teachers</strong><br>
+                            API endpoints are not available. Using sample teachers for testing.
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Class: <span class="badge bg-primary">${className}</span>
+                            </label>
+                            <div class="alert alert-info">
+                                <small>You are about to assign a class teacher to ${className}.</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="teacher_id" class="form-label required">Select Class Teacher</label>
+                            <select id="teacher_id" name="teacher_id" class="form-select" required>
+                                <option value="">Select a teacher</option>
+                                ${teacherOptions}
+                            </select>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Warning:</strong> This will assign the selected teacher as the class teacher for ${className}. 
+                            Existing class teacher assignment will be replaced.
+                        </div>
+                    `);
+                    
+                    // Show modal footer and add submit handler
+                    $('#assignTeacherModalFooter').show();
+                    initIndividualClassTeacherFormSubmission(classId, className);
+                    return;
+                }
+                
+                $.ajax({
+                    url: teacherEndpoints[currentEndpointIndex],
+                    type: 'GET',
+                    success: function(response) {
+                        console.log('Teachers API Response:', response); // Debug log
+                        
+                        // Handle different response structures
+                        let teachers = [];
+                        if (response.teachers) {
+                            teachers = response.teachers;
+                        } else if (Array.isArray(response)) {
+                            teachers = response;
+                        } else if (response.data && Array.isArray(response.data)) {
+                            teachers = response.data;
+                        }
+                        
+                        if (!teachers || teachers.length === 0) {
+                            $('#assignTeacherFormContainer').html(`
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>No Teachers Available</strong><br>
+                                    There are no teachers available to assign.
+                                </div>
+                            `);
+                            return;
+                        }
+                        
+                        // Create teacher options HTML
+                        let teacherOptions = '';
+                        teachers.forEach(teacher => {
+                            // Handle different teacher object structures
+                            const teacherId = teacher.id || teacher.teacher_id || teacher.pk;
+                            const teacherName = teacher.name || teacher.full_name || teacher.first_name + ' ' + teacher.last_name || teacher.username || 'Unnamed Teacher';
+                            
+                            console.log('Teacher object:', teacher); // Debug log
+                            teacherOptions += `<option value="${teacherId}">${teacherName}</option>`;
+                        });
+                        
+                        $('#assignTeacherFormContainer').html(`
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Class: <span class="badge bg-primary">${className}</span>
+                                </label>
+                                <div class="alert alert-info">
+                                    <small>You are about to assign a class teacher to ${className}.</small>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="teacher_id" class="form-label required">Select Class Teacher</label>
+                                <select id="teacher_id" name="teacher_id" class="form-select" required>
+                                    <option value="">Select a teacher</option>
+                                    ${teacherOptions}
+                                </select>
+                            </div>
+                            
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Warning:</strong> This will assign the selected teacher as the class teacher for ${className}. 
+                                Existing class teacher assignment will be replaced.
+                            </div>
+                        `);
+                        
+                        // Show modal footer and add submit handler
+                        $('#assignTeacherModalFooter').show();
+                        initIndividualClassTeacherFormSubmission(classId, className);
+                    },
+                    error: function(xhr, status, error) {
+                        console.log(`Failed to load teachers from ${teacherEndpoints[currentEndpointIndex]}:`, error);
+                        currentEndpointIndex++;
+                        tryNextTeacherEndpoint();
+                    }
+                });
+            }
+            
+            // Start trying endpoints
+            tryNextTeacherEndpoint();
+        }
+        
+        // Load bulk teacher assignment form
+        function loadBulkTeacherForm(selectedClassIds) {
+            $('#bulkTeacherFormContainer').html(`
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading teachers...</p>
+                </div>
+            `);
+            
+
+            $.ajax({
+                url: '/api/teachers/available/',
+                type: 'GET',
+                success: function(response) {
+
+                    console.log('Teachers API Response:', response); // Debug log
+                    
+                    // Handle different response structures
+                    let teachers = [];
+                    if (response.teachers) {
+                        teachers = response.teachers;
+                    } else if (Array.isArray(response)) {
+                        teachers = response;
+                    } else if (response.data && Array.isArray(response.data)) {
+                        teachers = response.data;
+                    }
+                    
+                    if (!teachers || teachers.length === 0) {
+                        $('#bulkTeacherFormContainer').html(`
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>No Teachers Available</strong><br>
+                                There are no teachers available to assign.
+                            </div>
+                        `);
+
+                        return;
+                    }
+                    
+                    // Create teacher options HTML
+                    let teacherOptions = '';
+
+                    teachers.forEach(teacher => {
+                        // Handle different teacher object structures
+                        const teacherId = teacher.id || teacher.teacher_id || teacher.pk;
+                        const teacherName = teacher.name || teacher.full_name || teacher.first_name + ' ' + teacher.last_name || teacher.username || 'Unnamed Teacher';
+                        
+                        console.log('Teacher object:', teacher); // Debug log
+                        teacherOptions += `<option value="${teacherId}">${teacherName}</option>`;
+                    });
+                    
+                    $('#bulkTeacherFormContainer').html(`
+                                <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Selected Classes: <span class="badge bg-primary">${selectedClassIds.length}</span>
+                            </label>
+                            <div class="alert alert-info">
+                                <small>You are about to assign a subject teacher to ${selectedClassIds.length} selected classes.</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="teacher_id" class="form-label required">Select Subject Teacher</label>
+
+                                    <select id="teacher_id" name="teacher_id" class="form-select" required>
+                                        <option value="">Select a teacher</option>
+                                        ${teacherOptions}
+                                    </select>
+                                </div>
+
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Warning:</strong> This will assign the selected teacher as a subject teacher for all ${selectedClassIds.length} classes. 
+                            This is for subject assignments, not class teacher assignments.
+                                </div>
+                    `);
+                    
+                    // Show modal footer and add submit handler
+                    $('#bulkTeacherModalFooter').show();
+                    initBulkTeacherFormSubmission(selectedClassIds);
+                },
+                error: function(xhr, status, error) {
+                    $('#bulkTeacherFormContainer').html(`
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <strong>Error:</strong> Failed to load teachers: ${error}
+                        </div>
+                    `);
+                }
+            });
+        }
+        
+        // Load bulk class teacher assignment form
+        function loadBulkClassTeacherForm(selectedClassIds) {
+            $('#bulkTeacherFormContainer').html(`
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading teachers...</p>
+                </div>
+            `);
+            
+            // Try multiple API endpoints for teachers
+            const teacherEndpoints = [
+                '/api/teachers/available/',
+                '/api/teachers/',
+                '/teachers/api/',
+                '/teachers/'
+            ];
+            
+            let currentEndpointIndex = 0;
+            
+            function tryNextTeacherEndpoint() {
+                if (currentEndpointIndex >= teacherEndpoints.length) {
+                    // Fallback: Create sample teachers for testing
+                    console.log('All API endpoints failed, using fallback teachers');
+                    const fallbackTeachers = [
+                        { id: 1, full_name: 'John Doe' },
+                        { id: 2, full_name: 'Jane Smith' },
+                        { id: 3, full_name: 'Michael Johnson' },
+                        { id: 4, full_name: 'Sarah Wilson' },
+                        { id: 5, full_name: 'David Brown' }
+                    ];
+                    
+                    let teacherOptions = '';
+                    fallbackTeachers.forEach(teacher => {
+                        teacherOptions += `<option value="${teacher.id}">${teacher.full_name}</option>`;
+                    });
+                    
+                    $('#bulkTeacherFormContainer').html(`
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Using Sample Teachers</strong><br>
+                            API endpoints are not available. Using sample teachers for testing.
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Selected Classes: <span class="badge bg-primary">${selectedClassIds.length}</span>
+                            </label>
+                            <div class="alert alert-info">
+                                <small>You are about to assign a class teacher to ${selectedClassIds.length} selected classes.</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="teacher_id" class="form-label required">Select Class Teacher</label>
+                            <select id="teacher_id" name="teacher_id" class="form-select" required>
+                                <option value="">Select a teacher</option>
+                                ${teacherOptions}
+                            </select>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Warning:</strong> This will assign the selected teacher as the class teacher for all ${selectedClassIds.length} classes. 
+                            Existing class teacher assignments will be replaced.
+                        </div>
+                    `);
+                    
+                    // Show modal footer and add submit handler
+                    $('#bulkTeacherModalFooter').show();
+                    initBulkClassTeacherFormSubmission(selectedClassIds);
+                    return;
+                }
+                
+                $.ajax({
+                    url: teacherEndpoints[currentEndpointIndex],
+                    type: 'GET',
+                    success: function(response) {
+                        console.log('Teachers API Response:', response); // Debug log
+                        
+                        // Handle different response structures
+                        let teachers = [];
+                        if (response.teachers) {
+                            teachers = response.teachers;
+                        } else if (Array.isArray(response)) {
+                            teachers = response;
+                        } else if (response.data && Array.isArray(response.data)) {
+                            teachers = response.data;
+                        }
+                        
+                        if (!teachers || teachers.length === 0) {
+                            $('#bulkTeacherFormContainer').html(`
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>No Teachers Available</strong><br>
+                                    There are no teachers available to assign.
+                                </div>
+                            `);
+                            return;
+                        }
+                        
+                        // Create teacher options HTML
+                        let teacherOptions = '';
+                        teachers.forEach(teacher => {
+                            // Handle different teacher object structures
+                            const teacherId = teacher.id || teacher.teacher_id || teacher.pk;
+                            const teacherName = teacher.name || teacher.full_name || teacher.first_name + ' ' + teacher.last_name || teacher.username || 'Unnamed Teacher';
+                            
+                            console.log('Teacher object:', teacher); // Debug log
+                            teacherOptions += `<option value="${teacherId}">${teacherName}</option>`;
+                        });
+                        
+                        $('#bulkTeacherFormContainer').html(`
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Selected Classes: <span class="badge bg-primary">${selectedClassIds.length}</span>
+                                </label>
+                                <div class="alert alert-info">
+                                    <small>You are about to assign a class teacher to ${selectedClassIds.length} selected classes.</small>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="teacher_id" class="form-label required">Select Class Teacher</label>
+                                <select id="teacher_id" name="teacher_id" class="form-select" required>
+                                    <option value="">Select a teacher</option>
+                                    ${teacherOptions}
+                                </select>
+                            </div>
+                            
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Warning:</strong> This will assign the selected teacher as the class teacher for all ${selectedClassIds.length} classes. 
+                                Existing class teacher assignments will be replaced.
+                            </div>
+                        `);
+                        
+                        // Show modal footer and add submit handler
+                        $('#bulkTeacherModalFooter').show();
+                        initBulkClassTeacherFormSubmission(selectedClassIds);
+                    },
+                    error: function(xhr, status, error) {
+                        console.log(`Failed to load teachers from ${teacherEndpoints[currentEndpointIndex]}:`, error);
+                        currentEndpointIndex++;
+                        tryNextTeacherEndpoint();
+                    }
+                });
+            }
+            
+            // Start trying endpoints
+            tryNextTeacherEndpoint();
+        }
+        
+        // Initialize bulk subject form submission
+        function initBulkSubjectFormSubmission(selectedClassIds) {
+            $('#bulkAssignSubjectsSubmit').off('click').on('click', function() {
+                const subjectIds = $('#subject_ids').val();
+                if (!subjectIds || subjectIds.length === 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No Subjects Selected',
+                        text: 'Please select at least one subject to assign.'
+                    });
+                    return;
+                }
+                            
+                            // Show loading
+                            Swal.fire({
+                    title: 'Assigning Subjects...',
+
+                                html: 'Please wait',
+                                allowOutsideClick: false,
+                                didOpen: () => {
+                                    Swal.showLoading();
+                                }
+                            });
+                            
+
+                // Try multiple API endpoints for bulk assign subjects
+                const bulkAssignEndpoints = [
+                    '/api/bulk-assign-subjects/',
+                    '/api/classes/bulk-assign-subjects/',
+                    '/classes/bulk-assign-subjects/',
+                    '/api/subjects/bulk-assign/'
+                ];
+                
+                let currentEndpointIndex = 0;
+                
+                function tryNextBulkAssignEndpoint() {
+                    if (currentEndpointIndex >= bulkAssignEndpoints.length) {
+                        // Show fallback message since API doesn't exist
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'API Endpoint Missing',
+                            html: `
+                                <p>The bulk assign subjects API endpoint is not yet implemented.</p>
+                                <p><strong>Selected Classes:</strong> ${selectedClassIds.length}</p>
+                                <p><strong>Selected Subjects:</strong> ${subjectIds.length}</p>
+                                <hr>
+                                <p><small>This feature requires backend implementation of the bulk assignment API.</small></p>
+                            `,
+                            confirmButtonText: 'OK'
+                        });
+                        return;
+                    }
+                    
+                            $.ajax({
+                        url: bulkAssignEndpoints[currentEndpointIndex],
+                                type: 'POST',
+                                data: {
+                                    class_ids: selectedClassIds,
+                            subject_ids: subjectIds
+
+                                },
+                                headers: {
+                                    'X-CSRFToken': getCookie('csrftoken')
+                                },
+                                success: function(response) {
+
+                            $('#bulkSubjectModal').modal('hide');
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Assigned!',
+                                text: `Subjects have been assigned to ${selectedClassIds.length} classes successfully.`,
+
+                                        timer: 1500
+                                    }).then(() => {
+                                        window.location.reload();
+                                    });
+                                },
+                                error: function(xhr, status, error) {
+
+                            console.log(`Failed to assign subjects via ${bulkAssignEndpoints[currentEndpointIndex]}:`, error);
+                            currentEndpointIndex++;
+                            tryNextBulkAssignEndpoint();
+                                }
+                            });
+                        }
+                
+                // Start trying endpoints
+                tryNextBulkAssignEndpoint();
+            });
+        }
+        
+        // Initialize individual class teacher form submission
+        function initIndividualClassTeacherFormSubmission(classId, className) {
+            $('#assignTeacherSubmit').off('click').on('click', function() {
+                const teacherId = $('#teacher_id').val();
+                if (!teacherId) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No Teacher Selected',
+                        text: 'Please select a teacher to assign.'
+                    });
+                    return;
+                }
+                
+                // Show loading
+                Swal.fire({
+                    title: 'Assigning Class Teacher...',
+                    html: 'Please wait',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // First test the basic endpoint
+                console.log(`Testing endpoint for classId: ${classId}, teacherId: ${teacherId}`);
+                
+                // Test basic endpoint first
+                $.ajax({
+                    url: `/api/test-class-teacher/${classId}/`,
+                    type: 'GET',
+                    success: function(response) {
+                        console.log('Test endpoint response:', response);
+                        
+                        // If test works, proceed with actual assignment
+                        $.ajax({
+                            url: `/api/assign-class-teacher/${classId}/`,
+                            type: 'POST',
+                            data: {
+                                teacher_id: teacherId
+                            },
+                            headers: {
+                                'X-CSRFToken': getCookie('csrftoken')
+                            },
+                            success: function(response) {
+                                $('#assignTeacherModal').modal('hide');
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Assigned!',
+                                    text: response.message || `Class teacher has been assigned to ${className} successfully.`,
+                                    timer: 1500
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            },
+                            error: function(xhr, status, error) {
+                                console.error('Assignment error:', xhr, status, error);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'Failed to assign class teacher: ' + (xhr.responseJSON?.message || error)
+                                });
+                            }
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Test endpoint error:', xhr, status, error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'API endpoint not accessible: ' + (xhr.responseJSON?.message || error)
+                        });
+                    }
+                });
+            });
+        }
+        
+        // Initialize bulk class teacher form submission
+        function initBulkClassTeacherFormSubmission(selectedClassIds) {
+            $('#bulkAssignTeachersSubmit').off('click').on('click', function() {
+                const teacherId = $('#teacher_id').val();
+                if (!teacherId) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No Teacher Selected',
+                        text: 'Please select a teacher to assign.'
+                    });
+                    return;
+                }
+                
+                // Show loading
+                Swal.fire({
+                    title: 'Assigning Class Teachers...',
+                    html: 'Please wait',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // Use the existing bulk_assign_class_teacher API endpoint
+                $.ajax({
+                    url: '/api/bulk-assign-class-teacher/',
+                    type: 'POST',
+                    data: {
+                        class_ids: selectedClassIds,
+                        teacher_id: teacherId
+                    },
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    success: function(response) {
+                        $('#bulkTeacherModal').modal('hide');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Assigned!',
+                            text: `Class teacher has been assigned to ${selectedClassIds.length} classes successfully.`,
+                            timer: 1500
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to assign class teachers: ' + (xhr.responseJSON?.message || error)
+                        });
+                    }
+                });
+            });
+
+        }
+        
+        // Initialize form submission
+        function initFormSubmission() {
+            $('form#classForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = $(this).serialize();
+                const url = $(this).attr('action');
+                const isNew = url.includes('create_class');
+                
+                // Show loading
+                Swal.fire({
+                    title: isNew ? 'Creating...' : 'Updating...',
+                    html: 'Please wait',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $('#classModal').modal('hide');
+                            
+                            Swal.fire({
+                                icon: 'success',
+                                title: isNew ? 'Created!' : 'Updated!',
+                                text: isNew ? 'New class has been created successfully.' : 'Class has been updated successfully.',
+                                timer: 1500
+                            }).then(() => {
+                                // Reload the page to show the updated data
+                                window.location.reload();
+                            });
+                        } else {
+                            // Show form errors
+                            $('#classFormContainer').html(response.html);
+                            initFormSubmission();
+                            
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Please check the form',
+                                text: 'There are some validation errors.',
+                                timer: 2000
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: xhr.responseJSON?.message || `Failed to ${isNew ? 'create' : 'update'} class: ${error}`
+                        });
+                    }
+                });
+            });
+        }
+        
+
+        // Reset modal states when closed
+        $('#bulkSubjectModal').on('hidden.bs.modal', function() {
+            $('#bulkSubjectModalFooter').hide();
+            $('#bulkSubjectFormContainer').html(`
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading subjects...</p>
+                </div>
+            `);
+        });
+        
+        $('#bulkTeacherModal').on('hidden.bs.modal', function() {
+            $('#bulkTeacherModalFooter').hide();
+            $('#bulkTeacherFormContainer').html(`
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading teachers...</p>
+                </div>
+            `);
+        });
+        
+        $('#assignTeacherModal').on('hidden.bs.modal', function() {
+            $('#assignTeacherModalFooter').hide();
+            $('#assignTeacherFormContainer').html(`
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading teachers...</p>
+                </div>
+            `);
+        });
+        
+
+        // Function to get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+</script>
+{% endblock %}

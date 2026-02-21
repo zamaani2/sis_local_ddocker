@@ -1,0 +1,385 @@
+{% extends "base.html" %} {% load static %} {% load score_filters %} {% block title %}Score Management Dashboard{% endblock %} {% block extra_css %}
+
+<!-- Chart.js for data visualization (local) -->
+<script src="{% static 'vendor/chartjs/4.4.0/dist/chart.umd.min.js' %}"></script>
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Academic Score Management</h2>
+          <p class="text-muted mb-0">
+            Comprehensive score management and analysis dashboard
+          </p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Overview Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="mb-0">{{ total_students }}</h4>
+              <p class="mb-0">Total Students</p>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-people fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="mb-0">{{ total_assessments }}</h4>
+              <p class="mb-0">Total Assessments</p>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-clipboard-data fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="mb-0">
+                {% if current_term %}{{ current_term.get_term_number_display }}{% else %}Not Set{% endif %}
+              </h4>
+              <p class="mb-0">Current Term</p>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-calendar3 fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="mb-0">
+                {% if current_academic_year %}{{ current_academic_year.name }}{% else %}Not Set{% endif %}
+              </h4>
+              <p class="mb-0">Academic Year</p>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-mortarboard fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Score Management Features Cards -->
+  <div class="row mb-4">
+    <div class="col-md-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-clipboard-check"></i> Class Score Management
+          </h5>
+        </div>
+        <div class="card-body">
+          <p>View and manage scores for specific classes and subjects.</p>
+          <div class="text-center">
+            <a href="{% url 'class_score_list' %}" class="btn btn-primary">
+              <i class="bi bi-clipboard-check"></i> Manage Class Scores
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-graph-up"></i> Subject Performance Analysis
+          </h5>
+        </div>
+        <div class="card-body">
+          <p>Analyze performance across different subjects and classes.</p>
+          <div class="text-center">
+            <a href="{% url 'subject_performance' %}" class="btn btn-primary">
+              <i class="bi bi-graph-up"></i> Subject Analysis
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-graph-up"></i> Score Comparison</h5>
+        </div>
+        <div class="card-body">
+          <p>Compare student performance across terms or subjects.</p>
+          <div class="text-center">
+            <a href="{% url 'compare_scores' %}" class="btn btn-primary">
+              <i class="bi bi-graph-up"></i> Compare Scores
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-md-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-person-check"></i> Student Progress Tracking
+          </h5>
+        </div>
+        <div class="card-body">
+          <p>Track individual student progress over time.</p>
+          <div class="text-center">
+            <a href="{% url 'progress_tracking' %}" class="btn btn-primary">
+              <i class="bi bi-person-check"></i> Track Progress
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-8 mb-4">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-list-check"></i> Quick Class Selection
+          </h5>
+        </div>
+        <div class="card-body">
+          <p>Select a class to view and manage scores:</p>
+          <div class="row">
+            {% for class in classes %}
+            <div class="col-md-4 mb-2">
+              <a
+                href="{% url 'class_score_list' %}?class_id={{ class.id }}"
+                class="btn btn-outline-primary btn-block"
+              >
+                {{ class.name }}
+              </a>
+            </div>
+            {% empty %}
+            <div class="col-12">
+              <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No classes available for the
+                current academic year.
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance Charts -->
+  <div class="row">
+    <div class="col-md-6 mb-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-graph-up"></i> Average Scores by Class
+          </h5>
+        </div>
+        <div class="card-body">
+          <div
+            class="chart-container"
+            style="position: relative; height: 300px"
+          >
+            <canvas id="classPerformanceChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-pie-chart"></i> Score Distribution
+          </h5>
+        </div>
+        <div class="card-body">
+          <div
+            class="chart-container"
+            style="position: relative; height: 300px"
+          >
+            <canvas id="scoreDistributionChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Performing Subjects -->
+  <div class="row">
+    <div class="col-12 mb-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-trophy"></i> Top Performing Subjects
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>#</th>
+                  <th>Subject</th>
+                  <th>Average Score</th>
+                  <th>Performance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for subject in subject_averages %}
+                <tr>
+                  <td>{{ forloop.counter }}</td>
+                  <td>{{ subject.class_subject__subject__subject_name }}</td>
+                  <td>{{ subject.average_score|floatformat:2 }}</td>
+                  <td>
+                    <div class="progress">
+                      <div
+                        class="progress-bar bg-success"
+                        role="progressbar"
+                        style="width: {{ subject.average_score }}%"
+                        aria-valuenow="{{ subject.average_score }}"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                      >
+                        {{ subject.average_score|floatformat:2 }}%
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="4" class="text-center text-muted py-4">
+                    <i
+                      class="bi bi-graph-up text-muted mb-3"
+                      style="font-size: 3rem"
+                    ></i>
+                    <p>No data available</p>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  // Class Performance Chart
+  document.addEventListener('DOMContentLoaded', function() {
+      {% if performance_graph.class_performance %}
+      var ctx = document.getElementById('classPerformanceChart').getContext('2d');
+      var classChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+              labels: {{ performance_graph.class_performance.labels|safe }},
+              datasets: [{
+                  label: 'Average Score',
+                  data: {{ performance_graph.class_performance.data|safe }},
+                  backgroundColor: 'rgba(78, 115, 223, 0.7)',
+                  borderColor: 'rgba(78, 115, 223, 1)',
+                  borderWidth: 1
+              }]
+          },
+          options: {
+              maintainAspectRatio: false,
+              scales: {
+                  y: {
+                      beginAtZero: true,
+                      max: 100,
+                      title: {
+                          display: true,
+                          text: 'Average Score'
+                      }
+                  },
+                  x: {
+                      title: {
+                          display: true,
+                          text: 'Class'
+                      }
+                  }
+              }
+          }
+      });
+      {% endif %}
+
+      {% if performance_graph.score_distribution %}
+      var distCtx = document.getElementById('scoreDistributionChart').getContext('2d');
+      var distChart = new Chart(distCtx, {
+          type: 'pie',
+          data: {
+              labels: {{ performance_graph.score_distribution.labels|safe }},
+              datasets: [{
+                  data: {{ performance_graph.score_distribution.data|safe }},
+                  backgroundColor: [
+                      'rgba(255, 99, 132, 0.7)',
+                      'rgba(255, 159, 64, 0.7)',
+                      'rgba(255, 205, 86, 0.7)',
+                      'rgba(75, 192, 192, 0.7)',
+                      'rgba(54, 162, 235, 0.7)'
+                  ],
+                  borderColor: [
+                      'rgb(255, 99, 132)',
+                      'rgb(255, 159, 64)',
+                      'rgb(255, 205, 86)',
+                      'rgb(75, 192, 192)',
+                      'rgb(54, 162, 235)'
+                  ],
+                  borderWidth: 1
+              }]
+          },
+          options: {
+              maintainAspectRatio: false,
+              plugins: {
+                  legend: {
+                      position: 'right'
+                  },
+                  title: {
+                      display: true,
+                      text: 'Score Distribution'
+                  }
+              }
+          }
+      });
+      {% endif %}
+  });
+</script>
+{% endblock %}
+

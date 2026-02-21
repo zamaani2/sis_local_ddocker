@@ -1,0 +1,552 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SIS - Student Information System</title>
+    <link
+
+      href="{% static 'vendor/bootstrap/5.3.0/css/bootstrap.min.css' %}"
+
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, sans-serif;
+        line-height: 1.6;
+        color: #1e293b;
+        overflow-x: hidden;
+      }
+
+      .landing-container {
+        min-height: 100vh;
+        background: linear-gradient(
+          135deg,
+          #1e40af 0%,
+          #3b82f6 50%,
+          #0ea5e9 100%
+        );
+        position: relative;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Animated Background */
+      .landing-container::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(
+            circle at 20% 80%,
+            rgba(30, 64, 175, 0.3) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 80% 20%,
+            rgba(59, 130, 246, 0.3) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 40% 40%,
+            rgba(14, 165, 233, 0.3) 0%,
+            transparent 50%
+          );
+        animation: float 8s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px) rotate(0deg);
+        }
+        50% {
+          transform: translateY(-30px) rotate(2deg);
+        }
+      }
+
+      .header {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 1.5rem 0;
+        position: relative;
+        z-index: 10;
+      }
+
+      .header h1 {
+        color: white;
+        font-size: 2.5rem;
+        font-weight: 800;
+        text-align: center;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        letter-spacing: -1px;
+      }
+
+      .hero-section {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4rem 0;
+        position: relative;
+        z-index: 10;
+      }
+
+      .hero-content {
+        text-align: center;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 2rem;
+      }
+
+      .hero-title {
+        font-size: 4rem;
+        font-weight: 800;
+        color: white;
+        margin-bottom: 1.5rem;
+        text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        letter-spacing: -2px;
+        animation: slideUp 1s ease-out;
+      }
+
+      .hero-subtitle {
+        font-size: 1.5rem;
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 3rem;
+        font-weight: 400;
+        animation: slideUp 1s ease-out 0.2s both;
+      }
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .content {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 32px 32px 0 0;
+        padding: 4rem 0;
+        margin-top: auto;
+        position: relative;
+        z-index: 10;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
+      }
+
+      .content h2 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        text-align: center;
+        margin-bottom: 3rem;
+        letter-spacing: -1px;
+      }
+
+      .portal-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+      }
+
+      .portal-card {
+        background: white;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1),
+          0 4px 16px rgba(0, 0, 0, 0.05);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        position: relative;
+        animation: cardSlideUp 0.8s ease-out;
+      }
+
+      .portal-card:nth-child(1) {
+        animation-delay: 0.1s;
+      }
+      .portal-card:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .portal-card:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+      .portal-card:nth-child(4) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes cardSlideUp {
+        from {
+          opacity: 0;
+          transform: translateY(40px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .portal-card:hover {
+        transform: translateY(-12px) scale(1.02);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15),
+          0 8px 32px rgba(0, 0, 0, 0.1);
+      }
+
+      .portal-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(
+          90deg,
+          var(--card-color),
+          var(--card-color-light)
+        );
+      }
+
+      .portal-card-header {
+        padding: 2rem 2rem 1rem;
+        text-align: center;
+        position: relative;
+      }
+
+      .portal-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2.5rem;
+        color: white;
+        background: linear-gradient(
+          135deg,
+          var(--card-color),
+          var(--card-color-light)
+        );
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      }
+
+      .portal-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.5px;
+      }
+
+      .portal-subtitle {
+        color: #64748b;
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+
+      .portal-card-body {
+        padding: 0 2rem 2rem;
+        text-align: center;
+      }
+
+      .portal-description {
+        color: #64748b;
+        font-size: 1rem;
+        line-height: 1.6;
+        margin-bottom: 2rem;
+        font-weight: 400;
+      }
+
+      .portal-btn {
+        width: 100%;
+        padding: 1rem 2rem;
+        border-radius: 16px;
+        font-weight: 600;
+        font-size: 1rem;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        border: none;
+        cursor: pointer;
+      }
+
+      .portal-btn::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        transition: left 0.5s;
+      }
+
+      .portal-btn:hover::before {
+        left: 100%;
+      }
+
+      .portal-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        text-decoration: none;
+      }
+
+      /* Portal Card Colors - Academic Pro Theme */
+      .super-admin {
+        --card-color: #ef4444;
+        --card-color-light: #f87171;
+      }
+
+      .school-admin {
+        --card-color: #1e40af;
+        --card-color-light: #3b82f6;
+      }
+
+      .teacher {
+        --card-color: #10b981;
+        --card-color-light: #34d399;
+      }
+
+      .student {
+        --card-color: #0ea5e9;
+        --card-color-light: #38bdf8;
+      }
+
+      .btn-super-admin {
+        background: linear-gradient(135deg, #ef4444, #f87171);
+        color: white;
+      }
+
+      .btn-school-admin {
+        background: linear-gradient(135deg, #1e40af, #3b82f6);
+        color: white;
+      }
+
+      .btn-teacher {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+      }
+
+      .btn-student {
+        background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+        color: white;
+      }
+
+      .footer {
+        background: rgba(30, 41, 59, 0.95);
+        backdrop-filter: blur(20px);
+        color: #e2e8f0;
+        padding: 2rem 0;
+        text-align: center;
+        position: relative;
+        z-index: 10;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .footer p {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 500;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .hero-title {
+          font-size: 2.5rem;
+        }
+
+        .hero-subtitle {
+          font-size: 1.2rem;
+        }
+
+        .content h2 {
+          font-size: 2rem;
+        }
+
+        .portal-grid {
+          grid-template-columns: 1fr;
+          gap: 1.5rem;
+          padding: 0 1rem;
+        }
+
+        .portal-card-header {
+          padding: 1.5rem 1.5rem 1rem;
+        }
+
+        .portal-card-body {
+          padding: 0 1.5rem 1.5rem;
+        }
+
+        .portal-icon {
+          width: 60px;
+          height: 60px;
+          font-size: 2rem;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .hero-title {
+          font-size: 2rem;
+        }
+
+        .hero-subtitle {
+          font-size: 1rem;
+        }
+
+        .content {
+          padding: 2rem 0;
+        }
+
+        .content h2 {
+          font-size: 1.5rem;
+          margin-bottom: 2rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="landing-container">
+      <header class="header">
+        <div class="container">
+          <h1>Student Information System</h1>
+        </div>
+      </header>
+
+      <section class="hero-section">
+        <div class="hero-content">
+          <h1 class="hero-title">Welcome to the Future of Education</h1>
+          <p class="hero-subtitle">
+            Comprehensive school management system designed for modern
+            educational institutions
+          </p>
+        </div>
+      </section>
+
+      <main class="content">
+        <div class="container">
+          <h2>Choose Your Portal</h2>
+          <div class="portal-grid">
+            <div class="portal-card super-admin">
+              <div class="portal-card-header">
+                <div class="portal-icon">
+                  <i class="fas fa-crown"></i>
+                </div>
+                <h3 class="portal-title">Super Admin</h3>
+                <p class="portal-subtitle">Platform Management</p>
+              </div>
+              <div class="portal-card-body">
+                <p class="portal-description">
+                  Manage multiple schools, subscriptions, and platform settings
+                  with comprehensive administrative control.
+                </p>
+                <a href="/super-admin/" class="portal-btn btn-super-admin">
+                  <i class="fas fa-sign-in-alt me-2"></i>Login as Super Admin
+                </a>
+              </div>
+            </div>
+
+            <div class="portal-card school-admin">
+              <div class="portal-card-header">
+                <div class="portal-icon">
+                  <i class="fas fa-school"></i>
+                </div>
+                <h3 class="portal-title">School Admin</h3>
+                <p class="portal-subtitle">School Management</p>
+              </div>
+              <div class="portal-card-body">
+                <p class="portal-description">
+                  Manage your school, teachers, students, classes, and subjects
+                  with powerful administrative tools.
+                </p>
+                <a href="/school/" class="portal-btn btn-school-admin">
+                  <i class="fas fa-sign-in-alt me-2"></i>Login as School Admin
+                </a>
+              </div>
+            </div>
+
+            <div class="portal-card teacher">
+              <div class="portal-card-header">
+                <div class="portal-icon">
+                  <i class="fas fa-chalkboard-teacher"></i>
+                </div>
+                <h3 class="portal-title">Teacher</h3>
+                <p class="portal-subtitle">Classroom Management</p>
+              </div>
+              <div class="portal-card-body">
+                <p class="portal-description">
+                  Manage your classes, subjects, assessments, and student
+                  records with intuitive teaching tools.
+                </p>
+                <a href="/school/" class="portal-btn btn-teacher">
+                  <i class="fas fa-sign-in-alt me-2"></i>Login as Teacher
+                </a>
+              </div>
+            </div>
+
+            <div class="portal-card student">
+              <div class="portal-card-header">
+                <div class="portal-icon">
+                  <i class="fas fa-graduation-cap"></i>
+                </div>
+                <h3 class="portal-title">Student</h3>
+                <p class="portal-subtitle">Academic Portal</p>
+              </div>
+              <div class="portal-card-body">
+                <p class="portal-description">
+                  View your classes, assessments, report cards, and academic
+                  progress in one convenient place.
+                </p>
+                <a href="/school/" class="portal-btn btn-student">
+                  <i class="fas fa-sign-in-alt me-2"></i>Login as Student
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer class="footer">
+        <div class="container">
+          <p>&copy; {% now "Y" %} CISSEY-TECH. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
+
+
+    <script src="{% static 'vendor/bootstrap/5.3.0/js/bootstrap.bundle.min.js' %}"></script>
+
+  </body>
+</html>

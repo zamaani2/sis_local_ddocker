@@ -1,0 +1,741 @@
+{% extends 'base.html' %}
+{% load dashboard_tags %}
+
+{% block title %}Teacher Activity Monitoring - {{ school_info.name }}{% endblock %}
+{% block page_title %}Teacher Activity Monitoring{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">
+      {% if current_academic_year %}
+        {{ current_academic_year.name }}
+        {% if current_term %}
+          - {{ current_term.name }}
+        {% endif %}
+      {% else %}
+        Teacher Activity Monitoring
+      {% endif %}
+    </h1>
+    <h5 class="text-muted">{{ school_info.name }}</h5>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item active">Teacher Monitoring</li>
+    </ol>
+    
+    <!-- School Context Indicator -->
+    <div class="alert alert-info mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-school me-2"></i> You are viewing data for <strong>{{ school_info.name }}</strong>
+                {% if monitoring_data.academic_year %}
+                    | Academic Year: <strong>{{ monitoring_data.academic_year.name|default:"All" }}</strong>
+                {% endif %}
+                {% if monitoring_data.term %}
+                    | Term: <strong>{{ monitoring_data.term.get_term_number_display|default:"All" }}</strong>
+                {% endif %}
+            </div>
+            <div>
+                <a href="{% url 'teacher_monitoring' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-outline-primary">
+                    <i class="fas fa-sync-alt"></i> Refresh Data
+                </a>
+                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#diagnosticInfo">
+                    <i class="fas fa-bug"></i> Diagnostics
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Diagnostic Information (Collapsed by Default) -->
+    <div class="collapse mb-4" id="diagnosticInfo">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <i class="fas fa-bug me-1"></i> Diagnostic Information
+            </div>
+            <div class="card-body">
+                <h5>School Information</h5>
+                <ul>
+                    <li>School ID: {{ school_info.id }}</li>
+                    <li>School Name: {{ school_info.name }}</li>
+                    <li>School Slug: {{ school_info.slug }}</li>
+                </ul>
+                
+                <h5>Current Filters</h5>
+                <ul>
+                    <li>Academic Year: {{ selected_academic_year.name|default:"None" }} (ID: {{ selected_academic_year.id|default:"None" }})</li>
+                    <li>Term: {{ selected_term.get_term_number_display|default:"None" }} (ID: {{ selected_term.id|default:"None" }})</li>
+                    <li>Teacher: {{ selected_teacher|default:"None" }}</li>
+                    <li>Debug Mode: {{ debug_mode|yesno:"Enabled,Disabled" }}</li>
+                </ul>
+                
+                <h5>Data Summary</h5>
+                <ul>
+                    <li>Total Teachers: {{ monitoring_data.summary.total_teachers }}</li>
+                    <li>Teachers with Complete Scores: {{ monitoring_data.summary.scores_completed }}</li>
+                    <li>Teachers with Complete Remarks: {{ monitoring_data.summary.remarks_completed }}</li>
+                    <li>Teachers with Complete Attendance: {{ monitoring_data.summary.attendance_completed }}</li>
+                </ul>
+                
+                <h5>Available Data</h5>
+                <ul>
+                    <li>Academic Years: {{ academic_years|length }}</li>
+                    <li>Terms: {{ terms|length }}</li>
+                    <li>Teachers: {{ teachers|length }}</li>
+                </ul>
+                
+                {% if debug_mode and debug_info %}
+                <hr>
+                <h5>Teacher Debug Information</h5>
+                <div class="accordion" id="teacherDebugAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="teacherInfoHeader">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#teacherInfoCollapse" aria-expanded="true" aria-controls="teacherInfoCollapse">
+                                Teacher Information
+                            </button>
+                        </h2>
+                        <div id="teacherInfoCollapse" class="accordion-collapse collapse show" aria-labelledby="teacherInfoHeader" data-bs-parent="#teacherDebugAccordion">
+                            <div class="accordion-body">
+                                <ul>
+                                    <li>ID: {{ debug_info.teacher.id }}</li>
+                                    <li>Name: {{ debug_info.teacher.name }}</li>
+                                    <li>School ID: {{ debug_info.teacher.school_id }}</li>
+                                    <li>School Name: {{ debug_info.teacher.school_name }}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="subjectAssignmentsHeader">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#subjectAssignmentsCollapse" aria-expanded="false" aria-controls="subjectAssignmentsCollapse">
+                                Subject Assignments ({{ debug_info.subject_assignments|length }})
+                            </button>
+                        </h2>
+                        <div id="subjectAssignmentsCollapse" class="accordion-collapse collapse" aria-labelledby="subjectAssignmentsHeader" data-bs-parent="#teacherDebugAccordion">
+                            <div class="accordion-body">
+                                {% if debug_info.subject_assignments %}
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID</th>
+                                                    <th>Class</th>
+                                                    <th>Subject</th>
+                                                    <th>Academic Year</th>
+                                                    <th>School IDs</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for assignment in debug_info.subject_assignments %}
+                                                <tr>
+                                                    <td>{{ assignment.id }}</td>
+                                                    <td>{{ assignment.class_assigned }}</td>
+                                                    <td>{{ assignment.subject }}</td>
+                                                    <td>{{ assignment.academic_year }}</td>
+                                                    <td>Class: {{ assignment.class_school_id }}, Subject: {{ assignment.subject_school_id }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted">No subject assignments found</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="classSubjectsHeader">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#classSubjectsCollapse" aria-expanded="false" aria-controls="classSubjectsCollapse">
+                                Class Subjects ({{ debug_info.class_subjects|length }})
+                            </button>
+                        </h2>
+                        <div id="classSubjectsCollapse" class="accordion-collapse collapse" aria-labelledby="classSubjectsHeader" data-bs-parent="#teacherDebugAccordion">
+                            <div class="accordion-body">
+                                {% if debug_info.class_subjects %}
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID</th>
+                                                    <th>Class</th>
+                                                    <th>Subject</th>
+                                                    <th>Academic Year</th>
+                                                    <th>School ID</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for subject in debug_info.class_subjects %}
+                                                <tr>
+                                                    <td>{{ subject.id }}</td>
+                                                    <td>{{ subject.class_name }}</td>
+                                                    <td>{{ subject.subject }}</td>
+                                                    <td>{{ subject.academic_year }}</td>
+                                                    <td>{{ subject.school_id }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted">No class subjects found</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="assessmentsHeader">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#assessmentsCollapse" aria-expanded="false" aria-controls="assessmentsCollapse">
+                                Assessments ({{ debug_info.assessments|length }})
+                            </button>
+                        </h2>
+                        <div id="assessmentsCollapse" class="accordion-collapse collapse" aria-labelledby="assessmentsHeader" data-bs-parent="#teacherDebugAccordion">
+                            <div class="accordion-body">
+                                {% if debug_info.assessments %}
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Class Subject ID</th>
+                                                    <th>Total Count</th>
+                                                    <th>With Scores</th>
+                                                    <th>Sample IDs</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for assessment in debug_info.assessments %}
+                                                <tr>
+                                                    <td>{{ assessment.class_subject_id }}</td>
+                                                    <td>{{ assessment.total_count }}</td>
+                                                    <td>{{ assessment.with_scores }}</td>
+                                                    <td>{{ assessment.sample_ids|join:", " }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted">No assessments found</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="classTeacherHeader">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#classTeacherCollapse" aria-expanded="false" aria-controls="classTeacherCollapse">
+                                Class Teacher Assignments ({{ debug_info.class_teacher_assignments|length }})
+                            </button>
+                        </h2>
+                        <div id="classTeacherCollapse" class="accordion-collapse collapse" aria-labelledby="classTeacherHeader" data-bs-parent="#teacherDebugAccordion">
+                            <div class="accordion-body">
+                                {% if debug_info.class_teacher_assignments %}
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID</th>
+                                                    <th>Class</th>
+                                                    <th>Academic Year</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for assignment in debug_info.class_teacher_assignments %}
+                                                <tr>
+                                                    <td>{{ assignment.id }}</td>
+                                                    <td>{{ assignment.class_assigned }}</td>
+                                                    <td>{{ assignment.academic_year }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted">No class teacher assignments found</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="remarksHeader">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#remarksCollapse" aria-expanded="false" aria-controls="remarksCollapse">
+                                Remarks ({{ debug_info.remarks|length }})
+                            </button>
+                        </h2>
+                        <div id="remarksCollapse" class="accordion-collapse collapse" aria-labelledby="remarksHeader" data-bs-parent="#teacherDebugAccordion">
+                            <div class="accordion-body">
+                                {% if debug_info.remarks %}
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Class</th>
+                                                    <th>Total Count</th>
+                                                    <th>Sample IDs</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for remark in debug_info.remarks %}
+                                                <tr>
+                                                    <td>{{ remark.class_assigned }}</td>
+                                                    <td>{{ remark.total_count }}</td>
+                                                    <td>{{ remark.sample_ids|join:", " }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted">No remarks found</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="attendanceHeader">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#attendanceCollapse" aria-expanded="false" aria-controls="attendanceCollapse">
+                                Attendance ({{ debug_info.attendance|length }})
+                            </button>
+                        </h2>
+                        <div id="attendanceCollapse" class="accordion-collapse collapse" aria-labelledby="attendanceHeader" data-bs-parent="#teacherDebugAccordion">
+                            <div class="accordion-body">
+                                {% if debug_info.attendance %}
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Term ID</th>
+                                                    <th>Total Count</th>
+                                                    <th>Sample IDs</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for attendance in debug_info.attendance %}
+                                                <tr>
+                                                    <td>{{ attendance.term_id }}</td>
+                                                    <td>{{ attendance.total_count }}</td>
+                                                    <td>{{ attendance.sample_ids|join:", " }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted">No attendance records found</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-filter me-1"></i>
+            Filter Options
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="academic_year" class="form-label">Academic Year</label>
+                    <select class="form-select" id="academic_year" name="academic_year">
+                        <option value="">All Academic Years</option>
+                        {% for year in academic_years %}
+                            <option value="{{ year.id }}" {% if selected_academic_year.id == year.id %}selected{% endif %}>
+                                {{ year.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="term" class="form-label">Term</label>
+                    <select class="form-select" id="term" name="term">
+                        <option value="">All Terms</option>
+                        {% for t in terms %}
+                            <option value="{{ t.id }}" {% if selected_term.id == t.id %}selected{% endif %}>
+                                {{ t }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="teacher" class="form-label">Teacher</label>
+                    <select class="form-select" id="teacher" name="teacher">
+                        <option value="">All Teachers</option>
+                        {% for t in teachers %}
+                            <option value="{{ t.id }}" {% if selected_teacher == t.id|stringformat:"i" %}selected{% endif %}>
+                                {{ t.full_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="debug" class="form-label">Debug Mode</label>
+                    <select class="form-select" id="debug" name="debug">
+                        <option value="0" {% if not debug_mode %}selected{% endif %}>Disabled</option>
+                        <option value="1" {% if debug_mode %}selected{% endif %}>Enabled</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    <a href="{% url 'teacher_monitoring' %}" class="btn btn-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Summary Statistics -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white mb-4">
+                <div class="card-body">
+                    <h4>Total Teachers</h4>
+                    <h2>{{ monitoring_data.summary.total_teachers }}</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <span>Teachers monitored in this view</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white mb-4">
+                <div class="card-body">
+                    <h4>Scores Completion</h4>
+                    <h2>{{ monitoring_data.summary.scores_completed }} / {{ monitoring_data.summary.total_teachers }}</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <span>Teachers who completed score entry (≥90%)</span>
+                    <span class="text-white-50">{{ monitoring_data.summary.scores_completed|safe_division:monitoring_data.summary.total_teachers|percentage_display }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-dark mb-4">
+                <div class="card-body">
+                    <h4>Remarks Completion</h4>
+                    <h2>{{ monitoring_data.summary.remarks_completed }} / {{ monitoring_data.summary.total_teachers }}</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <span>Class teachers who completed remarks (≥90%)</span>
+                    <span class="text-dark-50">{{ monitoring_data.summary.remarks_completed|safe_division:monitoring_data.summary.total_teachers|percentage_display }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-info text-white mb-4">
+                <div class="card-body">
+                    <h4>Attendance Completion</h4>
+                    <h2>{{ monitoring_data.summary.attendance_completed }} / {{ monitoring_data.summary.total_teachers }}</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <span>Class teachers who completed attendance (≥90%)</span>
+                    <span class="text-white-50">{{ monitoring_data.summary.attendance_completed|safe_division:monitoring_data.summary.total_teachers|percentage_display }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teacher List -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-table me-1"></i>
+            Teacher Activity Data - {{ school_info.name }}
+        </div>
+        <div class="card-body">
+            {% if monitoring_data.teacher_data %}
+                <table id="teacherMonitoring" class="table table-striped table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Teacher</th>
+                            <th>Department</th>
+                            <th>Subject Assignments</th>
+                            <th>Class Teacher</th>
+                            <th>Scores Entry</th>
+                            <th>Remarks Entry</th>
+                            <th>Attendance Recording</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for teacher_data in monitoring_data.teacher_data %}
+                        <tr>
+                            <td>{{ teacher_data.teacher.full_name }}</td>
+                            <td>{{ teacher_data.teacher.department }}</td>
+                            <td>{{ teacher_data.subject_assignments|length }}</td>
+                            <td>
+                                {% if teacher_data.class_teacher_assignments %}
+                                    {% for assignment in teacher_data.class_teacher_assignments %}
+                                        {{ assignment.class_assigned.name }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="text-muted">None</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% with status=teacher_data.scores_completion_rate|get_teacher_monitoring_status %}
+                                    <span class="{{ status|get_status_badge_class }}" 
+                                          data-bs-toggle="tooltip" 
+                                          title="Based on {{ teacher_data.subject_assignments|length }} subject assignments">
+                                        {{ teacher_data.scores_completion_rate|percentage_display }} 
+                                        {% if status == 'complete' %}
+                                            <i class="fas fa-check"></i>
+                                        {% elif status == 'in-progress' %}
+                                            <i class="fas fa-clock"></i>
+                                        {% else %}
+                                            <i class="fas fa-times"></i>
+                                        {% endif %}
+                                    </span>
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with status=teacher_data.remarks_completion_rate|get_teacher_monitoring_status %}
+                                    <span class="{{ status|get_status_badge_class }}"
+                                          data-bs-toggle="tooltip" 
+                                          title="Based on {{ teacher_data.class_teacher_assignments|length }} class teacher assignments">
+                                        {{ teacher_data.remarks_completion_rate|percentage_display }} 
+                                        {% if status == 'complete' %}
+                                            <i class="fas fa-check"></i>
+                                        {% elif status == 'in-progress' %}
+                                            <i class="fas fa-clock"></i>
+                                        {% else %}
+                                            <i class="fas fa-times"></i>
+                                        {% endif %}
+                                    </span>
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with status=teacher_data.attendance_completion_rate|get_teacher_monitoring_status %}
+                                    <span class="{{ status|get_status_badge_class }}"
+                                          data-bs-toggle="tooltip" 
+                                          title="Based on {{ teacher_data.class_teacher_assignments|length }} class teacher assignments">
+                                        {{ teacher_data.attendance_completion_rate|percentage_display }} 
+                                        {% if status == 'complete' %}
+                                            <i class="fas fa-check"></i>
+                                        {% elif status == 'in-progress' %}
+                                            <i class="fas fa-clock"></i>
+                                        {% else %}
+                                            <i class="fas fa-times"></i>
+                                        {% endif %}
+                                    </span>
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#teacherDetailModal{{ teacher_data.teacher.id }}">
+                                    <i class="fas fa-eye"></i> Details
+                                </button>
+                                {% if teacher_data.teacher.email %}
+                                    <a href="mailto:{{ teacher_data.teacher.email }}?subject=Activity%20Reminder%20-%20{{ school_info.name }}&body=Dear%20{{ teacher_data.teacher.full_name }},%0D%0A%0D%0AThis%20is%20a%20reminder%20to%20complete%20your%20pending%20activities%20in%20the%20{{ school_info.name }}%20management%20system.%0D%0A%0D%0ARegards,%0D%0A{{ school_info.name }}%20Administration" class="btn btn-sm btn-secondary">
+                                        <i class="fas fa-envelope"></i> Remind
+                                    </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i> No teacher data found for the selected filters. Try adjusting your filters or check that teachers have been assigned to classes and subjects.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Teacher Detail Modals -->
+{% for teacher_data in monitoring_data.teacher_data %}
+<div class="modal fade" id="teacherDetailModal{{ teacher_data.teacher.id }}" tabindex="-1" aria-labelledby="teacherDetailModalLabel{{ teacher_data.teacher.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="teacherDetailModalLabel{{ teacher_data.teacher.id }}">
+                    {{ teacher_data.teacher.full_name }} - Activity Details ({{ school_info.name }})
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs" id="teacherTabs{{ teacher_data.teacher.id }}" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="subject-tab{{ teacher_data.teacher.id }}" data-bs-toggle="tab" data-bs-target="#subject-tab-pane{{ teacher_data.teacher.id }}" type="button" role="tab" aria-controls="subject-tab-pane{{ teacher_data.teacher.id }}" aria-selected="true">
+                            Subject Scores
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="remarks-tab{{ teacher_data.teacher.id }}" data-bs-toggle="tab" data-bs-target="#remarks-tab-pane{{ teacher_data.teacher.id }}" type="button" role="tab" aria-controls="remarks-tab-pane{{ teacher_data.teacher.id }}" aria-selected="false">
+                            Student Remarks
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="attendance-tab{{ teacher_data.teacher.id }}" data-bs-toggle="tab" data-bs-target="#attendance-tab-pane{{ teacher_data.teacher.id }}" type="button" role="tab" aria-controls="attendance-tab-pane{{ teacher_data.teacher.id }}" aria-selected="false">
+                            Attendance Records
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="teacherTabsContent{{ teacher_data.teacher.id }}">
+                    <!-- Subject Scores Tab -->
+                    <div class="tab-pane fade show active" id="subject-tab-pane{{ teacher_data.teacher.id }}" role="tabpanel" aria-labelledby="subject-tab{{ teacher_data.teacher.id }}" tabindex="0">
+                        <div class="table-responsive mt-3">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Class</th>
+                                        <th>Subject</th>
+                                        <th>Students</th>
+                                        <th>Assessments (Actual/Expected)</th>
+                                        <th>Completion</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for assignment in teacher_data.subject_assignments %}
+                                    <tr>
+                                        <td>{{ assignment.assignment.class_assigned.name }}</td>
+                                        <td>{{ assignment.assignment.subject.subject_name }}</td>
+                                        <td>{{ assignment.students_count }}</td>
+                                        <td>{{ assignment.actual_assessments }} / {{ assignment.expected_assessments }}</td>
+                                        <td>
+                                            <div class="progress">
+                                                <div class="progress-bar {% if assignment.completion_rate >= 90 %}bg-success{% elif assignment.completion_rate > 0 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                     role="progressbar" 
+                                                     style="width: {{ assignment.completion_rate }}%" 
+                                                     aria-valuenow="{{ assignment.completion_rate }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100">
+                                                    {{ assignment.completion_rate|percentage_display }}
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center">No subject assignments found for this teacher in {{ school_info.name }}.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Remarks Tab -->
+                    <div class="tab-pane fade" id="remarks-tab-pane{{ teacher_data.teacher.id }}" role="tabpanel" aria-labelledby="remarks-tab{{ teacher_data.teacher.id }}" tabindex="0">
+                        <div class="table-responsive mt-3">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Class</th>
+                                        <th>Students</th>
+                                        <th>Remarks Added</th>
+                                        <th>Completion</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for assignment in teacher_data.class_teacher_assignments %}
+                                    <tr>
+                                        <td>{{ assignment.class_assigned.name }}</td>
+                                        <td>{{ assignment.students_count }}</td>
+                                        <td>{{ assignment.remarks_count }}</td>
+                                        <td>
+                                            <div class="progress">
+                                                <div class="progress-bar {% if assignment.completion_rate >= 90 %}bg-success{% elif assignment.completion_rate > 0 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                     role="progressbar" 
+                                                     style="width: {{ assignment.completion_rate }}%" 
+                                                     aria-valuenow="{{ assignment.completion_rate }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100">
+                                                    {{ assignment.completion_rate|percentage_display }}
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center">No class teacher assignments found for this teacher in {{ school_info.name }}.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Attendance Tab -->
+                    <div class="tab-pane fade" id="attendance-tab-pane{{ teacher_data.teacher.id }}" role="tabpanel" aria-labelledby="attendance-tab{{ teacher_data.teacher.id }}" tabindex="0">
+                        <div class="table-responsive mt-3">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Class</th>
+                                        <th>Expected Records</th>
+                                        <th>Actual Records</th>
+                                        <th>Completion</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for assignment in teacher_data.class_teacher_assignments %}
+                                    {% if assignment.attendance_data %}
+                                    <tr>
+                                        <td>{{ assignment.class_assigned.name }}</td>
+                                        <td>{{ assignment.attendance_data.expected_records }}</td>
+                                        <td>{{ assignment.attendance_data.actual_records }}</td>
+                                        <td>
+                                            <div class="progress">
+                                                <div class="progress-bar {% if assignment.attendance_data.completion_rate >= 90 %}bg-success{% elif assignment.attendance_data.completion_rate > 0 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                     role="progressbar" 
+                                                     style="width: {{ assignment.attendance_data.completion_rate }}%" 
+                                                     aria-valuenow="{{ assignment.attendance_data.completion_rate }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100">
+                                                    {{ assignment.attendance_data.completion_rate|percentage_display }}
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center">No class teacher assignments found for this teacher in {{ school_info.name }}.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize DataTables
+        $('#teacherMonitoring').DataTable({
+            order: [[4, 'asc']], // Sort by scores completion column initially
+            responsive: true
+        });
+        
+        // Tooltip initialization
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+        
+        // Automatically update academic year dropdown when term is selected
+        $('#term').change(function() {
+            let termId = $(this).val();
+            if (termId) {
+                // This would ideally fetch the academic year for the term via AJAX
+                // For now, we'll leave it as is since we don't have that functionality
+            }
+        });
+    });
+</script>
+{% endblock %} 

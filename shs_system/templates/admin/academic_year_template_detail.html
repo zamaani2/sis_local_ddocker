@@ -1,0 +1,340 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="{% static 'vendor/datatables/1.13.7/css/dataTables.bootstrap5.min.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'vendor/datatables-responsive/2.5.0/css/responsive.bootstrap5.min.css' %}">
+<!-- SweetAlert2 CSS -->
+<link rel="stylesheet" href="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.min.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            <i class="fas fa-file-alt text-primary"></i> {{ template.name }}
+            {% if template.is_default %}
+              <span class="badge bg-success ms-2">Default Template</span>
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">{{ template.description|default:"No description provided" }}</p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'template_apply' template.id %}" class="btn btn-success">
+            <i class="fas fa-play"></i> Apply Template
+          </a>
+          <a href="{% url 'template_edit' template.id %}" class="btn btn-warning">
+            <i class="fas fa-edit"></i> Edit
+          </a>
+          <a href="{% url 'template_duplicate' template.id %}" class="btn btn-info">
+            <i class="fas fa-copy"></i> Duplicate
+          </a>
+          <a href="{% url 'template_export' template.id %}" class="btn btn-outline-primary">
+            <i class="fas fa-download"></i> Export
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template Statistics -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-chart-bar"></i> Template Statistics
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-2">
+              <div class="text-center">
+                <div class="h3 text-primary">{{ stats.total_classes }}</div>
+                <small class="text-muted">Classes</small>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="text-center">
+                <div class="h3 text-warning">{{ stats.total_subjects }}</div>
+                <small class="text-muted">Subjects</small>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="text-center">
+                <div class="h3 text-secondary">{{ stats.total_teachers }}</div>
+                <small class="text-muted">Teachers</small>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="text-center">
+                <div class="h3 text-info">{{ stats.total_subject_assignments }}</div>
+                <small class="text-muted">Subject Assignments</small>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="text-center">
+                <div class="h3 text-success">{{ stats.total_teacher_assignments }}</div>
+                <small class="text-muted">Teacher Assignments</small>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="text-center">
+                <div class="h3 text-dark">{{ stats.total_class_teachers }}</div>
+                <small class="text-muted">Class Teachers</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template Details -->
+  <div class="row">
+    <!-- Class Structures -->
+    <div class="col-md-6 mb-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-school"></i> Class Structures ({{ class_structures|length }})
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if class_structures %}
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Class Name</th>
+                    <th>Form</th>
+                    <th>Learning Area</th>
+                    <th>Max Students</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for class_structure in class_structures %}
+                    <tr>
+                      <td><strong>{{ class_structure.name }}</strong></td>
+                      <td>{{ class_structure.form_name|default:"-" }}</td>
+                      <td>{{ class_structure.learning_area_name|default:"-" }}</td>
+                      <td>{{ class_structure.maximum_students }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted">No class structures defined.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Subject Assignments -->
+    <div class="col-md-6 mb-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-book"></i> Subject Assignments ({{ subject_assignments|length }})
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if subject_assignments %}
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Class</th>
+                    <th>Subject</th>
+                    <th>Code</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for assignment in subject_assignments %}
+                    <tr>
+                      <td><strong>{{ assignment.class_name }}</strong></td>
+                      <td>{{ assignment.subject_name }}</td>
+                      <td><code>{{ assignment.subject_code }}</code></td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted">No subject assignments defined.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Teacher Assignments -->
+  <div class="row">
+    <div class="col-md-6 mb-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-chalkboard-teacher"></i> Teacher Assignments ({{ teacher_assignments|length }})
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if teacher_assignments %}
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Class</th>
+                    <th>Subject</th>
+                    <th>Teacher</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for assignment in teacher_assignments %}
+                    <tr>
+                      <td><strong>{{ assignment.class_name }}</strong></td>
+                      <td>{{ assignment.subject_name }}</td>
+                      <td>{{ assignment.teacher_name }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted">No teacher assignments defined.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Class Teachers -->
+    <div class="col-md-6 mb-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-user-tie"></i> Class Teachers ({{ class_teacher_assignments|length }})
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if class_teacher_assignments %}
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Class</th>
+                    <th>Class Teacher</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for assignment in class_teacher_assignments %}
+                    <tr>
+                      <td><strong>{{ assignment.class_name }}</strong></td>
+                      <td>{{ assignment.teacher_name }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted">No class teachers assigned.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template Metadata -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-info-circle"></i> Template Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <dl class="row">
+                <dt class="col-sm-4">Created:</dt>
+                <dd class="col-sm-8">{{ template.created_at|date:"F d, Y \a\t g:i A" }}</dd>
+                
+                <dt class="col-sm-4">Created By:</dt>
+                <dd class="col-sm-8">{{ template.created_by.get_full_name|default:"System" }}</dd>
+                
+                <dt class="col-sm-4">Source Year:</dt>
+                <dd class="col-sm-8">
+                  {% if template.created_from_year %}
+                    <a href="{% url 'academic_year_detail' template.created_from_year.id %}">
+                      {{ template.created_from_year.name }}
+                    </a>
+                  {% else %}
+                    <span class="text-muted">Manual creation</span>
+                  {% endif %}
+                </dd>
+              </dl>
+            </div>
+            <div class="col-md-6">
+              <dl class="row">
+                <dt class="col-sm-4">Last Updated:</dt>
+                <dd class="col-sm-8">{{ template.updated_at|date:"F d, Y \a\t g:i A" }}</dd>
+                
+                <dt class="col-sm-4">Status:</dt>
+                <dd class="col-sm-8">
+                  {% if template.is_active %}
+                    <span class="badge bg-success">Active</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Inactive</span>
+                  {% endif %}
+                </dd>
+                
+                <dt class="col-sm-4">Default:</dt>
+                <dd class="col-sm-8">
+                  {% if template.is_default %}
+                    <span class="badge bg-primary">Yes</span>
+                  {% else %}
+                    <span class="badge bg-light text-dark">No</span>
+                  {% endif %}
+                </dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- DataTables JS -->
+<script src="{% static 'vendor/datatables/1.13.7/js/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'vendor/datatables/1.13.7/js/dataTables.bootstrap5.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-responsive/2.5.0/js/dataTables.responsive.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-responsive/2.5.0/js/responsive.bootstrap5.min.js' %}"></script>
+<!-- SweetAlert2 JS -->
+<script src="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.min.js' %}"></script>
+
+<script>
+$(document).ready(function() {
+    // Initialize DataTables for all tables
+    $('.table').DataTable({
+        responsive: true,
+        pageLength: 10,
+        searching: true,
+        ordering: true,
+        info: true,
+        paging: true
+    });
+});
+</script>
+{% endblock %}

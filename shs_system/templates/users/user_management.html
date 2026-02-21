@@ -1,0 +1,1319 @@
+
+{% extends 'base.html' %} {% load static %} {% block title %}User Management{%
+endblock %} {% block page_title %}User Management{% endblock %} {% block
+extra_css %}
+
+<!-- DataTables CSS (local) -->
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="{% static 'vendor/datatables/1.11.5/css/dataTables.bootstrap5.min.css' %}"
+/>
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="{% static 'vendor/datatables-responsive/2.2.9/css/responsive.bootstrap5.min.css' %}"
+/>
+<!-- SweetAlert2 CSS (local) -->
+<link
+  rel="stylesheet"
+  href="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.min.css' %}"
+/>
+
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+
+            {% if current_academic_year %} {{ current_academic_year.name }} {% if current_term %} - {{ current_term.name }} {% endif %} {% else %} User Management {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if current_academic_year %} Current academic year and term management {% else %} Manage system users, roles, and permissions {% endif %}
+
+          </p>
+        </div>
+        <div class="btn-group">
+          <button
+            type="button"
+            class="btn btn-primary"
+            data-bs-toggle="modal"
+            data-bs-target="#createUserModal"
+          >
+            <i class="bi bi-person-plus"></i> Add User
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-warning"
+            id="bulkResetPasswordBtn"
+            disabled
+            title="Select users to reset passwords to default (0000)"
+          >
+            <i class="bi bi-key"></i> Bulk Reset Passwords
+          </button>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Email Configuration Info Alert -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <h5><i class="bi bi-info-circle"></i> Email Configuration</h5>
+        <p>
+          This system uses a centralized email configuration for sending emails
+          to users.
+        </p>
+
+        <!-- System Email Status -->
+        {% if system_email_configured %}
+        <p class="text-success mb-2">
+          <i class="bi bi-check-circle"></i> System email is configured and
+          active!
+        </p>
+        {% else %}
+        <p class="mb-2">
+          <i class="bi bi-exclamation-triangle text-warning"></i> System email
+          is not configured. Please contact a system administrator.
+        </p>
+        {% endif %}
+
+        <!-- Individual Account Connection (as fallback) -->
+        {% if not system_email_configured %}
+        <p class="mt-2"><strong>Individual Account Connection:</strong></p>
+        {% if not google_connected %}
+        <p>
+          <a
+            href="{% url 'social:begin' 'google-oauth2' %}?next={{ request.path }}"
+            class="btn btn-primary"
+          >
+            <i class="bi bi-google"></i> Connect Google Account
+          </a>
+          <span class="text-muted ms-2"
+            >This will be used as a fallback for sending emails</span
+          >
+        </p>
+        {% else %}
+        <p class="text-success">
+          <i class="bi bi-check-circle"></i> Your Google account is connected as
+          a fallback!
+        </p>
+        {% endif %} {% endif %}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Close"
+        ></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Filters -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <button
+              class="btn btn-link p-0"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#filterCollapse"
+              aria-expanded="true"
+              aria-controls="filterCollapse"
+            >
+              <i class="bi bi-funnel"></i> User Filters
+            </button>
+          </h5>
+        </div>
+        <div class="collapse show" id="filterCollapse">
+          <div class="card-body">
+            <form id="filterForm" class="row g-3">
+              <!-- Role Filter -->
+              <div class="col-md-3">
+                <label for="roleFilter" class="form-label">Role</label>
+                <select class="form-select" id="roleFilter">
+                  <option value="">All Roles</option>
+                  {% for role_value, role_name in roles %}
+                  <option value="{{ role_value }}">{{ role_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Date Joined Filter -->
+              <div class="col-md-3">
+                <label for="dateJoinedFilter" class="form-label"
+                  >Date Joined</label
+                >
+                <select class="form-select" id="dateJoinedFilter">
+                  <option value="">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                  <option value="year">This Year</option>
+                </select>
+              </div>
+
+              <!-- Search Filter -->
+              <div class="col-md-4">
+                <label for="searchFilter" class="form-label">Search</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="searchFilter"
+                  placeholder="Search by name, username, or email..."
+                />
+              </div>
+
+              <!-- Filter Buttons -->
+              <div class="col-md-2 d-flex align-items-end">
+                <div class="btn-group w-100">
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    id="applyFilters"
+                  >
+                    <i class="bi bi-funnel"></i> Apply
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    id="resetFilters"
+                  >
+                    <i class="bi bi-x"></i> Reset
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Users Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-people me-2"></i>Users</h5>
+            <div class="d-flex gap-2">
+              <span class="badge bg-primary" id="userCount"
+                >{{ users|length }} Users</span
+              >
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          {% if users %}
+          <div class="table-responsive">
+            <table
+              id="usersTable"
+              class="table table-hover dt-responsive nowrap"
+              style="width: 100%"
+            >
+              <thead class="table-light">
+                <tr>
+
+                  <th data-orderable="false">
+                    <input
+                      type="checkbox"
+                      id="selectAll"
+                      class="form-check-input"
+                    />
+                  </th>
+
+                  <th>Full Name</th>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Date Joined</th>
+                  <th data-orderable="false">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for user in users %}
+                <tr>
+
+                  <td>
+                    <input
+                      type="checkbox"
+                      class="form-check-input user-checkbox"
+                      value="{{ user.id }}"
+                    />
+                  </td>
+
+                  <td>{{ user.full_name }}</td>
+                  <td>{{ user.username }}</td>
+                  <td>{{ user.email }}</td>
+                  <td data-role="{{ user.role }}">
+                    <span class="badge bg-info"
+                      >{{ user.get_role_display }}</span
+                    >
+                  </td>
+                  <td>{{ user.date_joined|date:"M d, Y" }}</td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button
+                        class="btn btn-outline-primary edit-user"
+                        data-user-id="{{ user.id }}"
+                        data-full-name="{{ user.full_name }}"
+                        data-username="{{ user.username }}"
+                        data-email="{{ user.email }}"
+                        data-role="{{ user.role }}"
+                        title="Edit User"
+                      >
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button
+                        class="btn btn-outline-danger delete-user"
+                        data-user-id="{{ user.id }}"
+                        title="Delete User"
+                      >
+                        <i class="bi bi-trash"></i>
+                      </button>
+                      <button
+                        class="btn btn-outline-info resend-credentials"
+                        data-user-id="{{ user.id }}"
+                        title="Reset password and send credentials via email"
+                      >
+                        <i class="bi bi-envelope"></i>
+                      </button>
+
+                      <button
+                        class="btn btn-outline-warning reset-password-default"
+                        data-user-id="{{ user.id }}"
+                        title="Reset password to default (0000) - no email sent"
+                      >
+                        <i class="bi bi-key"></i>
+                      </button>
+
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="bi bi-people fa-3x mb-3"></i>
+            <h3>No Users Found</h3>
+            <p>
+              No users have been created yet. Add your first user to get
+              started.
+            </p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Create New User</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <form id="createUserForm">
+        <div class="modal-body">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="fullName" class="form-label"
+              >Full Name <span class="text-danger">*</span></label
+            >
+            <input
+              type="text"
+              class="form-control"
+              id="fullName"
+              name="full_name"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label for="username" class="form-label"
+              >Username <span class="text-danger">*</span></label
+            >
+            <input
+              type="text"
+              class="form-control"
+              id="username"
+              name="username"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label for="email" class="form-label"
+              >Email <span class="text-danger">*</span></label
+            >
+            <input
+              type="email"
+              class="form-control"
+              id="email"
+              name="email"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label for="role" class="form-label"
+              >Role <span class="text-danger">*</span></label
+            >
+            <select class="form-select" id="role" name="role" required>
+              {% for role_value, role_name in roles %}
+              <option value="{{ role_value }}">{{ role_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Close
+          </button>
+          <button type="submit" class="btn btn-primary">Create User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit User</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <form id="editUserForm">
+        <div class="modal-body">
+          {% csrf_token %}
+          <input type="hidden" id="editUserId" name="user_id" />
+          <div class="mb-3">
+            <label for="editFullName" class="form-label"
+              >Full Name <span class="text-danger">*</span></label
+            >
+            <input
+              type="text"
+              class="form-control"
+              id="editFullName"
+              name="full_name"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label for="editUsername" class="form-label"
+              >Username <span class="text-danger">*</span></label
+            >
+            <input
+              type="text"
+              class="form-control"
+              id="editUsername"
+              name="username"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label for="editEmail" class="form-label"
+              >Email <span class="text-danger">*</span></label
+            >
+            <input
+              type="email"
+              class="form-control"
+              id="editEmail"
+              name="email"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label for="editRole" class="form-label"
+              >Role <span class="text-danger">*</span></label
+            >
+
+            <select class="form-select" id="editRole" name="role" required>
+
+              {% for role_value, role_name in roles %}
+              <option value="{{ role_value }}">{{ role_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Close
+          </button>
+
+          <button type="submit" class="btn btn-primary">Update User</button>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete User Modal -->
+
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
+
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Delete User</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Are you sure you want to delete this user? This action cannot be
+          undone.
+        </p>
+      </div>
+      <div class="modal-footer">
+
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-danger" id="confirmDelete">
+
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<!-- DataTables JS -->
+<script src="{% static 'vendor/datatables/1.11.5/js/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'vendor/datatables/1.11.5/js/dataTables.bootstrap5.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-responsive/2.2.9/js/dataTables.responsive.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-responsive/2.2.9/js/responsive.bootstrap5.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-buttons/2.4.2/js/dataTables.buttons.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-buttons/2.4.2/js/buttons.bootstrap5.min.js' %}"></script>
+<script src="{% static 'vendor/jszip/3.10.1/3.10.1/jszip.min.js' %}"></script>
+<script src="{% static 'vendor/pdfmake/0.1.70/0.1.70/pdfmake.min.js' %}"></script>
+<script src="{% static 'vendor/pdfmake/0.1.70/0.1.70/vfs_fonts.js' %}"></script>
+<script src="{% static 'vendor/datatables-buttons/2.4.2/js/buttons.html5.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-buttons/2.4.2/js/buttons.print.min.js' %}"></script>
+
+<!-- SweetAlert2 JS (local) -->
+<script src="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.all.min.js' %}"></script>
+
+<script>
+  $(document).ready(function () {
+    // Initialize DataTable
+    const table = $("#usersTable").DataTable({
+      responsive: true,
+      dom: "Bfrtip",
+      buttons: [
+        {
+          extend: "excel",
+          text: '<i class="bi bi-file-excel me-1"></i> Excel',
+          className: "btn btn-success",
+          exportOptions: {
+
+            columns: [1, 2, 3, 4, 5],
+
+          },
+        },
+        {
+          extend: "pdf",
+          text: '<i class="bi bi-file-pdf me-1"></i> PDF',
+          className: "btn btn-danger",
+          exportOptions: {
+
+            columns: [1, 2, 3, 4, 5],
+
+          },
+        },
+        {
+          extend: "print",
+          text: '<i class="bi bi-printer me-1"></i> Print',
+          className: "btn btn-info",
+          exportOptions: {
+
+            columns: [1, 2, 3, 4, 5],
+          },
+        },
+      ],
+      order: [[5, "desc"]], // Sort by date joined by default
+
+      language: {
+        search: "_INPUT_",
+        searchPlaceholder: "Search users...",
+        emptyTable: "No users found",
+        info: "Showing _START_ to _END_ of _TOTAL_ users",
+        infoEmpty: "Showing 0 to 0 of 0 users",
+        infoFiltered: "(filtered from _MAX_ total users)",
+      },
+    });
+
+    // Custom filtering functionality
+    function applyCustomFilters() {
+      const roleFilter = $("#roleFilter").val();
+      const dateFilter = $("#dateJoinedFilter").val();
+      const searchFilter = $("#searchFilter").val().toLowerCase();
+
+      console.log("Applying filters:", {
+        roleFilter,
+        dateFilter,
+        searchFilter,
+      });
+
+      // Clear existing custom searches
+      $.fn.dataTable.ext.search = [];
+
+      // Add custom search function
+      $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+        // Role filter - use data-role attribute
+        if (roleFilter) {
+          const row = table.row(dataIndex).node();
+          const roleValue = $(row).find("td[data-role]").attr("data-role");
+          if (roleValue !== roleFilter) {
+            return false;
+          }
+        }
+
+        // Date filter
+        if (dateFilter) {
+
+          const dateString = data[5]; // Updated index for date column
+
+          const dateJoined = new Date(dateString);
+          const now = new Date();
+          let filterDate = new Date();
+
+          switch (dateFilter) {
+            case "today":
+              filterDate.setHours(0, 0, 0, 0);
+              break;
+            case "week":
+              filterDate.setDate(now.getDate() - 7);
+              break;
+            case "month":
+              filterDate.setMonth(now.getMonth() - 1);
+              break;
+            case "year":
+              filterDate.setFullYear(now.getFullYear() - 1);
+              break;
+          }
+
+          // Handle invalid dates
+          if (isNaN(dateJoined.getTime())) {
+            console.log("Invalid date:", dateString);
+            return false;
+          }
+
+          if (dateJoined < filterDate) {
+            return false;
+          }
+        }
+
+        // Search filter
+        if (searchFilter) {
+
+          const fullName = data[1].toLowerCase(); // Updated index
+          const username = data[2].toLowerCase(); // Updated index
+          const email = data[3].toLowerCase(); // Updated index
+
+
+          // Get role text from the row
+          const row = table.row(dataIndex).node();
+          const roleText = $(row)
+            .find("td[data-role] span")
+            .text()
+            .toLowerCase();
+
+          if (
+            !fullName.includes(searchFilter) &&
+            !username.includes(searchFilter) &&
+            !email.includes(searchFilter) &&
+            !roleText.includes(searchFilter)
+          ) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+
+      table.draw();
+      updateUserCount();
+    }
+
+    // Update user count display
+    function updateUserCount() {
+      const visibleCount = table.rows({ search: "applied" }).count();
+      $("#userCount").text(`${visibleCount} Users`);
+    }
+
+    // Filter event handlers
+    $("#applyFilters").on("click", function () {
+      applyCustomFilters();
+    });
+
+    $("#resetFilters").on("click", function () {
+      $("#roleFilter").val("");
+      $("#dateJoinedFilter").val("");
+      $("#searchFilter").val("");
+      $.fn.dataTable.ext.search = [];
+      table.draw();
+      updateUserCount();
+    });
+
+    // Debounce function for better performance
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+
+    // Real-time search with debounce
+    const debouncedSearch = debounce(applyCustomFilters, 300);
+    $("#searchFilter").on("keyup", debouncedSearch);
+
+    // Also apply filters when role or date filters change
+    $("#roleFilter, #dateJoinedFilter").on("change", function () {
+      applyCustomFilters();
+    });
+
+    // Function to add new row to DataTable
+    function addUserToTable(userData) {
+      const actionButtons = `
+            <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-primary edit-user" 
+                    data-user-id="${userData.id}"
+                    data-full-name="${userData.full_name}"
+                    data-username="${userData.username}"
+                    data-email="${userData.email}"
+                        data-role="${userData.role}" title="Edit User">
+                <i class="bi bi-pencil"></i>
+            </button>
+                <button class="btn btn-outline-danger delete-user" data-user-id="${userData.id}" title="Delete User">
+                <i class="bi bi-trash"></i>
+            </button>
+                <button class="btn btn-outline-info resend-credentials" data-user-id="${userData.id}" title="Reset password and send credentials via email">
+                <i class="bi bi-envelope"></i>
+                </button>
+
+                <button class="btn btn-outline-warning reset-password-default" data-user-id="${userData.id}" title="Reset password to default (0000) - no email sent">
+                <i class="bi bi-key"></i>
+                </button>
+
+            </div>`;
+
+      const newRow = table.row
+        .add([
+
+          `<input type="checkbox" class="form-check-input user-checkbox" value="${userData.id}">`,
+
+          userData.full_name,
+          userData.username,
+          userData.email,
+          `<span class="badge bg-info">${userData.role}</span>`,
+          new Date().toLocaleDateString(),
+          actionButtons,
+        ])
+        .draw(false)
+        .node();
+
+      // Add data-role attribute to the role cell
+
+      $(newRow).find("td:eq(4)").attr("data-role", userData.role);
+
+
+      // Add data attributes to the new row
+      $(newRow).find(".edit-user").data(userData);
+      updateUserCount();
+    }
+
+    // Create User Form Submit
+    $("#createUserForm").on("submit", function (e) {
+      e.preventDefault();
+      const form = $(this);
+      const submitButton = form.find('button[type="submit"]');
+      submitButton.prop("disabled", true);
+
+      // Show loading
+      Swal.fire({
+        title: "Creating User...",
+        html: "Please wait while we create the new user",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
+      $.ajax({
+        url: "{% url 'create_user' %}",
+        method: "POST",
+        data: form.serialize(),
+        success: function (response) {
+          if (response.status === "success") {
+            // Add new user to table
+            addUserToTable(response.user);
+
+            // Close modal and reset form
+            $("#createUserModal").modal("hide");
+            form[0].reset();
+
+            // Show success message
+            Swal.fire({
+              icon: "success",
+              title: "Success!",
+              text: response.message,
+              timer: 2000,
+            });
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Error!",
+              text: response.message,
+            });
+          }
+        },
+        error: function (xhr) {
+          Swal.fire({
+            icon: "error",
+            title: "Error!",
+            text: xhr.responseJSON?.message || "An error occurred",
+          });
+        },
+        complete: function () {
+          submitButton.prop("disabled", false);
+        },
+      });
+    });
+
+    // Function to update existing row in DataTable
+    function updateUserInTable(userId, userData) {
+      const row = table.row(
+        $(`button[data-user-id="${userId}"]`).closest("tr")
+      );
+
+      const actionButtons = row.data()[6]; // Keep existing action buttons
+      const checkbox = row.data()[0]; // Keep existing checkbox
+
+      row
+        .data([
+          checkbox, // Keep existing checkbox
+
+          userData.full_name,
+          userData.username,
+          userData.email,
+          `<span class="badge bg-info">${userData.role}</span>`,
+
+          row.data()[5], // Keep existing date
+
+          actionButtons,
+        ])
+        .draw(false);
+
+      // Update data-role attribute
+      const rowNode = row.node();
+
+      $(rowNode).find("td:eq(4)").attr("data-role", userData.role);
+
+
+      // Update data attributes
+      const editButton = row.node().querySelector(".edit-user");
+      if (editButton) {
+        Object.keys(userData).forEach((key) => {
+          editButton.dataset[key] = userData[key];
+        });
+      }
+      updateUserCount();
+    }
+
+    // Edit User Form Submit
+    $("#editUserForm").on("submit", function (e) {
+      e.preventDefault();
+      const form = $(this);
+      const userId = $("#editUserId").val();
+      const submitButton = form.find('button[type="submit"]');
+      submitButton.prop("disabled", true);
+
+      // Show loading
+      Swal.fire({
+        title: "Updating User...",
+        html: "Please wait while we update the user",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
+      $.ajax({
+        url: `/users/${userId}/update/`,
+        method: "POST",
+        data: form.serialize(),
+        success: function (response) {
+          if (response.status === "success") {
+            // Update user in table
+            updateUserInTable(userId, response.user);
+
+            // Close modal
+            $("#editUserModal").modal("hide");
+
+            // Show success message
+            Swal.fire({
+              icon: "success",
+              title: "Success!",
+              text: response.message,
+              timer: 2000,
+            });
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Error!",
+              text: response.message,
+            });
+          }
+        },
+        error: function (xhr) {
+          console.error("Edit error:", xhr);
+          Swal.fire({
+            icon: "error",
+            title: "Error!",
+            text: xhr.responseJSON?.message || "An error occurred",
+          });
+        },
+        complete: function () {
+          submitButton.prop("disabled", false);
+        },
+      });
+    });
+
+    // Delete User Button Click
+    $(document).on("click", ".delete-user", function () {
+      const userId = $(this).data("user-id");
+      const row = $(this).closest("tr");
+
+      Swal.fire({
+        title: "Are you sure?",
+        text: "This action cannot be undone!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, delete it!",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Show loading
+          Swal.fire({
+            title: "Deleting User...",
+            html: "Please wait while we delete the user",
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            },
+          });
+
+          $.ajax({
+            url: `/users/${userId}/delete/`,
+            method: "POST",
+            data: {
+              csrfmiddlewaretoken: $("input[name=csrfmiddlewaretoken]").val(),
+            },
+            success: function (response) {
+              if (response.status === "success") {
+                // Remove row from table
+                table.row(row).remove().draw(false);
+                updateUserCount();
+
+                Swal.fire({
+                  icon: "success",
+                  title: "Deleted!",
+                  text: response.message,
+                  timer: 2000,
+                });
+              } else {
+                Swal.fire({
+                  icon: "error",
+                  title: "Error!",
+                  text: response.message,
+                });
+              }
+            },
+            error: function (xhr) {
+              Swal.fire({
+                icon: "error",
+                title: "Error!",
+                text: xhr.responseJSON?.message || "An error occurred",
+              });
+            },
+          });
+        }
+      });
+    });
+
+    // Edit User Button Click
+    $(document).on("click", ".edit-user", function () {
+      const button = $(this);
+
+      // Get data from data attributes
+      const userId = button.data("user-id");
+      const fullName = button.data("full-name");
+      const username = button.data("username");
+      const email = button.data("email");
+      const role = button.data("role");
+
+      console.log("Edit user data:", {
+        userId,
+        fullName,
+        username,
+        email,
+        role,
+      });
+
+      // Populate the form
+      $("#editUserId").val(userId);
+      $("#editFullName").val(fullName);
+      $("#editUsername").val(username);
+      $("#editEmail").val(email);
+      $("#editRole").val(role);
+
+      // Show the modal
+      const editModal = new bootstrap.Modal(
+        document.getElementById("editUserModal")
+      );
+      editModal.show();
+    });
+
+    // Resend Credentials Button Click
+    $(document).on("click", ".resend-credentials", function () {
+      const userId = $(this).data("user-id");
+      const button = $(this);
+
+      Swal.fire({
+        title: "Are you sure?",
+        text: "This will reset the user's password and send new credentials via email.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Yes, reset and send!",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Disable button to prevent multiple clicks
+          button.prop("disabled", true);
+
+          // Show loading
+          Swal.fire({
+            title: "Sending Credentials...",
+            html: "Please wait while we reset the password and send credentials",
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            },
+          });
+
+          $.ajax({
+            url: `/users/${userId}/resend-credentials/`,
+            method: "POST",
+            headers: {
+              "X-CSRFToken": $("input[name=csrfmiddlewaretoken]").val(),
+            },
+            success: function (response) {
+              if (response.status === "success") {
+                Swal.fire({
+                  icon: "success",
+                  title: "Success!",
+                  text: response.message,
+                  timer: 2000,
+                });
+              } else {
+                Swal.fire({
+                  icon: "error",
+                  title: "Error!",
+                  text: response.message,
+                });
+              }
+            },
+            error: function (xhr) {
+              Swal.fire({
+                icon: "error",
+                title: "Error!",
+                text:
+                  xhr.responseJSON?.message || "Failed to resend credentials",
+              });
+            },
+            complete: function () {
+              // Re-enable button after request completes
+              button.prop("disabled", false);
+            },
+          });
+        }
+      });
+    });
+
+
+    // Reset Password Default Button Click
+    $(document).on("click", ".reset-password-default", function () {
+      const userId = $(this).data("user-id");
+      const button = $(this);
+
+      Swal.fire({
+        title: "Reset to Default Password?",
+        text: "This will reset the user's password to '0000' without sending an email. The user will need to be informed manually.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#f0ad4e",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Yes, reset to default!",
+        cancelButtonText: "Cancel",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Disable button to prevent multiple clicks
+          button.prop("disabled", true);
+
+          // Show loading
+          Swal.fire({
+            title: "Resetting Password...",
+            html: "Please wait while we reset the password to default",
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            },
+          });
+
+          $.ajax({
+            url: `/users/${userId}/reset-password-default/`,
+            method: "POST",
+            headers: {
+              "X-CSRFToken": $("input[name=csrfmiddlewaretoken]").val(),
+            },
+            success: function (response) {
+              if (response.status === "success") {
+                Swal.fire({
+                  icon: "success",
+                  title: "Password Reset!",
+                  text: response.message,
+                  timer: 5000,
+                });
+              } else {
+                Swal.fire({
+                  icon: "error",
+                  title: "Error!",
+                  text: response.message,
+                });
+              }
+            },
+            error: function (xhr) {
+              Swal.fire({
+                icon: "error",
+                title: "Error!",
+                text: xhr.responseJSON?.message || "Failed to reset password",
+              });
+            },
+            complete: function () {
+              // Re-enable button after request completes
+              button.prop("disabled", false);
+            },
+          });
+        }
+      });
+    });
+
+    // Bulk Operations JavaScript
+    // Select All checkbox functionality
+    $("#selectAll").on("change", function () {
+      const isChecked = $(this).is(":checked");
+      $(".user-checkbox").prop("checked", isChecked);
+      updateBulkButtonState();
+    });
+
+    // Individual checkbox change
+    $(document).on("change", ".user-checkbox", function () {
+      updateBulkButtonState();
+      updateSelectAllState();
+    });
+
+    // Update bulk button state based on selected checkboxes
+    function updateBulkButtonState() {
+      const selectedCount = $(".user-checkbox:checked").length;
+      const bulkBtn = $("#bulkResetPasswordBtn");
+
+      if (selectedCount > 0) {
+        bulkBtn.prop("disabled", false);
+        bulkBtn.html(
+          `<i class="bi bi-key"></i> Bulk Reset Passwords (${selectedCount})`
+        );
+      } else {
+        bulkBtn.prop("disabled", true);
+        bulkBtn.html(`<i class="bi bi-key"></i> Bulk Reset Passwords`);
+      }
+    }
+
+    // Update select all checkbox state
+    function updateSelectAllState() {
+      const totalCheckboxes = $(".user-checkbox").length;
+      const checkedCheckboxes = $(".user-checkbox:checked").length;
+      const selectAllCheckbox = $("#selectAll");
+
+      if (checkedCheckboxes === 0) {
+        selectAllCheckbox.prop("indeterminate", false);
+        selectAllCheckbox.prop("checked", false);
+      } else if (checkedCheckboxes === totalCheckboxes) {
+        selectAllCheckbox.prop("indeterminate", false);
+        selectAllCheckbox.prop("checked", true);
+      } else {
+        selectAllCheckbox.prop("indeterminate", true);
+      }
+    }
+
+    // Bulk Reset Password Button Click
+    $("#bulkResetPasswordBtn").on("click", function () {
+      const selectedUserIds = $(".user-checkbox:checked")
+        .map(function () {
+          return $(this).val();
+        })
+        .get();
+
+      if (selectedUserIds.length === 0) {
+        Swal.fire({
+          icon: "warning",
+          title: "No Users Selected",
+          text: "Please select at least one user to reset passwords.",
+        });
+        return;
+      }
+
+      Swal.fire({
+        title: "Bulk Reset Passwords?",
+        text: `This will reset passwords to '0000' for ${selectedUserIds.length} user(s) without sending emails. Users will need to be informed manually.`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#f0ad4e",
+        cancelButtonColor: "#d33",
+        confirmButtonText: `Yes, reset ${selectedUserIds.length} user(s)!`,
+        cancelButtonText: "Cancel",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Disable button to prevent multiple clicks
+          const bulkBtn = $("#bulkResetPasswordBtn");
+          bulkBtn.prop("disabled", true);
+
+          // Show loading
+          Swal.fire({
+            title: "Resetting Passwords...",
+            html: `Please wait while we reset passwords for ${selectedUserIds.length} user(s)`,
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            },
+          });
+
+          // Prepare form data
+          const formData = new FormData();
+          formData.append(
+            "csrfmiddlewaretoken",
+            $("input[name=csrfmiddlewaretoken]").val()
+          );
+          selectedUserIds.forEach((id) => {
+            formData.append("user_ids[]", id);
+          });
+
+          $.ajax({
+            url: "/users/bulk-reset-password-default/",
+            method: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (response) {
+              if (response.status === "success") {
+                // Uncheck all checkboxes
+                $(".user-checkbox").prop("checked", false);
+                $("#selectAll").prop("checked", false);
+                updateBulkButtonState();
+
+                Swal.fire({
+                  icon: "success",
+                  title: "Passwords Reset!",
+                  text: response.message,
+                  timer: 5000,
+                });
+              } else {
+                Swal.fire({
+                  icon: "error",
+                  title: "Error!",
+                  text: response.message,
+                });
+              }
+            },
+            error: function (xhr) {
+              Swal.fire({
+                icon: "error",
+                title: "Error!",
+                text: xhr.responseJSON?.message || "Failed to reset passwords",
+              });
+            },
+            complete: function () {
+              // Re-enable button after request completes
+              bulkBtn.prop("disabled", false);
+              updateBulkButtonState();
+            },
+          });
+        }
+      });
+    });
+
+
+    // Initialize user count on page load
+    updateUserCount();
+
+    // Add some debugging info
+    console.log(
+      "User Management initialized with",
+      table.rows().count(),
+      "users"
+    );
+
+    // Test filtering on page load (remove this in production)
+    // setTimeout(() => {
+    //   console.log('Testing filters...');
+    //   applyCustomFilters();
+    // }, 1000);
+  });
+</script>
+{% endblock %}

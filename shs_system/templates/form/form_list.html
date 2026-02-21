@@ -1,0 +1,477 @@
+{% extends 'base.html' %} {% load static %} 
+{% block title %}Forms{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block extra_css %}
+
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %}
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              Forms/Grade Levels Management
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if current_academic_year %}
+              Current academic year and term management
+            {% else %}
+              Manage school forms and grade levels
+            {% endif %}
+          </p>
+        </div>
+        <div class="btn-group">
+          <button
+            type="button"
+            class="btn btn-primary"
+            id="addFormBtn"
+            onclick="addForm()"
+          >
+            <i class="fas fa-plus"></i> Add New Form
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CSRF Token for AJAX requests -->
+  {% csrf_token %}
+
+  <!-- Forms Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-graduation-cap"></i> Forms</h5>
+            <div class="btn-group btn-group-sm">
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                onclick="refreshTable()"
+              >
+                <i class="fas fa-sync-alt"></i> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover" id="formsTable">
+              <thead>
+                <tr>
+                  <th width="120">Form Number</th>
+                  <th>Name</th>
+                  <th>Description</th>
+                  <th width="150">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for form in forms %}
+                <tr>
+                  <td>
+                    <span class="badge bg-primary">{{ form.form_number }}</span>
+                  </td>
+                  <td>
+                    <strong>{{ form.name }}</strong>
+                  </td>
+                  <td>
+                    <span class="text-muted"
+                      >{{ form.description|default:"No description provided"}}</span
+                    >
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button
+                        class="btn btn-outline-primary"
+                        data-id="{{ form.id }}"
+                        title="Edit Form"
+                        onclick="editForm({{ form.id }})"
+                      >
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button
+                        class="btn btn-outline-danger"
+                        data-id="{{ form.id }}"
+                        data-name="{{ form.name }}"
+                        title="Delete Form"
+                        onclick="deleteForm({{ form.id }}, '{{ form.name | escapejs }}')"
+                      >
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="4" class="text-center text-muted py-4">
+                    <i class="fas fa-graduation-cap fa-3x mb-3"></i>
+                    <p>
+                      No forms found. Create your first form to get started.
+                    </p>
+                    <button
+                      type="button"
+                      class="btn btn-primary"
+                      onclick="addForm()"
+                    >
+                      <i class="fas fa-plus"></i> Add New Form
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Form Modal -->
+<div
+  class="modal fade"
+  id="formModal"
+  tabindex="-1"
+  aria-labelledby="formModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="formModalLabel">
+          <i class="fas fa-graduation-cap"></i> Add New Form
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form id="formForm">
+          {% csrf_token %}
+          <input type="hidden" id="formId" name="form_id" />
+
+          <div class="mb-3">
+            <label for="formNumber" class="form-label">
+              <i class="fas fa-hashtag"></i> Form Number
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="formNumber"
+              name="form_number"
+              placeholder="Enter form number (e.g., 1, 2, 3...)"
+              required
+            />
+            <div class="invalid-feedback" id="formNumberError"></div>
+            <small class="form-text text-muted">
+              Enter a unique number for this form/grade level.
+            </small>
+          </div>
+
+          <div class="mb-3">
+            <label for="formName" class="form-label">
+              <i class="fas fa-tag"></i> Form Name
+            </label>
+            <input
+              type="text"
+              class="form-control"
+              id="formName"
+              name="name"
+              placeholder="Enter form name (e.g., Form 1, Grade 7, etc.)"
+              required
+            />
+            <div class="invalid-feedback" id="formNameError"></div>
+            <small class="form-text text-muted">
+              Enter a descriptive name for this form/grade level.
+            </small>
+          </div>
+
+          <div class="mb-3">
+            <label for="formDescription" class="form-label">
+              <i class="fas fa-align-left"></i> Description
+            </label>
+            <textarea
+              class="form-control"
+              id="formDescription"
+              name="description"
+              rows="3"
+              placeholder="Enter a description for this form (optional)"
+            ></textarea>
+            <div class="invalid-feedback" id="formDescriptionError"></div>
+            <small class="form-text text-muted">
+              Provide additional details about this form (optional).
+            </small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          id="saveFormBtn"
+          onclick="saveForm()"
+        >
+          <i class="fas fa-save"></i> Save Form
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Debug Info Modal -->
+<div class="modal fade" id="debugModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-bug"></i> Debug Information
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle"></i>
+          This modal shows debug information for troubleshooting purposes.
+        </div>
+        <pre id="debugOutput" class="bg-light p-3 rounded"></pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times"></i> Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  // This script includes the direct functions for button clicks
+  function showDebug(title, data) {
+    let output = title + ":\n";
+    if (typeof data === "object") {
+      output += JSON.stringify(data, null, 2);
+    } else {
+      output += data;
+    }
+    console.log(output);
+    $("#debugOutput").text(output);
+    $("#debugModal").modal("show");
+  }
+
+  // Add form function
+  function addForm() {
+    resetFormModal();
+    $("#formModalLabel").html(
+      '<i class="fas fa-graduation-cap"></i> Add New Form'
+    );
+    $("#formModal").modal("show");
+  }
+
+  // Edit form function
+  function editForm(formId) {
+    resetFormModal();
+    $("#formModalLabel").html('<i class="fas fa-edit"></i> Edit Form');
+
+    // Show loading state
+    const editBtn = event.target.closest("button");
+    const originalHTML = editBtn.innerHTML;
+    editBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    editBtn.disabled = true;
+
+    // Fetch form data via AJAX
+    $.ajax({
+      url: `/api/forms/${formId}/`,
+      type: "GET",
+      success: function (response) {
+        $("#formId").val(response.id);
+        $("#formNumber").val(response.form_number);
+        $("#formName").val(response.name);
+        $("#formDescription").val(response.description);
+        $("#formModal").modal("show");
+
+        // Reset button
+        editBtn.innerHTML = originalHTML;
+        editBtn.disabled = false;
+      },
+      error: function (xhr) {
+        showErrorAlert("Error", "Could not load form data. Please try again.");
+        console.error("Error fetching form data:", xhr.responseText);
+
+        // Reset button
+        editBtn.innerHTML = originalHTML;
+        editBtn.disabled = false;
+      },
+    });
+  }
+
+  // Delete form function
+  function deleteForm(formId, formName) {
+    Swal.fire({
+      title: "Are you sure?",
+      text: `You are about to delete the form "${formName}". This action cannot be undone!`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc3545",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Yes, delete it!",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Get CSRF token
+        const csrftoken = $("[name=csrfmiddlewaretoken]").val();
+
+        // Send delete request
+        $.ajax({
+          url: `/api/forms/${formId}/`,
+          type: "DELETE",
+          headers: { "X-CSRFToken": csrftoken },
+          success: function () {
+            Swal.fire(
+              "Deleted!",
+              `The form "${formName}" has been deleted.`,
+              "success"
+            ).then(() => {
+              // Reload the page to refresh the table
+              location.reload();
+            });
+          },
+          error: function (xhr) {
+            console.error("Error deleting form:", xhr.responseText);
+            showErrorAlert(
+              "Error",
+              "Could not delete form. It may be in use by other records."
+            );
+          },
+        });
+      }
+    });
+  }
+
+  // Save form function
+  function saveForm() {
+    const formId = $("#formId").val();
+    const isNewForm = !formId;
+    const url = isNewForm ? "/api/forms/" : `/api/forms/${formId}/`;
+    const method = isNewForm ? "POST" : "PUT";
+
+    const formData = {
+      form_number: $("#formNumber").val(),
+      name: $("#formName").val(),
+      description: $("#formDescription").val(),
+    };
+
+    // Add CSRF token
+    const csrftoken = $("[name=csrfmiddlewaretoken]").val();
+
+    // Show loading state
+    const saveBtn = $("#saveFormBtn");
+    const originalHTML = saveBtn.html();
+    saveBtn.html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+    saveBtn.prop("disabled", true);
+
+    $.ajax({
+      url: url,
+      type: method,
+      data: JSON.stringify(formData),
+      contentType: "application/json",
+      headers: { "X-CSRFToken": csrftoken },
+      success: function (response) {
+        $("#formModal").modal("hide");
+
+        // Show success message with SweetAlert
+        Swal.fire({
+          title: "Success",
+          text: isNewForm
+            ? "Form created successfully!"
+            : "Form updated successfully!",
+          icon: "success",
+          confirmButtonText: "OK",
+        }).then((result) => {
+          // Reload the page to refresh the table
+          location.reload();
+        });
+      },
+      error: function (xhr) {
+        // Log error for troubleshooting
+        console.error("Error saving form:", xhr.responseText);
+
+        // Reset button
+        saveBtn.html(originalHTML);
+        saveBtn.prop("disabled", false);
+
+        // Handle validation errors
+        if (xhr.status === 400) {
+          const errors = xhr.responseJSON;
+          if (errors.form_number) {
+            $("#formNumber").addClass("is-invalid");
+            $("#formNumberError").text(errors.form_number);
+          }
+          if (errors.name) {
+            $("#formName").addClass("is-invalid");
+            $("#formNameError").text(errors.name);
+          }
+          if (errors.description) {
+            $("#formDescription").addClass("is-invalid");
+            $("#formDescriptionError").text(errors.description);
+          }
+        } else {
+          showErrorAlert(
+            "Error",
+            "An error occurred while saving the form. Please try again."
+          );
+        }
+      },
+    });
+  }
+
+  // Refresh table function
+  function refreshTable() {
+    const refreshBtn = event.target.closest("button");
+    const originalHTML = refreshBtn.innerHTML;
+    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    refreshBtn.disabled = true;
+
+    // Simulate refresh (in a real implementation, you'd make an AJAX call)
+    setTimeout(() => {
+      location.reload();
+    }, 1000);
+  }
+
+  // Helper function to reset form modal
+  function resetFormModal() {
+    $("#formForm")[0].reset();
+    $("#formId").val("");
+    $(".is-invalid").removeClass("is-invalid");
+    $(".invalid-feedback").text("");
+  }
+
+  // Helper function to show error alerts
+  function showErrorAlert(title, message) {
+    Swal.fire({
+      title: title,
+      text: message,
+      icon: "error",
+      confirmButtonText: "OK",
+    });
+  }
+</script>
+{% endblock %}

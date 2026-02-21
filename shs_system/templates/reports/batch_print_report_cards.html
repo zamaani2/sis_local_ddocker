@@ -1,0 +1,837 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      {% if is_individual_view %}Student Report Card{% else %}Batch Print Report
+      Cards{% endif %}
+    </title>
+
+    <!-- Include only necessary CSS files, excluding student_class_assignment.css -->
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap/5.3.3/css/bootstrap.min.css' %}">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css' %}">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome/6.5.1/css/all.min.css' %}">
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.min.css' %}">
+
+    <style>
+      /* A4 dimensions optimization */
+      @page {
+        size: A4;
+        margin: 0;
+      }
+
+      :root {
+        /* New color scheme */
+        --primary-color: #1a5276; /* Darker blue */
+        --primary-light: #5499c7; /* Lighter blue */
+        --primary-dark: #0c2c40; /* Very dark blue */
+        --secondary-color: #2e4053; /* Dark slate */
+        --accent-success: #1e8449; /* Dark green */
+        --neutral-bg: #f4f6f9; /* Light gray background */
+        --primary-bg: #e8f4fc; /* Very light blue */
+        --secondary-bg: #ffffff; /* White */
+        --border-radius-sm: 4px;
+        --box-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+        --box-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.15);
+        --font-family-primary: "Calibri", "Arial", sans-serif;
+      }
+
+      /* Override any theme interference - ensure report card styles take precedence */
+      html, body {
+        background-color: var(--neutral-bg) !important;
+        color: #000000 !important;
+      }
+
+      /* Reset any theme-specific overrides */
+      .violet-theme-page,
+      [data-theme="violet"],
+      .student-class-assignment {
+        background-color: var(--neutral-bg) !important;
+        color: #000000 !important;
+      }
+
+      body {
+        margin: 0;
+        font-family: var(--font-family-primary);
+        background-color: var(--neutral-bg);
+        font-size: 12px; /* Reduced base font size for better fit */
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 20px auto;
+        padding: 0 15px;
+      }
+
+      .action-buttons {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        background-color: white;
+        padding: 10px;
+        border-radius: var(--border-radius-sm);
+        box-shadow: var(--box-shadow-sm);
+      }
+
+      .btn {
+        display: inline-block;
+        font-weight: 400;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: middle;
+        user-select: none;
+        border: 1px solid transparent;
+        padding: 0.375rem 0.75rem;
+        font-size: 1rem;
+        line-height: 1.5;
+        border-radius: var(--border-radius-sm);
+        transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out,
+          border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        margin-right: 5px;
+        text-decoration: none;
+      }
+
+      .btn-primary {
+        color: #fff;
+        background-color: var(--primary-color);
+        border-color: var(--primary-dark);
+      }
+
+      .btn-success {
+        color: #fff;
+        background-color: var(--accent-success);
+        border-color: var(--accent-success);
+      }
+
+      .btn-secondary {
+        color: #fff;
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+      }
+
+      .report-card {
+        /* Double border effect */
+        border: 4px double var(--primary-color);
+        outline: 1px solid var(--primary-light);
+        outline-offset: -3px;
+        padding: 12px;
+        margin: 15px auto;
+        max-width: 210mm; /* A4 width */
+        min-height: 297mm; /* A4 height */
+        box-shadow: var(--box-shadow-md);
+        background-color: var(--secondary-bg);
+        position: relative;
+        page-break-after: always;
+        box-sizing: border-box;
+      }
+
+      .school-header {
+        text-align: center;
+        margin-bottom: 12px;
+        border-bottom: 2px solid var(--primary-color);
+        padding-bottom: 8px;
+        color: var(--primary-color);
+      }
+
+      .school-header h2 {
+        margin-top: 6px;
+        margin-bottom: 4px;
+        font-size: 1.6rem;
+        text-align: center;
+        color: var(--primary-dark);
+      }
+
+      .school-header p {
+        margin: 2px 0;
+        font-size: 0.85rem;
+      }
+
+      .school-header h3 {
+        text-align: center;
+        margin-top: 8px;
+        background-color: var(--primary-color);
+        color: white;
+        padding: 4px 8px;
+        display: inline-block;
+        border-radius: var(--border-radius-sm);
+        font-size: 1.1rem;
+      }
+
+      .school-logo {
+        display: block;
+        margin-left: 0;
+        float: left;
+
+        width: 90px;
+        height: 110px;
+        object-fit: strech;
+        border: 2px solid var(--primary-color);
+        margin-right: 12px;
+      }
+
+      .school-logo2 {
+        width: 75px;
+        height: auto;
+        display: block;
+        object-fit: contain;
+        margin-left: 0;
+        float: right;
+      }
+
+      .student-info {
+        display: flex;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+        border: 1px solid var(--primary-color);
+        padding: 8px;
+        background-color: var(--primary-bg);
+        border-radius: var(--border-radius-sm);
+      }
+
+      .student-info div {
+        flex: 1 0 33%;
+        margin-bottom: 4px;
+        padding: 2px;
+        font-size: 0.85rem;
+      }
+
+      .student-photo {
+        width: 90px;
+        height: 110px;
+        object-fit: cover;
+        border: 2px solid var(--primary-color);
+        margin-right: 12px;
+        float: right;
+      }
+
+      .subject-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 12px;
+        border: 2px solid var(--primary-color);
+      }
+
+      .subject-table th,
+      .subject-table td {
+        border: 1px solid var(--primary-color);
+        padding: 4px 6px;
+        text-align: left;
+        font-size: 0.8rem;
+      }
+
+      .subject-table th {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      .subject-table tr:nth-child(even) {
+        background-color: var(--primary-bg);
+      }
+
+      .subject-table tr:nth-child(odd) {
+        background-color: #f0f8ff;
+      }
+
+      .remarks-section {
+        margin-top: 12px;
+        border: 1px solid var(--primary-color);
+        padding: 4px;
+        background-color: var(--primary-bg);
+        border-radius: var(--border-radius-sm);
+        font-size: 0.8rem;
+      }
+
+      .remarks-section h4 {
+        color: var(--primary-color);
+        margin-top: 4px;
+        margin-bottom: 6px;
+        font-size: 0.95rem;
+        border-bottom: 1px dashed var(--primary-color);
+        padding-bottom: 2px;
+      }
+
+      .teacher-remarks {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+
+      .teacher-remark-box {
+        border: 1px solid #cce5ff;
+        padding: 6px;
+        background-color: #fff;
+        border-radius: var(--border-radius-sm);
+      }
+
+      .teacher-remark-box strong {
+        color: var(--primary-color);
+      }
+
+      .teacher-remark-box p {
+        margin-top: 2px;
+        margin-bottom: 0;
+      }
+
+      .general-remarks {
+        padding: 1px;
+      }
+
+      .general-remarks strong {
+        color: var(--primary-color);
+      }
+
+      .general-remarks p {
+        margin-top: 0px;
+        margin-bottom: 0px;
+      }
+
+      .signatures {
+        display: flex;
+        width: 100%;
+        justify-content: space-between;
+        margin-top: 70px; /* Reduced for better fit */
+        flex-wrap: wrap;
+        margin-right: 0px;
+      }
+
+      .signature-box {
+        width: 100%;
+        padding-top: 0px;
+        margin-bottom: 0px;
+        position: relative;
+      }
+
+      .signature-img {
+        max-width: 80px;
+        max-height: 80px;
+        margin: 0 auto;
+        display: block;
+      }
+
+      .signature-line {
+        border-top: 1px solid var(--primary-color);
+        width: 100%;
+        margin-top: 6px;
+      }
+
+      .signature-box p {
+        margin: 2px 0;
+        font-size: 1rem;
+        text-align: center;
+      }
+
+      .grading-system {
+        color: var(--primary-color);
+        margin-bottom: 4px;
+      }
+
+      .grading-system h5 {
+        color: var(--primary-color);
+        margin-bottom: 4px;
+        font-size: 0.9rem;
+      }
+
+      .grading-table {
+        width: 100%;
+        height: 50%;
+        border-collapse: collapse;
+        border: 2px solid var(--primary-color);
+        font-size: 0.75rem;
+      }
+
+      .grading-table th,
+      .grading-table td {
+        border: 1px solid var(--primary-color);
+        padding: 0px;
+        text-align: center;
+      }
+
+      .grading-table th {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      .grading-table tr:nth-child(even) {
+        background-color: #e8f4fc;
+      }
+
+      .text-center {
+        text-align: center;
+      }
+
+      /* School stamp styling */
+      .school-stamp {
+        position: absolute;
+        transform: rotate(-15deg);
+        opacity: 0.8;
+        margin-top: -20px;
+        bottom: 50px;
+        right: 30px;
+      }
+
+      .stamp-img {
+        max-width: 70px;
+        max-height: 70px;
+      }
+
+      .stamp-text {
+        font-size: 8px;
+        margin-top: 4px;
+        color: #666;
+      }
+
+      /* Watermark */
+      .report-card::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('{% static "img/school-watermark.svg" %}') center center
+          no-repeat;
+        background-size: 35%;
+        opacity: 0.05;
+        pointer-events: none;
+        z-index: -1;
+      }
+
+      /* Bottom layout adjustments */
+      .bottom-section {
+        display: flex;
+        width: 100%;
+        margin-top: 8px;
+        margin-bottom: 0;
+      }
+
+      .signatures-section {
+        width: 100%;
+        padding: 4px;
+        box-sizing: border-box;
+        margin-top: -80px;
+      }
+
+      .grading-section {
+        width: 45%;
+        padding: 4px;
+        box-sizing: border-box;
+      }
+
+      .promotion-section {
+        width: 50%;
+        padding: 4px;
+        box-sizing: border-box;
+        margin-bottom: 10px;
+      }
+
+      /* Signature layout for side-by-side */
+      .signature-box.side-by-side {
+        width: 45%;
+        display: inline-block;
+        margin-right: 10px;
+      }
+
+      .promotion-section h5 {
+        color: var(--primary-color);
+        margin-bottom: 4px;
+        font-size: 0.9rem;
+      }
+
+      .promotion-section ul {
+        list-style-type: disc;
+        padding-left: 12px;
+        margin-top: 4px;
+        font-size: 0.75rem;
+      }
+
+      /* Report Footer Styles */
+      .report-footer {
+        width: 100%;
+        margin-top: 10px;
+        padding-top: 0px;
+        border-top: 2px solid var(--primary-light);
+        text-align: center;
+        font-size: 0.7rem;
+        color: var(--secondary-color);
+        position: relative;
+        bottom: 0;
+      }
+
+      .footer-text {
+        margin: 3px 0;
+        line-height: 1.2;
+      }
+
+      .copyright {
+        font-style: italic;
+        margin-top: 5px;
+        font-size: 0.65rem;
+      }
+
+      /* Print-specific styles */
+      @media print {
+        html,
+        body {
+          height: 100%;
+          overflow: visible;
+          background: white;
+          margin: 0;
+          padding: 0;
+        }
+
+        .action-buttons {
+          display: none !important;
+        }
+
+        .container {
+          width: 100%;
+          max-width: none;
+          margin: 0;
+          padding: 0;
+        }
+
+        .report-card {
+          width: 210mm;
+          height: 297mm;
+          margin: 0;
+          padding: 10mm;
+          box-shadow: none;
+          border: 4px double var(--primary-color);
+          outline: 1px solid var(--primary-light);
+          outline-offset: -3px;
+          float: none;
+          overflow: hidden;
+          page-break-after: always;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="action-buttons">
+      <button onclick="window.print()" class="btn btn-success">
+        <i class="fas fa-print"></i> {% if is_individual_view %}Print Report
+        Card{% else %}Print All Report Cards{% endif %}
+      </button>
+      {% if is_individual_view %}
+      <a
+        href="{% url 'view_report_card_details' report_cards.0.id %}?format=pdf&download=true"
+        class="btn btn-primary"
+      >
+        <i class="fas fa-download"></i> Download PDF
+      </a>
+      <a href="{% url 'report_card_list' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to List
+      </a>
+      {% else %}
+      <a href="{% url 'report_card_list' %}" class="btn btn-primary">
+        <i class="fas fa-arrow-left"></i> Back to List
+      </a>
+      {% endif %}
+    </div>
+
+    <div class="container">
+      {% for report_card in report_cards %}
+      <div class="report-card">
+        <div class="school-header">
+          {% if school_info and school_info.logo %}
+          <img
+            src="{{ school_info.logo.url }}"
+            alt="School Logo"
+            class="school-logo"
+          />
+          {% if report_card.student.profile_picture %}
+          <img
+            src="{{ report_card.student.profile_picture.url }}"
+            alt="{{ report_card.student.full_name }}"
+            class="student-photo"
+          />
+          {% endif %} {% endif %}
+          <h2>{{ school_info.name|default:"School Name" }}</h2>
+          <p>{{ school_info.address|default:"School Address" }}</p>
+          <p>{{ school_info.contact_info|default:"" }}</p>
+          <h3>STUDENT REPORT CARD</h3>
+          <p>
+            <strong>Academic Year:</strong> {{ report_card.academic_year }} |
+            <strong>Term:</strong> {{ report_card.term.get_term_number_display }}
+          </p>
+        </div>
+
+        <div class="student-info">
+          <div>
+            <strong>Student Name:</strong> {{ report_card.student.full_name }}
+          </div>
+          <div>
+            <strong>Admission Number:</strong>
+            {{report_card.student.admission_number }}
+          </div>
+          <div>
+            <strong>Class:</strong> {{ report_card.class_assigned.name }}
+          </div>
+          <div>
+            <strong>Position:</strong> {{ report_card.position }} out of
+            {{report_card.class_size }}
+          </div>
+          <div>
+            <strong>Average Score:</strong>
+            {{report_card.total_score|floatformat:1 }}%
+          </div>
+          <div>
+            <strong>Status:</strong> {% if report_card.is_approved %}Approved{%else %}Pending Approval{% endif %}
+          </div>
+          {% if report_card.teacher_remarks %}
+          <div>
+            <strong>Attendance:</strong>
+            {{report_card.teacher_remarks.days_present }} out of
+            {{report_card.teacher_remarks.total_school_days }} days
+          </div>
+          {% endif %}
+          <div>
+            <strong>Promotion Status:</strong>
+            {{report_card.promoted_to|default:"Pending" }}
+          </div>
+          {% if report_card.next_term_begins %}
+          <div>
+            <strong>Next Term Begins:</strong>
+            {{report_card.next_term_begins|date:"d M, Y" }}
+          </div>
+          {% endif %}
+        </div>
+
+        <table class="subject-table">
+          <thead>
+            <tr>
+              <th>Subject</th>
+              <th>
+                Class Score ({% if scoring_config %}{{ scoring_config.class_score_percentage|floatformat:0 }}{% else %}30{% endif %}%)
+              </th>
+              <th>
+                Exam Score ({% if scoring_config %}{{ scoring_config.exam_score_percentage|floatformat:0 }}{% else %}70{% endif %}%)
+              </th>
+              <th>Total Score</th>
+              <th>Grade</th>
+              <th>Position</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for score in report_card.subject_scores %}
+            <tr>
+              <td>{{ score.class_subject.subject.subject_name }}</td>
+              <td class="text-center">
+                {{ score.class_score|floatformat:1|default:"--" }}
+              </td>
+              <td class="text-center">
+                {{ score.exam_score|floatformat:1|default:"--" }}
+              </td>
+              <td class="text-center">
+                {{ score.total_score|floatformat:1 }}%
+              </td>
+              <td class="text-center">{{ score.grade }}</td>
+              <td class="text-center">{{ score.position|default:"--" }}</td>
+              <td>{{ score.remarks }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center">No subjects recorded</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <div class="remarks-section">
+          <h4>Class Teacher's Remarks</h4>
+
+          {% if report_card.teacher_remarks %}
+          <div class="teacher-remarks">
+            <div class="teacher-remark-box">
+              <strong>Interest:</strong>
+              <p>
+                {{ report_card.teacher_remarks.interest_remarks|default:"No remarks provided."}}
+              </p>
+            </div>
+            <div class="teacher-remark-box">
+              <strong>Conduct:</strong>
+              <p>
+                {{ report_card.teacher_remarks.conduct_remarks|default:"No remarks provided." }}
+              </p>
+            </div>
+            <div class="teacher-remark-box">
+              <strong>Attitude:</strong>
+              <p>
+                {{ report_card.teacher_remarks.attitude_remarks|default:"No remarks provided."}}
+              </p>
+            </div>
+          </div>
+
+          <div class="general-remarks">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+              "
+            >
+              <p>
+
+                <strong>Teacher Remarks:</strong>
+
+                {{report_card.teacher_remarks.general_remarks|default:"No general remarks provided." }}
+              </p>
+              {% if report_card.principal_remarks %}
+              <p>
+
+                <strong>Headmaster's Remarks:</strong> {{ report_card.principal_remarks }}
+
+              </p>
+              {% endif %}
+            </div>
+          </div>
+          {% else %}
+          <p>No class teacher remarks available.</p>
+          {% endif %}
+        </div>
+
+        <!-- Reorganized bottom section for better A4 fit -->
+        <div class="bottom-section">
+          <!-- Grading System Section (moved to left) -->
+          <div class="grading-section" style="width: 35%; padding-right: 15px">
+            <div class="grading-system">
+              <h5>Grading System</h5>
+              <table class="grading-table">
+                <thead>
+                  <tr>
+                    <th>Grade</th>
+                    <th>Range</th>
+                    <th>Remarks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for grade in grades %}
+                  <tr>
+                    <td>{{ grade.grade_letter }}</td>
+                    <td>
+                      {{ grade.min_score|floatformat:0 }}% - {{ grade.max_score|floatformat:0 }}%
+                    </td>
+                    <td>{{ grade.remarks }}</td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="3">No grading system defined</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Right side column for signatures and promotion requirements -->
+          <div style="width: 65%; display: flex; flex-direction: column">
+            <!-- Signatures Section (moved to right) -->
+            <div class="signatures-section" style="width: 100%">
+              <div class="signatures">
+                {% for signature in report_card.authority_signatures %} {% if signature.authority_type == 'headmaster' or signature.authority_type == 'academic_head' or signature.authority_type == 'deputy_head' %}
+                <div class="signature-box">
+                  {% if signature.signature %}
+                  <img
+                    src="{{ signature.signature.url }}"
+                    alt="{{ signature.name }}"
+                    class="signature-img"
+                  />
+                  {% endif %}
+                  <div class="signature-line"></div>
+                  <p>{{ signature.name }}</p>
+                  <p>{{ signature.display_title }}</p>
+                </div>
+                {% endif %} {% empty %} {% endfor %}
+
+                <!-- School stamp -->
+                {% if school_info and school_info.school_stamp %}
+                <div
+                  class="school-stamp"
+                  style="top: auto; bottom: 30px; right: 30px"
+                >
+                  <img
+                    src="{{ school_info.school_stamp.url }}"
+                    alt="School Stamp"
+                    class="stamp-img"
+                  />
+                  <p class="stamp-text">Official School Stamp</p>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+            <!-- Promotion Requirements Section (moved to right) -->
+            <div
+              class="promotion-section"
+              style="width: 50%; margin-bottom: 10px"
+            >
+              {% if performance_requirements %}
+              <h5>Promotion Requirements</h5>
+              <ul>
+                <li>
+                  Minimum Average Score: {{ performance_requirements.min_average_score_for_promotion }}%
+                </li>
+                <li>
+                  Maximum Failed Subjects: {{ performance_requirements.max_failed_subjects }}
+                </li>
+                <li>
+                  Calculation Method:
+                  {{performance_requirements.get_calculation_method_display }}
+                </li>
+                {% if performance_requirements.calculation_method == 'weighted'%}
+                <li>
+                  Term Weights: Term 1 ({{ performance_requirements.first_term_weight }}%), Term 2 ({{ performance_requirements.second_term_weight }}%), Term 3 ({{ performance_requirements.third_term_weight }}%)
+                </li>
+                {% endif %}
+              </ul>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Report Footer -->
+        <div class="report-footer" style="margin: 0px">
+          <p class="footer-text">
+            This report card is officially issued by {{ school_info.name|default:"School" }} and is only valid with the
+            official stamp. For any inquiries, please contact {{ school_info.contact_info|default:"the school administration" }}.
+          </p>
+          <p class="footer-text copyright">
+            &copy; {{ report_card.academic_year }} DEVELOPED BY CISSEY-TECH. All
+            rights reserved.
+          </p>
+        </div>
+      </div>
+      {% empty %}
+      <div class="alert alert-warning">
+        <h4>No report cards selected for printing</h4>
+        <p>Please go back and select at least one report card to print.</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <script>
+      // Auto print when the page loads
+      window.onload = function () {
+        // Set a small timeout to ensure all content is loaded
+        setTimeout(function () {
+          // Check if there are report cards to print
+          const reportCards = document.querySelectorAll(".report-card");
+          if (reportCards.length > 0) {
+            // Auto-print is disabled by default
+            // If you want to enable auto-print, uncomment the next line
+            // window.print();
+          }
+        }, 1000);
+      };
+    </script>
+  </body>
+</html>

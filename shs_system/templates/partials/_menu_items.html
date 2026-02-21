@@ -1,0 +1,759 @@
+{% if user.role == 'admin' %}
+<!-- ADMIN MENU ITEMS -->
+
+
+
+<!-- Dashboard -->
+<li class="nav-item">
+  <a href="{% url 'admin_dashboard' %}" class="nav-link">
+    <i class="nav-icon bi bi-speedometer2" aria-hidden="true"></i>
+    <p>Dashboard</p>
+  </a>
+</li>
+
+
+<!-- ========== SCHOOL SETUP ========== -->
+<li class="nav-header">SCHOOL SETUP</li>
+
+<!-- School Configuration -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-gear-fill" aria-hidden="true"></i>
+    <p>School Configuration<i class="nav-arrow bi bi-chevron-right"></i></p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{% url 'school_information_list' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>School Information</p>
+      </a>
+    </li>
+    <li class="nav-item" hidden>
+      <a
+        href="{% url 'authority_signature_list' school_id=1 %}"
+        class="nav-link"
+      >
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Authority Signatures</p>
+      </a>
+    </li>
+    <li class="nav-item">
+
+      <a href="{% url 'current_settings_dashboard' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Set Academic Year</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'grading_system_list' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Grading System</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'performance_requirement_list' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Promotion Requirements</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'manage_scoring_config' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Scoring Configuration</p>
+      </a>
+    </li>
+  </ul>
+</li>
+
+<!-- School Settings -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-building-gear" aria-hidden="true"></i>
+    <p>School Settings<i class="nav-arrow bi bi-chevron-right"></i></p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{% url 'school_information_list' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>School Information</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a
+        href="{% url 'authority_signature_list' school_id=1 %}"
+        class="nav-link"
+      >
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Authority Signatures</p>
+      </a>
+    </li>
+  </ul>
+</li>
+<!-- Academic Structure -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+
+    <i class="nav-icon bi bi-diagram-3" aria-hidden="true"></i>
+
+    <p>Academic Structure<i class="nav-arrow bi bi-chevron-right"></i></p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{% url 'academic_year_list' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Academic Years</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'learning_area_list' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Learning Areas</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'form_list' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Forms/Grade Levels</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'department_list' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Departments</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'subject_list' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Subjects</p>
+      </a>
+    </li>
+  </ul>
+</li>
+
+<!-- ========== PEOPLE MANAGEMENT ========== -->
+
+<li class="nav-header">PEOPLE MANAGEMENT</li>
+
+<!-- Student Records -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-mortarboard" aria-hidden="true"></i>
+    <p>Student Records<i class="nav-arrow bi bi-chevron-right"></i></p>
+
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{% url 'student_list' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>All Students</p>
+      </a>
+    </li>
+
+  </ul>
+</li>
+
+<!-- Student Promotion -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-graph-up" aria-hidden="true"></i>
+    <p>Student Promotion<i class="nav-arrow bi bi-chevron-right"></i></p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{% url 'student_promotion' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Promotion Management</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'promotion_sheet' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Promotion Sheet</p>
+      </a>
+    </li>
+  </ul>
+</li>
+
+<!-- Student Enrollment -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-person-plus" aria-hidden="true"></i>
+    <p>Student Enrollment<i class="nav-arrow bi bi-chevron-right"></i></p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{% url 'student_class_assignment_dashboard' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Enrollment Overview</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'student_class_assignment_list' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Manage Assignments</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'bulk_assign_students' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Bulk Assignment</p>
+
+      </a>
+    </li>
+  </ul>
+</li>
+
+<!-- Teacher Management -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-person-workspace" aria-hidden="true"></i>
+
+    <p>Teacher Management<i class="nav-arrow bi bi-chevron-right"></i></p>
+
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{% url 'teacher_list' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>All Teachers</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'bulk_subject_assignment' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Bulk Subject Assignment</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'teacher_activity_monitoring' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Activity Monitoring</p>
+      </a>
+    </li>
+  </ul>
+</li>
+
+<!-- User Management -->
+<li class="nav-item">
+  <a href="{% url 'user_management' %}" class="nav-link">
+    <i class="nav-icon bi bi-people" aria-hidden="true"></i>
+    <p>User Management</p>
+  </a>
+</li>
+
+
+<!-- Class Management -->
+<!-- ========== CLASS MANAGEMENT ========== -->
+<li class="nav-header">CLASS MANAGEMENT</li>
+
+<!-- Classes -->
+
+<li class="nav-item">
+  <a href="{% url 'class_list' %}" class="nav-link">
+    <i class="nav-icon bi bi-building" aria-hidden="true"></i>
+    <p>Classes</p>
+  </a>
+</li>
+
+
+<!-- Class Teachers -->
+<li class="nav-item">
+  <a href="{% url 'class_teacher_list' %}" class="nav-link">
+    <i class="nav-icon bi bi-person-workspace" aria-hidden="true"></i>
+    <p>Class Teachers</p>
+  </a>
+</li>
+
+<!-- ========== ACADEMIC ASSESSMENT ========== -->
+<li class="nav-header">ACADEMIC ASSESSMENT</li>
+
+<!-- Score Entry -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-clipboard-check" aria-hidden="true"></i>
+    <p>Score Entry<i class="nav-arrow bi bi-chevron-right"></i></p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{% url 'enhanced_enter_scores' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Termly Scores</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'score_management_dashboard' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Score Management</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'score_sheet' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Score Sheet</p>
+
+      </a>
+    </li>
+  </ul>
+</li>
+
+
+<!-- Academic Performance -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-graph-up-arrow" aria-hidden="true"></i>
+    <p>Academic Performance<i class="nav-arrow bi bi-chevron-right"></i></p>
+<!-- Mock Exams -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-clipboard-check" aria-hidden="true"></i>
+    <p>Mock Exams<i class="nav-arrow bi bi-chevron-right"></i></p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{% url 'mock_exam_dashboard' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Mock Exam Dashboard</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'mock_exam_entry' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Enter Mock Scores</p>
+      </a>
+    </li>
+    {% if user.role == 'admin' %}
+    <li class="nav-item">
+      <a href="{% url 'mock_exam_list' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Manage Mock Exams</p>
+      </a>
+    </li>
+    {% endif %}
+    <li class="nav-item">
+      <a href="{% url 'mock_exam_score_sheet' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Mock Exam Score Sheet</p>
+      </a>
+    </li>
+  </ul>
+</li>
+
+<!-- Performance Analysis -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-graph-up-arrow" aria-hidden="true"></i>
+    <p>Performance Analysis<i class="nav-arrow bi bi-chevron-right"></i></p>
+
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{% url 'score_management_dashboard' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Performance Dashboard</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'class_score_list' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Class Scores</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'subject_performance' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Subject Performance</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'compare_scores' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Score Comparison</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'progress_tracking' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Progress Tracking</p>
+      </a>
+    </li>
+  </ul>
+</li>
+
+<!-- ========== REPORTS & DOCUMENTS ========== -->
+
+<li class="nav-header">REPORTS & DOCUMENTS</li>
+
+
+<!-- Reports -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-file-earmark-text" aria-hidden="true"></i>
+
+    <p>Academic Reports<i class="nav-arrow bi bi-chevron-right"></i></p>
+
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{% url 'score_sheet' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Score Sheet</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'report_card_list' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Terminal Reports</p>
+      </a>
+    </li>
+    <li class="nav-item">
+
+      <a href="{% url 'auto_terminal_reports_dashboard' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Auto Terminal Reports</p>
+      </a>
+    </li>
+    <li class="nav-item">
+
+      <a href="{% url 'bulk_generate_report_cards' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Bulk Generate Reports</p>
+      </a>
+    </li>
+  </ul>
+</li>
+
+
+<!-- ========== SYSTEM ADMINISTRATION ========== -->
+<li class="nav-header">SYSTEM ADMINISTRATION</li>
+
+<!-- Backup & Restore -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-shield-check" aria-hidden="true"></i>
+    <p>Backup & Restore<i class="nav-arrow bi bi-chevron-right"></i></p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{% url 'backup_dashboard' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Backup Management</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'restore_dashboard' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Restore Management</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'backup_restore_settings' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Settings</p>
+      </a>
+    </li>
+  </ul>
+</li>
+
+{% elif user.role == 'teacher' %}
+<!-- TEACHER MENU ITEMS -->
+<!-- Dashboard -->
+<li class="nav-item">
+  <a href="{% url 'teacher_dashboard' %}" class="nav-link">
+    <i class="nav-icon bi bi-speedometer2" aria-hidden="true"></i>
+    <p>Dashboard</p>
+  </a>
+</li>
+
+<!-- ========== TEACHING ACTIVITIES ========== -->
+
+
+
+<!-- Score Management -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+
+    <i class="nav-icon bi bi-clipboard-check" aria-hidden="true"></i>
+    <p>Score Entry<i class="nav-arrow bi bi-chevron-right"></i></p>
+
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{% url 'enhanced_enter_scores' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+
+        <p>Termly Scores</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'mock_exam_entry' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Mock Exam Scores</p>
+      </a>
+    </li>
+  </ul>
+</li>
+<li class="nav-item" hidden>
+  <a href="{% url 'enter_scores' %}" class="nav-link">
+    <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+    <p>Legacy Score Entry</p>
+  </a>
+</li>
+
+<!-- Class Management -->
+
+<li class="nav-item">
+  <a href="{% url 'class_teacher_remarks' %}" class="nav-link">
+    <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+    <p>Student Remarks</p>
+  </a>
+</li>
+
+<li class="nav-item">
+  <a href="{% url 'teacher_promotion' %}" class="nav-link">
+    <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+    <p>Student Promotion</p>
+  </a>
+</li>
+
+<!-- ========== MOCK EXAMS ========== -->
+<li class="nav-header">MOCK EXAMS</li>
+
+<!-- Mock Exam Management -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-clipboard-check" aria-hidden="true"></i>
+    <p>Mock Exam Management<i class="nav-arrow bi bi-chevron-right"></i></p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{% url 'mock_exam_dashboard' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Mock Exam Dashboard</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'mock_exam_entry' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Enter Mock Scores</p>
+      </a>
+    </li>
+
+    <li class="nav-item">
+      <a href="{% url 'mock_exam_score_sheet' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Mock Exam Score Sheet</p>
+
+      </a>
+    </li>
+  </ul>
+</li>
+
+<!-- ========== ACADEMIC ANALYSIS ========== -->
+<li class="nav-header">ACADEMIC ANALYSIS</li>
+
+<!-- Performance Analysis -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-graph-up-arrow" aria-hidden="true"></i>
+    <p>Performance Analysis<i class="nav-arrow bi bi-chevron-right"></i></p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{% url 'score_management_dashboard' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Performance Dashboard</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'class_score_list' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Class Scores</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'subject_performance' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Subject Performance</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'compare_scores' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Score Comparison</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'progress_tracking' %}" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Progress Tracking</p>
+      </a>
+    </li>
+  </ul>
+</li>
+
+<!-- ========== ATTENDANCE & MONITORING ========== -->
+
+
+
+<!-- Attendance -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-calendar-check" aria-hidden="true"></i>
+    <p>Attendance<i class="nav-arrow bi bi-chevron-right"></i></p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="#" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Student Attendance</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="#" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>My Attendance</p>
+      </a>
+    </li>
+  </ul>
+</li>
+
+{% elif user.role == 'student' %}
+<!-- STUDENT MENU ITEMS -->
+<!-- Dashboard -->
+<li class="nav-item">
+  <a href="{% url 'student_dashboard' %}" class="nav-link">
+    <i class="nav-icon bi bi-speedometer2" aria-hidden="true"></i>
+    <p>Dashboard</p>
+  </a>
+</li>
+
+<!-- ========== PERSONAL INFORMATION ========== -->
+<li class="nav-header">PERSONAL INFORMATION</li>
+
+<!-- Profile -->
+<li class="nav-item">
+  <a href="{% url 'student_profile' %}" class="nav-link">
+    <i class="nav-icon bi bi-person-circle" aria-hidden="true"></i>
+    <p>My Profile</p>
+  </a>
+</li>
+
+<!-- ========== ACADEMIC INFORMATION ========== -->
+<li class="nav-header">ACADEMIC INFORMATION</li>
+
+<!-- Academic Progress -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-graph-up" aria-hidden="true"></i>
+    <p>Academic Progress<i class="nav-arrow bi bi-chevron-right"></i></p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a
+        href="{% url 'student_class_history' student_id=request.user.id %}"
+        class="nav-link"
+      >
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Class History</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a
+        {%
+        with
+        current_class="request.user.get_current_class"
+        %}
+        {%
+        if
+        current_class
+        and
+        current_class.id
+        %}
+        href="{% url 'student_term_performance' class_id=current_class.id student_id=request.user.id %}"
+        {%
+        else
+        %}
+        href="#"
+        onclick="alert('You are not assigned to any class. Please contact your administrator.');"
+        {%
+        endif
+        %}
+        {%
+        endwith
+        %}
+        class="nav-link"
+      >
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Term Performance</p>
+      </a>
+    </li>
+  </ul>
+</li>
+
+<!-- My Subjects -->
+<li class="nav-item">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-book" aria-hidden="true"></i>
+    <p>My Subjects</p>
+  </a>
+</li>
+
+<!-- Attendance -->
+<li class="nav-item">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-calendar-check" aria-hidden="true"></i>
+    <p>My Attendance</p>
+  </a>
+</li>
+
+<!-- ========== ACADEMIC RECORDS ========== -->
+<li class="nav-header">ACADEMIC RECORDS</li>
+
+<!-- Transcripts -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-file-earmark-text" aria-hidden="true"></i>
+    <p>Transcripts<i class="nav-arrow bi bi-chevron-right"></i></p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="#" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>My Transcripts</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="#" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Verify Transcript</p>
+      </a>
+    </li>
+  </ul>
+</li>
+
+<!-- ========== FINANCIAL INFORMATION ========== -->
+<li class="nav-header">FINANCIAL INFORMATION</li>
+
+<!-- Fees -->
+<li class="nav-item" data-lte-toggle="treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon bi bi-cash" aria-hidden="true"></i>
+    <p>Fees<i class="nav-arrow bi bi-chevron-right"></i></p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="#" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Fee Structure</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="#" class="nav-link">
+        <i class="nav-icon bi bi-circle" aria-hidden="true"></i>
+        <p>Payment History</p>
+      </a>
+    </li>
+  </ul>
+</li>
+{% endif %}

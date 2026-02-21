@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            <i class="fas fa-stethoscope text-info"></i> Academic Year Diagnostics
+          </h2>
+          <p class="text-muted mb-0">Check what data is available for template creation</p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'academic_year_detail' academic_year.id %}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left"></i> Back to Academic Year
+          </a>
+          <a href="{% url 'template_create_from_academic_year' %}" class="btn btn-success">
+            <i class="fas fa-copy"></i> Create Template
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Issues Alert -->
+  {% if issues %}
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="alert alert-warning">
+          <h5><i class="fas fa-exclamation-triangle"></i> Potential Issues Found</h5>
+          <ul class="mb-0">
+            {% for issue in issues %}
+              <li>{{ issue }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <div class="h3 text-primary">{{ classes.count }}</div>
+          <small class="text-muted">Classes</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <div class="h3 text-warning">{{ class_subjects.count }}</div>
+          <small class="text-muted">Subject Assignments</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <div class="h3 text-success">{{ teacher_assignments.count }}</div>
+          <small class="text-muted">Teacher Assignments</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <div class="h3 text-info">{{ class_teachers.count }}</div>
+          <small class="text-muted">Class Teachers</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Classes Details -->
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-school"></i> Classes ({{ classes.count }})
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if classes %}
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Class Name</th>
+                    <th>Form</th>
+                    <th>Learning Area</th>
+                    <th>Subjects</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for class_obj in classes %}
+                    <tr>
+                      <td><strong>{{ class_obj.name }}</strong></td>
+                      <td>{{ class_obj.form.name|default:"-" }}</td>
+                      <td>{{ class_obj.learning_area.name|default:"-" }}</td>
+                      <td>
+                        {% with class_subjects|length as count %}
+                          <span class="badge bg-info">{{ count }}</span>
+                        {% endwith %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted">No classes found in this academic year.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Subject Assignments -->
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-book"></i> Subject Assignments ({{ class_subjects.count }})
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if class_subjects %}
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Class</th>
+                    <th>Subject</th>
+                    <th>Code</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for cs in class_subjects %}
+                    <tr>
+                      <td><strong>{{ cs.class_name.name }}</strong></td>
+                      <td>{{ cs.subject.subject_name }}</td>
+                      <td><code>{{ cs.subject.subject_code }}</code></td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted">No subject assignments found.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Teacher Assignments -->
+  <div class="row mt-4">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-chalkboard-teacher"></i> Teacher Assignments ({{ teacher_assignments.count }})
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if teacher_assignments %}
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Class</th>
+                    <th>Subject</th>
+                    <th>Teacher</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for ta in teacher_assignments %}
+                    <tr>
+                      <td><strong>{{ ta.class_assigned.name }}</strong></td>
+                      <td>{{ ta.subject.subject_name }}</td>
+                      <td>{{ ta.teacher.full_name }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted">No teacher assignments found.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Class Teachers -->
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-user-tie"></i> Class Teachers ({{ class_teachers.count }})
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if class_teachers %}
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Class</th>
+                    <th>Class Teacher</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for ct in class_teachers %}
+                    <tr>
+                      <td><strong>{{ ct.class_assigned.name }}</strong></td>
+                      <td>{{ ct.teacher.full_name }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted">No class teachers assigned.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recommendations -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-lightbulb"></i> Recommendations
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if classes.count == 0 %}
+            <div class="alert alert-danger">
+              <strong>Critical:</strong> No classes found. You need to create classes first before creating a template.
+            </div>
+          {% elif class_subjects.count == 0 %}
+            <div class="alert alert-warning">
+              <strong>Warning:</strong> No subject assignments found. While you can create a template, it won't include subject assignments.
+            </div>
+          {% elif teacher_assignments.count == 0 %}
+            <div class="alert alert-warning">
+              <strong>Warning:</strong> No teacher assignments found. While you can create a template, it won't include teacher assignments.
+            </div>
+          {% else %}
+            <div class="alert alert-success">
+              <strong>Great!</strong> This academic year has sufficient data for template creation. You can proceed with creating a template.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

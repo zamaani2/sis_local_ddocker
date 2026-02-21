@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+{% load score_filters %}
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>{{ subject.subject_name }} Scores - {{ class.name }}</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+      
+      :root {
+        --primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --accent: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --success: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        --warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        --danger: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+        --info: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        
+        --primary-solid: #667eea;
+        --secondary-solid: #f5576c;
+        --accent-solid: #00f2fe;
+        --success-solid: #43e97b;
+        --warning-solid: #fee140;
+        --danger-solid: #ff9a9e;
+        --info-solid: #a8edea;
+        
+        --text-dark: #2d3748;
+        --text-medium: #4a5568;
+        --text-light: #718096;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+        --border: #e2e8f0;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Times New Roman", serif;
+        margin: 0;
+        padding: 8px;
+        font-size: 12px;
+        color: #000;
+        background: #fff;
+        line-height: 1.3;
+        min-height: 100vh;
+      }
+
+      .container {
+        background: #fff;
+        border: 2px solid #000;
+        overflow: hidden;
+        max-width: 100%;
+        margin: 0 auto;
+      }
+
+      .header {
+        background: #fff;
+        color: #000;
+        padding: 15px;
+        text-align: center;
+        border-bottom: 2px solid #000;
+      }
+
+      .header-content {
+        position: relative;
+      }
+
+      .school-name {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .school-details {
+        font-size: 12px;
+        margin-bottom: 8px;
+        font-weight: normal;
+      }
+
+      .report-title {
+        font-size: 16px;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 10px;
+        text-decoration: underline;
+      }
+
+      .metadata {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+        border: 1px solid #000;
+        margin: 15px;
+        background: #fff;
+      }
+
+      .metadata-item {
+        background: #fff;
+        padding: 10px 15px;
+        font-size: 11px;
+        font-weight: normal;
+        color: #000;
+        border-right: 1px solid #000;
+        border-bottom: 1px solid #000;
+      }
+
+      .metadata-item:nth-child(even) {
+        border-right: none;
+      }
+
+      .metadata-item:nth-last-child(-n+2) {
+        border-bottom: none;
+      }
+
+      .metadata-item strong {
+        color: #000;
+        font-weight: bold;
+      }
+
+      .content {
+        padding: 0 15px 15px;
+      }
+
+      table.score-table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 2px solid #000;
+        background: #fff;
+        margin-bottom: 20px;
+      }
+
+      table.score-table thead {
+        background: #f0f0f0;
+        color: #000;
+      }
+
+      table.score-table th {
+        padding: 8px 6px;
+        font-weight: bold;
+        font-size: 10px;
+        text-transform: uppercase;
+        text-align: center;
+        border: 1px solid #000;
+        background: #f0f0f0;
+      }
+
+      table.score-table th small {
+        font-weight: normal;
+        display: block;
+        margin-top: 2px;
+        font-size: 8px;
+      }
+
+      table.score-table td {
+        padding: 6px 4px;
+        font-size: 10px;
+        text-align: center;
+        vertical-align: middle;
+        border: 1px solid #000;
+      }
+
+      table.score-table tbody tr {
+        background: #fff;
+      }
+
+      table.score-table tbody tr:nth-child(even) {
+        background: #f9f9f9;
+      }
+
+      .student-name {
+        text-align: left !important;
+        font-weight: normal;
+        color: #000;
+      }
+
+      .student-id {
+        font-family: monospace;
+        font-weight: bold;
+        color: #000;
+      }
+
+      .text-center {
+        text-align: center;
+      }
+
+      .text-bold {
+        font-weight: bold;
+        color: #000;
+      }
+
+      /* Responsive design */
+      @media (max-width: 768px) {
+        body {
+          padding: 8px;
+        }
+
+        .metadata {
+          grid-template-columns: 1fr;
+          margin: 12px 16px;
+        }
+
+        .content {
+          padding: 0 16px 16px;
+        }
+
+        .signature-area {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+
+        table.score-table th,
+        table.score-table td {
+          padding: 6px 4px;
+          font-size: 9px;
+        }
+
+        .school-name {
+          font-size: 16px;
+        }
+
+        .report-title {
+          font-size: 10px;
+          padding: 6px 16px;
+        }
+      }
+
+      /* Print optimizations */
+      @media print {
+        body {
+          padding: 0;
+          background: white;
+        }
+
+        .container {
+          box-shadow: none;
+          border-radius: 0;
+        }
+
+        .header::before {
+          display: none;
+        }
+
+        .score-table,
+        .summary,
+        .signature-area {
+          page-break-inside: avoid;
+        }
+
+        .signature-box:hover {
+          border-color: var(--border);
+          background: var(--bg-light);
+        }
+
+        table.score-table tbody tr:hover {
+          background: inherit;
+          transform: none;
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="header-content">
+          {% if school_info.logo %}
+          <img src="{{ school_info.logo.url }}" alt="School Logo" height="80px" style="margin-bottom: 2px;" />
+          {% endif %}
+          <div class="school-name">{{ school_info.name }}</div>
+          <div class="school-details">{{ school_info.address }}</div>
+          <div class="school-details">{{ school_info.phone_number }} | {{ school_info.email }}</div>
+          <div class="report-title">Score Sheet</div>
+        </div>
+      </div>
+
+      <div class="metadata">
+        <div class="metadata-item">
+          <strong>School:</strong> {{ school_info.name }}
+        </div>
+        <div class="metadata-item">
+          <strong>Department:</strong> {{ class.learning_area.name|default:"General" }}
+        </div>
+        <div class="metadata-item">
+          <strong>Course Code:</strong> {{ subject.subject_code|default:"N/A" }}
+        </div>
+        <div class="metadata-item">
+          <strong>Course Title:</strong> {{ subject.subject_name }}
+        </div>
+        <div class="metadata-item">
+          <strong>Class:</strong> {{ class.name }}
+        </div>
+        <div class="metadata-item">
+          <strong>Form:</strong> {{ class.form.name|default:"N/A" }}
+        </div>
+        <div class="metadata-item">
+          <strong>Teacher:</strong> {{ teacher_name|default:"Not Assigned" }}
+        </div>
+        <div class="metadata-item">
+          <strong>Term:</strong> {{ academic_year.name }}
+        </div>
+      </div>
+
+      <div class="content">
+        <table class="score-table">
+          <thead>
+            <tr>
+              <th style="width: 5%">S/N</th>
+              <th style="width: 15%">MATRIC NO</th>
+              <th style="width: 30%">FULLNAME</th>
+              <th style="width: 12%">
+                C.A.<br><small>({% if scoring_config %}{{ scoring_config.class_score_percentage }}%{% else %}30%{% endif %})</small>
+              </th>
+              <th style="width: 12%">
+                EXAM<br><small>({% if scoring_config %}{{ scoring_config.exam_score_percentage }}%{% else %}70%{% endif %})</small>
+              </th>
+              <th style="width: 12%">TOTAL</th>
+              <th style="width: 8%">GRADE</th>
+              <th style="width: 6%">REMARKS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in students %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td class="student-id">{{ item.student.admission_number }}</td>
+              <td class="student-name">{{ item.student.full_name }}</td>
+              <td>
+                {% if item.assessment and item.assessment.class_score %}
+                  {{ item.assessment.class_score|floatformat:0 }}
+                {% else %}0{% endif %}
+              </td>
+              <td>
+                {% if item.assessment and item.assessment.exam_score %}
+                  {{ item.assessment.exam_score|floatformat:0 }}
+                {% else %}0{% endif %}
+              </td>
+              <td>
+                {% if item.assessment and item.assessment.total_score %}
+                  {{ item.assessment.total_score|floatformat:0 }}
+                {% else %}0{% endif %}
+              </td>
+              <td>
+                {% if item.assessment and item.assessment.grade %}
+                  {{ item.assessment.grade }}
+                {% else %}F{% endif %}
+              </td>
+              <td>
+                {% if item.assessment and item.assessment.remarks %}
+                  {{ item.assessment.remarks|truncatechars:10 }}
+                {% else %}--{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <div style="margin-top: 30px; text-align: center; font-size: 10px;">
+          <p><strong>Total Students:</strong> {{ students|length }}</p>
+          <p><strong>Generated on:</strong> {{ date_generated }} | <strong>Generated by:</strong> {{ generated_by }}</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

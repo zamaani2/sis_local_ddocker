@@ -1,0 +1,241 @@
+
+{% load custom_filters %}
+
+<!-- Column Mapping Section -->
+<div class="row">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">
+          <i class="bi bi-arrow-left-right"></i> Column Mapping
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-info mb-3">
+          <i class="bi bi-info-circle me-2"></i>
+          Map your CSV columns to student fields. Required fields must be mapped.
+        </div>
+        
+        <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+          <table class="table table-hover table-sm">
+            <thead class="table-light">
+              <tr>
+                <th>CSV Column</th>
+                <th>Map to Field</th>
+                <th>Required</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for header in headers %}
+              <tr>
+                <td class="fw-bold">{{ header }}</td>
+                <td>
+                  <select class="form-select form-select-sm column-mapping" data-csv-column="{{ header }}">
+                    <option value="">-- Select Field --</option>
+                    {% for field_key, field_label in student_fields.items %}
+                      <option value="{{ field_key }}" 
+                        {% if suggested_mappings|default_if_none:''|get_item:header == field_key %}selected{% endif %}>
+                        {{ field_label }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                  <small class="text-muted">CSV Column: {{ header }}</small>
+                </td>
+                <td>
+                  {% with suggested_field=suggested_mappings|default_if_none:''|get_item:header %}
+
+                    {% if suggested_field in 'full_name,gender' %}
+
+                      <span class="badge bg-danger small">Required</span>
+                    {% else %}
+                      <span class="badge bg-secondary small">Optional</span>
+                    {% endif %}
+                  {% endwith %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">
+          <i class="bi bi-eye"></i> Data Preview ({{ total_rows }} total rows)
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+          <table class="table table-hover table-sm">
+            <thead class="table-light">
+              <tr>
+                {% for header in headers %}
+                <th class="small">{{ header }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in preview_rows %}
+              <tr>
+                {% for header in headers %}
+                <td class="small">{{ row|get_item:header|default:'-' }}</td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        
+        {% if total_rows > 5 %}
+        <div class="alert alert-warning mt-3">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          Showing first 5 rows. {{ total_rows|add:"-5" }} more rows will be processed.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Validation Summary -->
+<div class="row mt-3">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">
+          <i class="bi bi-clipboard-check"></i> Import Summary
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4">
+            <div class="card bg-primary text-white">
+              <div class="card-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <h4 class="mb-0">{{ total_rows }}</h4>
+                    <p class="mb-0">Total Rows</p>
+                  </div>
+                  <div class="align-self-center">
+                    <i class="bi bi-list fa-2x"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card bg-warning text-dark" id="requiredFieldsStatus">
+              <div class="card-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <h4 class="mb-0">0/4</h4>
+                    <p class="mb-0">Required Fields Mapped</p>
+                  </div>
+                  <div class="align-self-center">
+                    <i class="bi bi-exclamation-triangle fa-2x"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card bg-secondary text-white" id="readyStatus">
+              <div class="card-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <h4 class="mb-0">Not Ready</h4>
+                    <p class="mb-0">Ready to Import</p>
+                  </div>
+                  <div class="align-self-center">
+                    <i class="bi bi-clock fa-2x"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mt-3" id="validationMessages">
+          <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+
+            Please map all required fields (Full Name, Gender) before importing. Date fields will use default values if not provided.
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+$(document).ready(function() {
+  // Track required field mappings
+  function updateValidationStatus() {
+
+    const requiredFields = ['full_name', 'gender'];
+
+    const mappedFields = [];
+    
+    $('.column-mapping').each(function() {
+      const value = $(this).val();
+      if (value && requiredFields.includes(value)) {
+        mappedFields.push(value);
+      }
+    });
+    
+    const uniqueMappedFields = [...new Set(mappedFields)];
+    const mappedCount = uniqueMappedFields.length;
+    const totalRequired = requiredFields.length;
+    
+    // Update status display
+    $('#requiredFieldsStatus h4').text(mappedCount + '/' + totalRequired);
+    
+    if (mappedCount === totalRequired) {
+      $('#requiredFieldsStatus').removeClass('bg-warning text-dark').addClass('bg-success text-white');
+      $('#requiredFieldsStatus i').removeClass('bi-exclamation-triangle').addClass('bi-check-circle');
+      $('#readyStatus').removeClass('bg-secondary').addClass('bg-success');
+      $('#readyStatus i').removeClass('bi-clock').addClass('bi-check-circle');
+      $('#readyStatus h4').text('Ready');
+      $('#validationMessages').html('<div class="alert alert-success"><i class="bi bi-check-circle me-2"></i>All required fields are mapped. Ready to import!</div>');
+      $('#confirmImport').prop('disabled', false);
+    } else {
+      $('#requiredFieldsStatus').removeClass('bg-success text-white').addClass('bg-warning text-dark');
+      $('#requiredFieldsStatus i').removeClass('bi-check-circle').addClass('bi-exclamation-triangle');
+      $('#readyStatus').removeClass('bg-success').addClass('bg-secondary');
+      $('#readyStatus i').removeClass('bi-check-circle').addClass('bi-clock');
+      $('#readyStatus h4').text('Not Ready');
+
+      $('#validationMessages').html('<div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2"></i>Please map all required fields (Full Name, Gender) before importing. Date fields will use default values if not provided.</div>');
+
+      $('#confirmImport').prop('disabled', true);
+    }
+    
+    // Check for duplicate mappings
+    const allMappedFields = [];
+    $('.column-mapping').each(function() {
+      const value = $(this).val();
+      if (value) {
+        allMappedFields.push(value);
+      }
+    });
+    
+    const duplicates = allMappedFields.filter((item, index) => allMappedFields.indexOf(item) !== index);
+    if (duplicates.length > 0) {
+      $('#validationMessages').append('<div class="alert alert-danger mt-2"><i class="bi bi-exclamation-circle me-2"></i>Warning: Some fields are mapped multiple times: ' + [...new Set(duplicates)].join(', ') + '</div>');
+    }
+  }
+  
+  // Handle column mapping changes
+  $('.column-mapping').change(function() {
+    updateValidationStatus();
+  });
+  
+  // Initial validation
+  updateValidationStatus();
+});
+</script>

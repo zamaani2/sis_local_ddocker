@@ -1,0 +1,172 @@
+
+{% extends 'base.html' %} {% load static %} {% block title %}{{ title }}{% endblock %} {% block page_title %}{{ title }}{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            <i class="fas fa-edit text-primary"></i> {{ title }}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if template %} Edit template details and settings {% else %}
+            Create a new academic year template {% endif %}
+          </p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'template_list' %}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left"></i> Back to Templates
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-cog"></i> Template Information</h5>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+
+            <!-- Template Name -->
+            <div class="row mb-3">
+              <div class="col-12">
+                <label for="{{ form.name.id_for_label }}" class="form-label">
+                  {{ form.name.label }}
+                </label>
+                {{ form.name }} {% if form.name.help_text %}
+                <div class="form-text">{{ form.name.help_text }}</div>
+                {% endif %} {% if form.name.errors %}
+                <div class="text-danger">{{ form.name.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div class="row mb-3">
+              <div class="col-12">
+                <label
+                  for="{{ form.description.id_for_label }}"
+                  class="form-label"
+                >
+                  {{ form.description.label }}
+                </label>
+                {{ form.description }} {% if form.description.help_text %}
+                <div class="form-text">{{ form.description.help_text }}</div>
+                {% endif %} {% if form.description.errors %}
+                <div class="text-danger">{{ form.description.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Is Default -->
+            <div class="row mb-3">
+              <div class="col-12">
+                <div class="form-check">
+                  {{ form.is_default }}
+                  <label
+                    class="form-check-label"
+                    for="{{ form.is_default.id_for_label }}"
+                  >
+                    {{ form.is_default.label }}
+                  </label>
+                  {% if form.is_default.help_text %}
+                  <div class="form-text">{{ form.is_default.help_text }}</div>
+                  {% endif %} {% if form.is_default.errors %}
+                  <div class="text-danger">{{ form.is_default.errors }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Errors -->
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              {% for error in form.non_field_errors %} {{ error }} {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Submit Button -->
+            <div class="d-flex justify-content-between">
+              <a
+                href="{% url 'template_list' %}"
+                class="btn btn-outline-secondary"
+              >
+                <i class="fas fa-arrow-left"></i> Cancel
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i>
+                {% if template %}Update Template{% else %}Create Template{% endif %}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Information Panel -->
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-info-circle"></i> Template Information
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if template %}
+          <dl class="row">
+            <dt class="col-sm-5">Created:</dt>
+            <dd class="col-sm-7">{{ template.created_at|date:"M d, Y" }}</dd>
+
+            <dt class="col-sm-5">Updated:</dt>
+            <dd class="col-sm-7">{{ template.updated_at|date:"M d, Y" }}</dd>
+
+            <dt class="col-sm-5">Created By:</dt>
+            <dd class="col-sm-7">
+              {{ template.created_by.get_full_name|default:template.created_by.username }}
+            </dd>
+
+            <dt class="col-sm-5">Status:</dt>
+            <dd class="col-sm-7">
+              {% if template.is_default %}
+              <span class="badge bg-primary">Default</span>
+              {% else %}
+              <span class="badge bg-secondary">Regular</span>
+              {% endif %}
+            </dd>
+          </dl>
+          {% else %}
+          <p class="text-muted">
+            This template will be created as a new template that can be used to
+            set up academic years.
+          </p>
+
+          <h6>Template Features:</h6>
+          <ul class="list-unstyled">
+            <li>
+              <i class="fas fa-check text-success"></i> Reusable across academic
+              years
+            </li>
+            <li>
+              <i class="fas fa-cog text-primary"></i> Customizable class
+              structures
+            </li>
+            <li><i class="fas fa-users text-info"></i> Teacher assignments</li>
+            <li>
+              <i class="fas fa-book text-warning"></i> Subject assignments
+            </li>
+          </ul>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

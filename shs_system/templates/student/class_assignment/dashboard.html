@@ -1,0 +1,306 @@
+{% extends "base.html" %} 
+{% load static %} 
+{% block title %}Student Class Assignment Dashboard{% endblock %}
+{% block page_title %}Student Class Assignment Dashboard{% endblock %}
+
+{% block extra_css %}
+{% endblock %} 
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %}
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              Student Class Assignment
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if current_academic_year %}
+              Current academic year and term management
+            {% else %}
+              Manage student class assignments
+            {% endif %}
+          </p>
+        </div>
+        <div class="btn-group">
+          <a
+            href="{% url 'student_class_assignment_list' %}"
+            class="btn btn-primary"
+          >
+            <i class="fas fa-list"></i> View All Students
+          </a>
+          <a href="{% url 'bulk_assign_students' %}" class="btn btn-success">
+            <i class="fas fa-users"></i> Bulk Assignment
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="mb-0">{{ total_students }}</h4>
+              <p class="mb-0">Total Students</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-users fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="mb-0">{{ assigned_students }}</h4>
+
+              <p class="mb-0">Assigned Students( Current Year)</p>
+
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-check-circle fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="mb-0">{{ assigned_other_year }}</h4>
+
+              <p class="mb-0">Assigned (Previous Year)</p>
+
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-calendar-alt fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="mb-0">{{ unassigned_students }}</h4>
+              <p class="mb-0">Unassigned Students</p>
+            </div>
+            <div class="align-self-center">
+              <i class="fas fa-exclamation-triangle fa-2x"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Quick Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <a
+                href="{% url 'student_class_assignment_list' %}?status=unassigned"
+                class="btn btn-outline-warning w-100 mb-2"
+              >
+                <i class="fas fa-user-plus"></i><br />
+                <small>View Unassigned</small>
+              </a>
+            </div>
+            <div class="col-md-3">
+              <a
+                href="{% url 'student_class_assignment_list' %}?status=assigned"
+                class="btn btn-outline-success w-100 mb-2"
+              >
+                <i class="fas fa-user-check"></i><br />
+                <small>View Assigned</small>
+              </a>
+            </div>
+            <div class="col-md-3">
+              <a
+                href="{% url 'student_class_assignment_list' %}"
+                class="btn btn-outline-info w-100 mb-2"
+              >
+                <i class="fas fa-calendar-alt"></i><br />
+                <small>View All Students</small>
+              </a>
+            </div>
+            <div class="col-md-3">
+              <a
+                href="{% url 'bulk_assign_students' %}"
+                class="btn btn-outline-primary w-100 mb-2"
+              >
+                <i class="fas fa-users"></i><br />
+                <small>Bulk Assignment</small>
+              </a>
+            </div>
+            <div class="col-md-3">
+              <button
+                class="btn btn-outline-secondary w-100 mb-2"
+                onclick="refreshStatistics()"
+              >
+                <i class="fas fa-sync-alt"></i><br />
+                <small>Refresh Stats</small>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Class Overview -->
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Class Overview</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Class Name</th>
+                  <th>Form</th>
+                  <th>Learning Area</th>
+                  <th>Students</th>
+                  <th>Capacity</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for class in classes %}
+                <tr>
+                  <td>
+                    <strong>{{ class.name }}</strong>
+                  </td>
+                  <td>{{ class.form.name|default:"Not set" }}</td>
+                  <td>{{ class.learning_area.name|default:"Not set" }}</td>
+                  <td>
+                    <span class="badge bg-primary"
+                      >{{ class.student_count }}</span
+                    >
+                  </td>
+                  <td>
+                    <div class="progress" style="height: 20px">
+                      {% widthratio class.student_count class.maximum_students 100 as capacity_percentage %}
+                      <div
+                        class="progress-bar {% if capacity_percentage > 90 %}bg-danger{% elif capacity_percentage > 75 %}bg-warning{% else %}bg-success{% endif %}"
+                        role="progressbar"
+                        style="width: {{ capacity_percentage }}%"
+                        aria-valuenow="{{ capacity_percentage }}"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                      >
+                        {{ capacity_percentage }}%
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <a
+                      href="{% url 'class_roster' class.id %}"
+                      class="btn btn-outline-primary"
+                    >
+                      <i class="fas fa-eye"></i> View
+                    </a>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="6" class="text-center text-muted">
+                    No classes found for the current academic year.
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <!-- Form Statistics -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="mb-0">Students by Form</h6>
+        </div>
+        <div class="card-body">
+          {% for form in form_stats %}
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span>{{ form.name }}</span>
+            <span class="badge bg-secondary">{{ form.student_count }}</span>
+          </div>
+          {% empty %}
+          <p class="text-muted mb-0">No form data available.</p>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Learning Area Statistics -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="mb-0">Students by Learning Area</h6>
+        </div>
+        <div class="card-body">
+          {% for learning_area in learning_area_stats %}
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span>{{ learning_area.name }}</span>
+            <span class="badge bg-info">{{ learning_area.student_count }}</span>
+          </div>
+          {% empty %}
+          <p class="text-muted mb-0">No learning area data available.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 
+{% block extra_js %}
+<script>
+  function refreshStatistics() {
+    // Add loading state
+    const btn = event.target.closest("button");
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML =
+      '<i class="fas fa-spinner fa-spin"></i><br><small>Refreshing...</small>';
+    btn.disabled = true;
+
+    // Simulate refresh (in a real implementation, you'd make an AJAX call)
+    setTimeout(() => {
+      location.reload();
+    }, 1000);
+  }
+
+  // Auto-refresh statistics every 5 minutes
+  setInterval(() => {
+    // You could implement AJAX refresh here
+  }, 300000);
+</script>
+{% endblock %}

@@ -1,0 +1,303 @@
+{% extends "base.html" %} {% load static %} {% block title %}Student Profile{%
+endblock %} {% block page_title %}Student Profile{% endblock %} {% block
+
+extra_css %} {% endblock %} {% block breadcrumb %}
+
+<li class="breadcrumb-item">
+  <a href="{% url 'student_dashboard' %}">Student Dashboard</a>
+</li>
+<li class="breadcrumb-item active">Profile</li>
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+
+            {% if current_academic_year %} {{ current_academic_year.name }} {%
+            if current_term %} - {{ current_term.name }} {% endif %} {% else %}
+            Student Profile {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if current_academic_year %} Current academic year and term
+            management {% else %} Manage your personal information and profile
+            settings {% endif %}
+
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Profile Information Card -->
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-person"></i> Profile Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="text-center mb-4">
+            {% if student.profile_picture %}
+            <img
+              src="{{ student.profile_picture.url }}"
+              alt="{{ student.full_name }}"
+              class="rounded-circle mx-auto mb-3"
+              style="width: 120px; height: 120px; object-fit: cover"
+            />
+            {% else %}
+            <div
+              class="bg-primary rounded-circle text-white d-flex align-items-center justify-content-center mx-auto mb-3"
+              style="width: 120px; height: 120px; font-size: 48px"
+            >
+              <i class="bi bi-person"></i>
+            </div>
+            {% endif %}
+            <h4>{{ student.full_name }}</h4>
+            <p class="text-muted">
+              Admission Number: {{ student.admission_number }}
+            </p>
+          </div>
+          <form
+            id="profile-form"
+            method="post"
+            action="{% url 'student_update_profile' %}"
+            enctype="multipart/form-data"
+          >
+            {% csrf_token %}
+            <div class="form-group mb-3">
+              <label for="full_name" class="form-label">
+                <i class="bi bi-person me-1"></i>Full Name
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                id="full_name"
+                name="full_name"
+                value="{{ student.full_name }}"
+              />
+            </div>
+            <div class="form-group mb-3">
+              <label for="admission_number" class="form-label">
+                <i class="bi bi-card-text me-1"></i>Admission Number
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                id="admission_number"
+                value="{{ student.admission_number }}"
+                readonly
+              />
+            </div>
+            <div class="form-group mb-3">
+              <label for="current_class" class="form-label">
+                <i class="bi bi-people me-1"></i>Current Class
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                id="current_class"
+                value="{% if current_class %}{{ current_class.name }}{% else %}Not Assigned{% endif %}"
+                readonly
+              />
+            </div>
+            <div class="form-group mb-3">
+              <label for="form" class="form-label">
+                <i class="bi bi-mortarboard me-1"></i>Form/Grade Level
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                id="form"
+                value="{{ student.form.name }}"
+                readonly
+              />
+            </div>
+            <div class="form-group mb-3">
+              <label for="profile_picture" class="form-label">
+                <i class="bi bi-image me-1"></i>Profile Picture
+              </label>
+              <input
+                type="file"
+                class="form-control"
+                id="profile_picture"
+                name="profile_picture"
+              />
+              <div class="form-text">
+
+                Upload a new profile picture (JPG, PNG, GIF - Max 300KB).
+
+              </div>
+            </div>
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check me-1"></i>Update Profile
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Academic Information Card -->
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-mortarboard"></i> Academic Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <dl class="row">
+            <dt class="col-sm-4">Learning Area:</dt>
+            <dd class="col-sm-8">{{ student.learning_area.name }}</dd>
+
+            <dt class="col-sm-4">Date of Birth:</dt>
+            <dd class="col-sm-8">{{ student.date_of_birth|date:"F j, Y" }}</dd>
+
+            <dt class="col-sm-4">Gender:</dt>
+            <dd class="col-sm-8">{{ student.get_gender_display }}</dd>
+
+            <dt class="col-sm-4">Admission Date:</dt>
+            <dd class="col-sm-8">{{ student.admission_date|date:"F j, Y" }}</dd>
+          </dl>
+        </div>
+      </div>
+
+      <!-- Recent Report Cards -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-file-text"></i> Recent Report Cards
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if recent_report_cards %}
+          <div class="list-group">
+            {% for report_card in recent_report_cards %}
+            <a
+              href="{% url 'view_report_card_details' report_card.id %}"
+              class="list-group-item list-group-item-action"
+            >
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">
+                  {{ report_card.term.get_term_number_display }} - {{
+                  report_card.academic_year.name }}
+                </h6>
+                <small>{{ report_card.date_generated|date:"M d, Y" }}</small>
+              </div>
+              <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                  Position: {{ report_card.position }} | Average: {{
+                  report_card.average_marks|floatformat:1 }}%
+                </small>
+                <span
+                  class="badge {% if report_card.is_approved %}bg-success{% else %}bg-warning{% endif %}"
+                >
+                  {% if report_card.is_approved %}Approved{% else %}Pending{%
+                  endif %}
+                </span>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted">No report cards available.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  $(document).ready(function () {
+
+    // File size validation for profile picture
+    $("#profile_picture").on("change", function (e) {
+      const file = e.target.files[0];
+      if (file) {
+        // Check file size (300KB limit)
+        if (file.size > 300 * 1024) {
+          Swal.fire({
+            icon: "error",
+            title: "File Too Large",
+            text: "Please select an image smaller than 300KB.",
+            confirmButtonColor: "#3085d6",
+          });
+          // Clear the file input
+          this.value = "";
+          return false;
+        }
+
+        // Validate file type
+        const allowedTypes = [
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "image/gif",
+          "image/webp",
+        ];
+        if (!allowedTypes.includes(file.type)) {
+          Swal.fire({
+            icon: "error",
+            title: "Invalid File Type",
+            text: "Please select a valid image file (JPG, PNG, GIF, WebP).",
+            confirmButtonColor: "#3085d6",
+          });
+          // Clear the file input
+          this.value = "";
+          return false;
+        }
+      }
+    });
+
+
+    // Update Profile Form Submission
+    $("#profile-form").on("submit", function (e) {
+      e.preventDefault();
+
+      // Create FormData object to handle file uploads
+      const formData = new FormData(this);
+
+      $.ajax({
+        url: '{% url "student_update_profile" %}',
+        type: "POST",
+        data: formData,
+        processData: false, // Important for FormData
+        contentType: false, // Important for FormData
+        success: function (response) {
+          if (response.status === "success") {
+            Swal.fire({
+              icon: "success",
+              title: "Profile Updated",
+              text: response.message,
+              confirmButtonColor: "#3085d6",
+            }).then(() => {
+              // Reload the page to show updated profile picture
+              location.reload();
+            });
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Update Failed",
+              text: response.message,
+              confirmButtonColor: "#3085d6",
+            });
+          }
+        },
+        error: function (xhr, status, error) {
+          Swal.fire({
+            icon: "error",
+            title: "Update Failed",
+            text: "An error occurred while updating your profile.",
+            confirmButtonColor: "#3085d6",
+          });
+        },
+      });
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,193 @@
+{% extends 'super_admin/base.html' %}
+{% load static %}
+
+{% block title %}Plan Details - {{ plan.name }} - {{ block.super }}{% endblock %}
+
+{% block page_title %}Plan: {{ plan.name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'super_admin:plan_list' %}">Plans</a></li>
+<li class="breadcrumb-item active">{{ plan.name }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Plan Details Card -->
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h6 class="m-0 font-weight-bold">Plan Details</h6>
+      <div>
+        <a href="{% url 'super_admin:plan_update' plan.id %}" class="btn btn-sm btn-primary">
+          <i class="bi bi-pencil me-1"></i> Edit
+        </a>
+        <a href="{% url 'super_admin:plan_delete' plan.id %}" class="btn btn-sm btn-danger">
+          <i class="bi bi-trash me-1"></i> Delete
+        </a>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <table class="table table-bordered">
+            <tr>
+              <th style="width: 150px;">Name</th>
+              <td>{{ plan.name }}</td>
+            </tr>
+            <tr>
+              <th>Price</th>
+              <td>${{ plan.price }} / {{ plan.get_billing_cycle_display }}</td>
+            </tr>
+            <tr>
+              <th>Status</th>
+              <td>
+                {% if plan.is_active %}
+                <span class="badge bg-success">Active</span>
+                {% else %}
+                <span class="badge bg-danger">Inactive</span>
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <th>Created</th>
+              <td>{{ plan.created_at|date:"F j, Y" }}</td>
+            </tr>
+            <tr>
+              <th>Last Updated</th>
+              <td>{{ plan.updated_at|date:"F j, Y" }}</td>
+            </tr>
+          </table>
+        </div>
+        <div class="col-md-6">
+          <table class="table table-bordered">
+            <tr>
+              <th style="width: 150px;">Max Students</th>
+              <td>{{ plan.max_students }}</td>
+            </tr>
+            <tr>
+              <th>Max Teachers</th>
+              <td>{{ plan.max_teachers }}</td>
+            </tr>
+            <tr>
+              <th>Storage Limit</th>
+              <td>{{ plan.max_storage_gb }} GB</td>
+            </tr>
+            <tr>
+              <th>Billing Cycle</th>
+              <td>{{ plan.get_billing_cycle_display }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="row mt-3">
+        <div class="col-md-12">
+          <h6 class="font-weight-bold">Description</h6>
+          <p>{{ plan.description|linebreaks }}</p>
+        </div>
+      </div>
+
+      <div class="row mt-3">
+        <div class="col-md-12">
+          <h6 class="font-weight-bold">Features</h6>
+          <div class="table-responsive">
+            <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th>Feature</th>
+                  <th>Included</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for feature, value in plan.features.items %}
+                <tr>
+                  <td>{{ feature|title }}</td>
+                  <td>
+                    {% if value %}
+                    <i class="bi bi-check-circle-fill text-success"></i>
+                    {% else %}
+                    <i class="bi bi-x-circle-fill text-danger"></i>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="2" class="text-center">No features defined</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subscriptions Using This Plan Card -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h6 class="m-0 font-weight-bold">Schools Using This Plan</h6>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+          <thead>
+            <tr>
+              <th>School</th>
+              <th>Status</th>
+              <th>Start Date</th>
+              <th>End Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for subscription in plan.subscription_set.all %}
+            <tr>
+              <td>{{ subscription.school.name }}</td>
+              <td>
+                {% if subscription.status == 'active' %}
+                <span class="badge bg-success">Active</span>
+                {% elif subscription.status == 'trial' %}
+                <span class="badge bg-warning text-dark">Trial</span>
+                {% elif subscription.status == 'expired' %}
+                <span class="badge bg-danger">Expired</span>
+                {% elif subscription.status == 'cancelled' %}
+                <span class="badge bg-secondary">Cancelled</span>
+                {% else %}
+                <span class="badge bg-info">{{ subscription.status|title }}</span>
+                {% endif %}
+              </td>
+              <td>{{ subscription.start_date|date:"M d, Y" }}</td>
+              <td>{{ subscription.end_date|date:"M d, Y" }}</td>
+              <td>
+                <a href="{% url 'super_admin:subscription_detail' subscription.id %}" class="btn btn-sm btn-info">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center">No schools are currently using this plan</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Format feature names to be more user-friendly
+    const featureCells = document.querySelectorAll('td:first-child');
+    featureCells.forEach(cell => {
+      const text = cell.textContent;
+      if (text.includes('_')) {
+        cell.textContent = text.replace(/_/g, ' ');
+      }
+    });
+  });
+</script>
+{% endblock %} 

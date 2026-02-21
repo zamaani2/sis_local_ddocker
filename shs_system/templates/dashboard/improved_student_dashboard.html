@@ -1,0 +1,404 @@
+{% extends "base.html" %} {% load static %} {% block title %}Student Dashboard{%
+endblock %} {% block page_title %}Student Dashboard{% endblock %} {% block
+extra_css %}
+
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %}
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              Welcome, {{ user.full_name }}
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if current_academic_year %}
+              Current academic year and term management
+            {% else %}
+              Track your academic progress and performance
+            {% endif %}
+          </p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'student_profile' %}" class="btn btn-primary">
+            <i class="bi bi-person-circle me-1"></i> My Profile
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Cards Row -->
+  <div class="row mb-4">
+    <!-- Current Class Card -->
+    <div class="col-md-4 mb-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="mb-0">
+                {% with current_class=request.user.get_current_class %} {{
+                current_class.name|default:"Not Assigned" }} {% endwith %}
+              </h4>
+              <p class="mb-0">Current Class</p>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-building" style="font-size: 2rem"></i>
+            </div>
+          </div>
+          {% with current_class=request.user.get_current_class %} {% if
+          current_class %}
+          <small class="opacity-75"
+            >{{ current_class.form.name|default:"" }}</small
+          >
+          {% else %}
+          <small class="opacity-75">Please contact administration</small>
+          {% endif %} {% endwith %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Academic Year Card -->
+    <div class="col-md-4 mb-3">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="mb-0">
+                {{ school_info.current_academic_year.name|default:"Not Set" }}
+              </h4>
+              <p class="mb-0">Academic Year</p>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-calendar" style="font-size: 2rem"></i>
+            </div>
+          </div>
+          {% if school_info.current_term %}
+          <small class="opacity-75"
+            >Current Term: {{ school_info.current_term.get_term_number_display
+            }}</small
+          >
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Summary Card -->
+    <div class="col-md-4 mb-3">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="mb-0">
+                {% if assessments %} {% with
+                avg_score=assessments|dictsort:"total_score"|last %} {{
+                avg_score.total_score|floatformat:1|default:"N/A" }}% {% endwith
+                %} {% else %}No Data{% endif %}
+              </h4>
+              <p class="mb-0">Performance</p>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-graph-up" style="font-size: 2rem"></i>
+            </div>
+          </div>
+          {% if assessments %}
+          <small class="opacity-75">Latest Assessment</small>
+          {% else %}
+          <small class="opacity-75">No assessments available</small>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Navigation Cards -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Quick Navigation</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-3 col-sm-6">
+              <a
+                href="{% url 'view_student_report_cards' user.student_profile.id %}"
+                class="text-decoration-none"
+              >
+                <div class="card bg-light h-100">
+                  <div class="card-body text-center">
+                    <i
+                      class="bi bi-file-earmark-text mb-2 text-primary"
+                      style="font-size: 2rem"
+                    ></i>
+                    <h6>Report Cards</h6>
+                  </div>
+                </div>
+              </a>
+            </div>
+            {% with current_class=request.user.get_current_class %}
+            <div class="col-md-3 col-sm-6">
+              <a
+                href="{% if current_class and current_class.id %}{% url 'student_term_performance' class_id=current_class.id student_id=request.user.id %}{% else %}#{% endif %}"
+                class="text-decoration-none"
+                {%
+                if
+                not
+                current_class
+                or
+                not
+                current_class.id
+                %}onclick="alert('You are not assigned to any class. Please contact your administrator.');"
+                {%
+                endif
+                %}
+              >
+                <div class="card bg-light h-100">
+                  <div class="card-body text-center">
+                    <i
+                      class="bi bi-graph-up mb-2 text-success"
+                      style="font-size: 2rem"
+                    ></i>
+                    <h6>Term Performance</h6>
+                  </div>
+                </div>
+              </a>
+            </div>
+            {% endwith %}
+            <div class="col-md-3 col-sm-6">
+              <a
+                href="{% url 'student_class_history' student_id=request.user.id %}"
+                class="text-decoration-none"
+              >
+                <div class="card bg-light h-100">
+                  <div class="card-body text-center">
+                    <i
+                      class="bi bi-clock-history mb-2 text-info"
+                      style="font-size: 2rem"
+                    ></i>
+                    <h6>Class History</h6>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="col-md-3 col-sm-6">
+              <a href="#" class="text-decoration-none">
+                <div class="card bg-light h-100">
+                  <div class="card-body text-center">
+                    <i
+                      class="bi bi-book mb-2 text-warning"
+                      style="font-size: 2rem"
+                    ></i>
+                    <h6>My Subjects</h6>
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Cards Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-file-earmark-text me-2"></i>Academic Reports
+        </h5>
+        <a
+          href="{% url 'view_student_report_cards' user.student_profile.id %}"
+          class="btn btn-primary btn-sm"
+        >
+          <i class="bi bi-file-earmark-text me-1"></i> View All Report Cards
+        </a>
+      </div>
+    </div>
+    <div class="card-body">
+      {% if recent_report_cards %}
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>Academic Year</th>
+              <th>Term</th>
+              <th>Average Score</th>
+              <th>Position</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for report_card in recent_report_cards %}
+            <tr>
+              <td>{{ report_card.academic_year }}</td>
+              <td>{{ report_card.term.get_term_number_display }}</td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="progress flex-grow-1 me-2" style="height: 8px">
+                    <div
+                      class="progress-bar {% if report_card.total_score >= 70 %}bg-success{% elif report_card.total_score >= 50 %}bg-info{% elif report_card.total_score >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                      role="progressbar"
+                      style="width: {{ report_card.total_score }}%;"
+                      aria-valuenow="{{ report_card.total_score }}"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                    ></div>
+                  </div>
+                  <span>{{ report_card.total_score|floatformat:1 }}%</span>
+                </div>
+              </td>
+              <td>
+                {% if report_card.position %}
+                <span
+                  class="badge {% if report_card.position == 1 %}bg-success{% elif report_card.position <= 3 %}bg-info{% elif report_card.position <= 10 %}bg-primary{% else %}bg-secondary{% endif %}"
+                >
+                  {{ report_card.position }} of {{
+                  report_card.class_size|default:"?" }}
+                </span>
+                {% else %}
+                <span class="badge bg-secondary">Not ranked</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="btn-group">
+                  <a
+                    class="btn btn-outline-primary"
+                    href="{% url 'view_report_card_details' report_card.id %}"
+                    title="View Report Card"
+                  >
+                    <i class="bi bi-eye"></i> View
+                  </a>
+                  <a
+                    class="btn btn-outline-info"
+                    href="{% url 'view_report_card_details' report_card.id %}?format=pdf&download=true"
+                    title="Download Report Card"
+                  >
+                    <i class="bi bi-download"></i> Download
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-4">
+        <i
+          class="bi bi-file-earmark-text text-muted mb-3"
+          style="font-size: 3rem"
+        ></i>
+        <h5>No Report Cards Available</h5>
+        <p class="text-muted">
+          Report cards provide detailed information about your academic
+          performance, including grades, attendance, and teacher remarks.
+        </p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Current Term Assessments -->
+  <div class="card">
+    <div class="card-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-graph-up me-2"></i>Current Term Assessments
+        </h5>
+        {% if school_info.current_term %}
+        <span class="badge bg-secondary">
+          {{ school_info.current_term.get_term_number_display }} | {{
+          school_info.current_academic_year.name }}
+        </span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card-body">
+      {% if assessments %}
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>Subject</th>
+              <th style="width: 40%">Score</th>
+              <th>Grade</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for assessment in assessments %}
+            <tr>
+              <td>
+                <strong
+                  >{{
+                  assessment.class_subject.subject.subject_name|default:"N/A"
+                  }}</strong
+                >
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="progress flex-grow-1 me-2" style="height: 8px">
+                    <div
+                      class="progress-bar {% if assessment.total_score >= 70 %}bg-success{% elif assessment.total_score >= 50 %}bg-info{% elif assessment.total_score >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                      role="progressbar"
+                      style="width: {{ assessment.total_score }}%;"
+                      aria-valuenow="{{ assessment.total_score }}"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                    ></div>
+                  </div>
+                  <span
+                    >{{ assessment.total_score|floatformat:1|default:"N/A"
+                    }}</span
+                  >
+                </div>
+              </td>
+              <td>
+                <span
+                  class="badge {% if assessment.grade == 'A' %}bg-success{% elif assessment.grade == 'B' %}bg-info{% elif assessment.grade == 'C' %}bg-primary{% elif assessment.grade == 'D' %}bg-warning{% else %}bg-danger{% endif %}"
+                >
+                  {{ assessment.grade|default:"N/A" }}
+                </span>
+              </td>
+              <td>
+                {% if assessment.total_score >= 70 %}
+                <span class="badge bg-success">Excellent</span>
+                {% elif assessment.total_score >= 60 %}
+                <span class="badge bg-info">Very Good</span>
+                {% elif assessment.total_score >= 50 %}
+                <span class="badge bg-primary">Good</span>
+                {% elif assessment.total_score >= 40 %}
+                <span class="badge bg-warning">Pass</span>
+                {% else %}
+                <span class="badge bg-danger">Needs Improvement</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-4">
+        <i class="bi bi-graph-up text-muted mb-3" style="font-size: 3rem"></i>
+        <h5>No Assessments Available</h5>
+        <p class="text-muted">
+          Assessment data will appear here once your teachers have entered your
+          scores.
+        </p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}

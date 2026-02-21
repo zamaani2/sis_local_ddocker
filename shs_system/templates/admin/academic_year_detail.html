@@ -1,0 +1,872 @@
+{% extends 'base.html' %} {% load static %} {% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block extra_css %}
+
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %}
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              {{ academic_year.name }}
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if current_academic_year %}
+              Current academic year and term management
+            {% else %}
+              Manage academic year details and terms
+            {% endif %}
+          </p>
+        </div>
+        <div class="btn-group">
+          <a
+            href="{% url 'academic_year_list' %}"
+            class="btn btn-outline-secondary"
+          >
+            <i class="fas fa-arrow-left"></i> Back to List
+          </a>
+          <a
+            href="{% url 'academic_year_diagnostics' academic_year.id %}"
+            class="btn btn-info"
+          >
+            <i class="fas fa-stethoscope"></i> Diagnostics
+          </a>
+          <a
+            href="{% url 'debug_template_creation' academic_year.id %}"
+            class="btn btn-warning"
+          >
+            <i class="fas fa-bug"></i> Debug Template
+          </a>
+          <a
+            hidden
+            href="{% url 'academic_year_edit' academic_year.id %}"
+            class="btn btn-primary"
+          >
+            <i class="fas fa-edit"></i> Edit
+          </a>
+          {% if not academic_year.is_current %}
+          <button
+            type="button"
+            class="btn btn-success"
+            data-bs-toggle="modal"
+            data-bs-target="#setCurrentYearModal"
+          >
+            <i class="fas fa-check-circle"></i> Set as Current
+          </button>
+          {% endif %}
+          <button
+            type="button"
+            class="btn btn-danger"
+            data-bs-toggle="modal"
+            data-bs-target="#deleteYearModal"
+          >
+            <i class="fas fa-trash"></i> Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Academic Year Info Card -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              <i class="fas fa-calendar-alt"></i> Academic Year Details
+            </h5>
+            {% if academic_year.is_current %}
+            <span class="badge bg-success">Current Academic Year</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <div class="card bg-primary text-white">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between">
+                    <div>
+                      <h4 class="mb-0">{{ school.name }}</h4>
+                      <p class="mb-0">School</p>
+                    </div>
+                    <div class="align-self-center">
+                      <i class="fas fa-school fa-2x"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 mb-3">
+              <div class="card bg-info text-white">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between">
+                    <div>
+                      <h4 class="mb-0">
+                        {{ academic_year.duration_months }} months
+                      </h4>
+                      <p class="mb-0">Duration</p>
+                    </div>
+                    <div class="align-self-center">
+                      <i class="fas fa-calendar-alt fa-2x"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 mb-3">
+              <div class="card bg-success text-white">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between">
+                    <div>
+                      <h4 class="mb-0">
+                        {{ academic_year.start_date|date:"M d, Y" }}
+                      </h4>
+                      <p class="mb-0">Start Date</p>
+                    </div>
+                    <div class="align-self-center">
+                      <i class="fas fa-calendar-day fa-2x"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 mb-3">
+              <div class="card bg-warning text-white">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between">
+                    <div>
+                      <h4 class="mb-0">
+                        {{ academic_year.end_date|date:"M d, Y" }}
+                      </h4>
+                      <p class="mb-0">End Date</p>
+                    </div>
+                    <div class="align-self-center">
+                      <i class="fas fa-calendar-check fa-2x"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Terms Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-list"></i> Terms</h5>
+            <div class="btn-group btn-group-sm">
+              {% if available_term_choices %}
+              <button
+                type="button"
+                class="btn btn-primary"
+                data-bs-toggle="modal"
+                data-bs-target="#addTermModal"
+              >
+                <i class="fas fa-plus"></i> Add Term
+              </button>
+              {% else %}
+              <button type="button" class="btn btn-outline-secondary" disabled>
+                <i class="fas fa-check-circle"></i> All Terms Added
+              </button>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          {% if terms %}
+          <div class="row">
+            {% for term in terms %}
+            <div class="col-md-4 mb-4">
+              <div
+                class="card {% if term.is_current %}border-success{% endif %}"
+              >
+                <div
+                  class="card-header {% if term.is_current %}bg-success text-white{% endif %}"
+                >
+                  <div
+                    class="d-flex justify-content-between align-items-center"
+                  >
+                    <h6 class="mb-0">{{ term.get_term_number_display }}</h6>
+                    {% if term.is_current %}
+                    <span class="badge bg-light text-success"
+                      >Current Term</span
+                    >
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <div
+                      class="d-flex justify-content-between align-items-center mb-2"
+                    >
+                      <span class="text-white">
+                        <i class="fas fa-calendar-day"></i> Start Date:
+                      </span>
+                      <span class="fw-bold"
+                        >{{ term.start_date|date:"M d, Y" }}</span
+                      >
+                    </div>
+                    <div
+                      class="d-flex justify-content-between align-items-center mb-2"
+                    >
+                      <span class="text-white">
+                        <i class="fas fa-calendar-check"></i> End Date:
+                      </span>
+                      <span class="fw-bold"
+                        >{{ term.end_date|date:"M d, Y" }}</span
+                      >
+                    </div>
+                    <div
+                      class="d-flex justify-content-between align-items-center mb-3"
+                    >
+                      <span class="text-white">
+                        <i class="fas fa-clock"></i> Duration:
+                      </span>
+                      <span class="fw-bold"
+                        >{{ term.duration_weeks }} weeks</span
+                      >
+                    </div>
+                  </div>
+                  <div class="progress mb-3" style="height: 20px">
+                    <div
+                      class="progress-bar {% if term.progress_percentage > 90 %}bg-danger{% elif term.progress_percentage > 75 %}bg-warning{% else %}bg-success{% endif %}"
+                      role="progressbar"
+                      style="width: {{ term.progress_percentage }}%"
+                      aria-valuenow="{{ term.progress_percentage }}"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                    >
+                      {{ term.progress_percentage }}%
+                    </div>
+                  </div>
+                  <div class="btn-group btn-group-sm w-100">
+                    <button
+                      class="btn btn-outline-primary"
+                      data-bs-toggle="modal"
+                      data-bs-target="#editTermModal-{{ term.id }}"
+                      title="Edit Term"
+                    >
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    {% if not term.is_current %}
+                    <button
+                      class="btn btn-outline-success"
+                      data-bs-toggle="modal"
+                      data-bs-target="#setCurrentTermModal-{{ term.id }}"
+                      title="Set as Current"
+                    >
+                      <i class="fas fa-check-circle"></i>
+                    </button>
+                    {% endif %}
+                    <button
+                      class="btn btn-outline-danger"
+                      data-bs-toggle="modal"
+                      data-bs-target="#deleteTermModal-{{ term.id }}"
+                      title="Delete Term"
+                    >
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="fas fa-list fa-3x mb-3"></i>
+            <h5>No Terms Found</h5>
+            <p>No terms have been added to this academic year yet.</p>
+            {% if available_term_choices %}
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-bs-toggle="modal"
+              data-bs-target="#addTermModal"
+            >
+              <i class="fas fa-plus"></i> Add Term
+            </button>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modals -->
+<!-- Set Current Year Modal -->
+<div
+  class="modal fade"
+  id="setCurrentYearModal"
+  tabindex="-1"
+  aria-labelledby="setCurrentYearModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="setCurrentYearModalLabel">
+          <i class="fas fa-check-circle"></i> Set as Current Academic Year
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle"></i>
+          This will update all academic year records in the system.
+        </div>
+        <p>
+          Are you sure you want to set
+          <strong>{{ academic_year.name }}</strong> as the current academic
+          year?
+        </p>
+        <p class="text-muted">
+          The previous current academic year will be marked as not current.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+        <a
+          href="{% url 'set_current_academic_year' academic_year.id %}"
+          class="btn btn-success"
+        >
+          <i class="fas fa-check-circle"></i> Set as Current
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Year Modal -->
+<div
+  class="modal fade"
+  id="deleteYearModal"
+  tabindex="-1"
+  aria-labelledby="deleteYearModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteYearModalLabel">
+          <i class="fas fa-exclamation-triangle"></i> Delete Academic Year
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning">
+          <i class="fas fa-exclamation-triangle"></i>
+          <strong>Warning:</strong> This action cannot be undone.
+        </div>
+        <p>
+          Are you sure you want to delete
+          <strong>{{ academic_year.name }}</strong>?
+        </p>
+        <p class="text-danger">
+          <i class="fas fa-info-circle"></i>
+          All associated terms will also be deleted.
+        </p>
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle"></i>
+          Academic years with associated records cannot be deleted.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+        <form
+          action="{% url 'academic_year_delete' academic_year.id %}"
+          method="post"
+          class="d-inline"
+        >
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash"></i> Delete Academic Year
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Term Modal -->
+<div
+  class="modal fade"
+  id="addTermModal"
+  tabindex="-1"
+  aria-labelledby="addTermModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addTermModalLabel">
+          <i class="fas fa-plus"></i> Add New Term
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <form
+        id="addTermForm"
+        action="{% url 'term_create' %}?next={% url 'academic_year_detail' academic_year.id %}"
+        method="post"
+      >
+        {% csrf_token %}
+        <div class="modal-body">
+          <input
+            type="hidden"
+            name="academic_year"
+            value="{{ academic_year.id }}"
+          />
+
+          <div class="mb-3">
+            <label for="term_number" class="form-label">
+              <i class="fas fa-list"></i> Term
+            </label>
+            <select
+              name="term_number"
+              id="term_number"
+              class="form-select"
+              required
+            >
+              <option value="">Select Term</option>
+              {% for term_num, term_name in available_term_choices %}
+              <option value="{{ term_num }}">{{ term_name }}</option>
+              {% endfor %}
+            </select>
+            <small class="form-text text-muted">
+              Select the term number to add.
+            </small>
+          </div>
+
+          <div class="mb-3">
+            <label for="start_date" class="form-label">
+              <i class="fas fa-calendar-day"></i> Start Date
+            </label>
+            <input
+              type="date"
+              name="start_date"
+              id="start_date"
+              class="form-control"
+              required
+              min="{{ academic_year.start_date|date:'Y-m-d' }}"
+              max="{{ academic_year.end_date|date:'Y-m-d' }}"
+            />
+            <small class="form-text text-muted">
+              Select the start date for this term.
+            </small>
+          </div>
+
+          <div class="mb-3">
+            <label for="end_date" class="form-label">
+              <i class="fas fa-calendar-check"></i> End Date
+            </label>
+            <input
+              type="date"
+              name="end_date"
+              id="end_date"
+              class="form-control"
+              required
+              min="{{ academic_year.start_date|date:'Y-m-d' }}"
+              max="{{ academic_year.end_date|date:'Y-m-d' }}"
+            />
+            <small class="form-text text-muted">
+              Select the end date for this term.
+            </small>
+          </div>
+
+          <div class="form-check">
+            <input
+              type="checkbox"
+              name="is_current"
+              id="is_current"
+              class="form-check-input"
+            />
+            <label for="is_current" class="form-check-label">
+              <i class="fas fa-star"></i> Set as Current Term
+            </label>
+            <small class="form-text text-muted d-block">
+              Check this to make this the active term.
+            </small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            <i class="fas fa-times"></i> Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Add Term
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Term Modals -->
+{% for term in terms %}
+<div
+  class="modal fade"
+  id="editTermModal-{{ term.id }}"
+  tabindex="-1"
+  aria-labelledby="editTermModalLabel-{{ term.id }}"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editTermModalLabel-{{ term.id }}">
+          <i class="fas fa-edit"></i> Edit {{ term.get_term_number_display }}
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <form
+        action="{% url 'term_edit' term.id %}?next={% url 'academic_year_detail' academic_year.id %}"
+        method="post"
+      >
+        {% csrf_token %}
+        <div class="modal-body">
+          <input
+            type="hidden"
+            name="academic_year"
+            value="{{ academic_year.id }}"
+          />
+          <input
+            type="hidden"
+            name="term_number"
+            value="{{ term.term_number }}"
+          />
+
+          <div class="mb-3">
+            <label for="start_date_{{ term.id }}" class="form-label">
+              <i class="fas fa-calendar-day"></i> Start Date
+            </label>
+            <input
+              type="date"
+              name="start_date"
+              id="start_date_{{ term.id }}"
+              class="form-control"
+              required
+              value="{{ term.start_date|date:'Y-m-d' }}"
+              min="{{ academic_year.start_date|date:'Y-m-d' }}"
+              max="{{ academic_year.end_date|date:'Y-m-d' }}"
+            />
+            <small class="form-text text-muted">
+              Select the start date for this term.
+            </small>
+          </div>
+
+          <div class="mb-3">
+            <label for="end_date_{{ term.id }}" class="form-label">
+              <i class="fas fa-calendar-check"></i> End Date
+            </label>
+            <input
+              type="date"
+              name="end_date"
+              id="end_date_{{ term.id }}"
+              class="form-control"
+              required
+              value="{{ term.end_date|date:'Y-m-d' }}"
+              min="{{ academic_year.start_date|date:'Y-m-d' }}"
+              max="{{ academic_year.end_date|date:'Y-m-d' }}"
+            />
+            <small class="form-text text-muted">
+              Select the end date for this term.
+            </small>
+          </div>
+
+          <div class="mb-3 form-check">
+            <input
+              type="checkbox"
+              name="is_current"
+              id="is_current_{{ term.id }}"
+              class="form-check-input"
+              {%
+              if
+              term.is_current
+              %}checked{%
+              endif
+              %}
+            />
+            <label for="is_current_{{ term.id }}" class="form-check-label">
+              <i class="fas fa-star"></i> Set as Current Term
+            </label>
+            <small class="form-text text-muted d-block">
+              Check this to make this the active term.
+            </small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            <i class="fas fa-times"></i> Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Set Current Term Modals -->
+{% for term in terms %} {% if not term.is_current %}
+<div
+  class="modal fade"
+  id="setCurrentTermModal-{{ term.id }}"
+  tabindex="-1"
+  aria-labelledby="setCurrentTermModalLabel-{{ term.id }}"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="setCurrentTermModalLabel-{{ term.id }}">
+          <i class="fas fa-check-circle"></i> Set as Current Term
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle"></i>
+          This will also set <strong>{{ academic_year.name }}</strong> as the
+          current academic year.
+        </div>
+        <p>
+          Are you sure you want to set
+          <strong>{{ term.get_term_number_display }}</strong> as the current
+          term?
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+        <a
+          href="{% url 'set_current_term' term.id %}?next={% url 'academic_year_detail' academic_year.id %}"
+          class="btn btn-success"
+        >
+          <i class="fas fa-check-circle"></i> Set as Current
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %} {% endfor %}
+
+<!-- Delete Term Modals -->
+{% for term in terms %}
+<div
+  class="modal fade"
+  id="deleteTermModal-{{ term.id }}"
+  tabindex="-1"
+  aria-labelledby="deleteTermModalLabel-{{ term.id }}"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteTermModalLabel-{{ term.id }}">
+          <i class="fas fa-exclamation-triangle"></i> Delete {{
+          term.get_term_number_display }}
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning">
+          <i class="fas fa-exclamation-triangle"></i>
+          <strong>Warning:</strong> This action cannot be undone.
+        </div>
+        <p>
+          Are you sure you want to delete
+          <strong>{{ term.get_term_number_display }}</strong> from
+          <strong>{{ academic_year.name }}</strong>?
+        </p>
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle"></i>
+          Terms with associated records (classes, scores, etc.) cannot be
+          deleted.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+        <form
+          action="{% url 'term_delete' term.id %}?next={% url 'academic_year_detail' academic_year.id %}"
+          method="post"
+        >
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash"></i> Delete Term
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %} {% endblock %} {% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Term form validation
+    const addTermForm = document.getElementById("addTermForm");
+    if (addTermForm) {
+      addTermForm.addEventListener("submit", function (event) {
+        const startDate = new Date(document.getElementById("start_date").value);
+        const endDate = new Date(document.getElementById("end_date").value);
+
+        if (startDate >= endDate) {
+          event.preventDefault();
+          // Show consistent alert using SweetAlert or Bootstrap alert
+          const alertDiv = document.createElement("div");
+          alertDiv.className = "alert alert-danger alert-dismissible fade show";
+          alertDiv.innerHTML = `
+            <i class="fas fa-exclamation-triangle"></i>
+            End date must be after start date.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          `;
+
+          // Insert at the top of the modal body
+          const modalBody = document.querySelector("#addTermModal .modal-body");
+          if (modalBody) {
+            modalBody.insertBefore(alertDiv, modalBody.firstChild);
+          }
+
+          // Auto-dismiss after 5 seconds
+          setTimeout(() => {
+            if (alertDiv.parentNode) {
+              alertDiv.remove();
+            }
+          }, 5000);
+        }
+      });
+    }
+
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(
+      document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    );
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Term number change handler to suggest dates
+    const termNumberSelect = document.getElementById("term_number");
+    if (termNumberSelect) {
+      termNumberSelect.addEventListener("change", function () {
+        const termNumber = parseInt(this.value);
+        if (!termNumber) return;
+
+        const academicYearStart = new Date(
+          '{{ academic_year.start_date|date:"Y-m-d" }}'
+        );
+        const academicYearEnd = new Date(
+          '{{ academic_year.end_date|date:"Y-m-d" }}'
+        );
+
+        // Calculate term length in days
+        const totalDays = Math.round(
+          (academicYearEnd - academicYearStart) / (1000 * 60 * 60 * 24)
+        );
+        const termLength = Math.floor(totalDays / 3);
+
+        const startDateInput = document.getElementById("start_date");
+        const endDateInput = document.getElementById("end_date");
+
+        if (termNumber === 1) {
+          // First term starts at academic year start
+          startDateInput.value = formatDate(academicYearStart);
+
+          const firstTermEnd = new Date(academicYearStart);
+          firstTermEnd.setDate(firstTermEnd.getDate() + termLength);
+          endDateInput.value = formatDate(firstTermEnd);
+        } else if (termNumber === 2) {
+          // Second term starts after first term
+          const secondTermStart = new Date(academicYearStart);
+          secondTermStart.setDate(secondTermStart.getDate() + termLength + 1);
+          startDateInput.value = formatDate(secondTermStart);
+
+          const secondTermEnd = new Date(academicYearStart);
+          secondTermEnd.setDate(secondTermEnd.getDate() + termLength * 2);
+          endDateInput.value = formatDate(secondTermEnd);
+        } else if (termNumber === 3) {
+          // Third term starts after second term and ends at academic year end
+          const thirdTermStart = new Date(academicYearStart);
+          thirdTermStart.setDate(thirdTermStart.getDate() + termLength * 2 + 1);
+          startDateInput.value = formatDate(thirdTermStart);
+
+          endDateInput.value = formatDate(academicYearEnd);
+        }
+      });
+    }
+
+    // Helper function to format date as YYYY-MM-DD
+    function formatDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,182 @@
+{% extends 'super_admin/base.html' %}
+{% load static %}
+
+{% block title %}Payment Transactions - {{ block.super }}{% endblock %}
+
+{% block page_title %}Payment Transactions{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Transactions</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h6 class="m-0 font-weight-bold">All Transactions</h6>
+      <div>
+        <a href="#" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+          <i class="bi bi-funnel me-1"></i> Filter
+        </a>
+        <a href="#" class="btn btn-sm btn-success" id="exportBtn">
+          <i class="bi bi-download me-1"></i> Export
+        </a>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover" id="transactionsTable" width="100%" cellspacing="0">
+          <thead>
+            <tr>
+              <th>Invoice #</th>
+              <th>School</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Payment Method</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for transaction in transactions %}
+            <tr>
+              <td>{{ transaction.invoice_number }}</td>
+              <td>
+                <a href="{% url 'super_admin:school_detail' transaction.subscription.school.id %}">
+                  {{ transaction.subscription.school.name }}
+                </a>
+              </td>
+              <td>{{ transaction.amount }} {{ transaction.currency }}</td>
+              <td>
+                {% if transaction.status == 'completed' %}
+                <span class="badge bg-success">Completed</span>
+                {% elif transaction.status == 'pending' %}
+                <span class="badge bg-warning text-dark">Pending</span>
+                {% elif transaction.status == 'failed' %}
+                <span class="badge bg-danger">Failed</span>
+                {% elif transaction.status == 'refunded' %}
+                <span class="badge bg-info">Refunded</span>
+                {% else %}
+                <span class="badge bg-secondary">{{ transaction.status|title }}</span>
+                {% endif %}
+              </td>
+              <td>{{ transaction.payment_method|title }}</td>
+              <td>{{ transaction.payment_date|date:"M d, Y H:i" }}</td>
+              <td>
+                <a href="{% url 'super_admin:transaction_detail' transaction.id %}" class="btn btn-sm btn-info">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center">No transactions found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="filterModalLabel">Filter Transactions</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="filterForm" method="get">
+          <div class="mb-3">
+            <label for="school" class="form-label">School</label>
+            <select name="school" id="school" class="form-select">
+              <option value="">All Schools</option>
+              {% for school in schools %}
+              <option value="{{ school.id }}" {% if request.GET.school == school.id|stringformat:"i" %}selected{% endif %}>
+                {{ school.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <div class="mb-3">
+            <label for="status" class="form-label">Status</label>
+            <select name="status" id="status" class="form-select">
+              <option value="">All Statuses</option>
+              <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
+              <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+              <option value="failed" {% if request.GET.status == 'failed' %}selected{% endif %}>Failed</option>
+              <option value="refunded" {% if request.GET.status == 'refunded' %}selected{% endif %}>Refunded</option>
+            </select>
+          </div>
+          
+          <div class="mb-3">
+            <label for="payment_method" class="form-label">Payment Method</label>
+            <select name="payment_method" id="payment_method" class="form-select">
+              <option value="">All Methods</option>
+              <option value="credit_card" {% if request.GET.payment_method == 'credit_card' %}selected{% endif %}>Credit Card</option>
+              <option value="bank_transfer" {% if request.GET.payment_method == 'bank_transfer' %}selected{% endif %}>Bank Transfer</option>
+              <option value="paypal" {% if request.GET.payment_method == 'paypal' %}selected{% endif %}>PayPal</option>
+              <option value="manual" {% if request.GET.payment_method == 'manual' %}selected{% endif %}>Manual</option>
+            </select>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="date_from" class="form-label">Date From</label>
+                <input type="date" name="date_from" id="date_from" class="form-control" value="{{ request.GET.date_from }}">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="date_to" class="form-label">Date To</label>
+                <input type="date" name="date_to" id="date_to" class="form-control" value="{{ request.GET.date_to }}">
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" id="applyFilterBtn">Apply Filter</button>
+        <a href="{% url 'super_admin:transaction_list' %}" class="btn btn-outline-secondary">Reset</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DataTable if available
+    if (typeof $.fn.DataTable !== 'undefined') {
+      $('#transactionsTable').DataTable({
+        "order": [[5, "desc"]],
+        "pageLength": 25
+      });
+    }
+    
+    // Apply filter button
+    $('#applyFilterBtn').on('click', function() {
+      $('#filterForm').submit();
+    });
+    
+    // Export functionality
+    $('#exportBtn').on('click', function(e) {
+      e.preventDefault();
+      
+      // Get current filter parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      urlParams.append('export', 'csv');
+      
+      // Redirect to export URL
+      window.location.href = `{% url 'super_admin:transaction_list' %}?${urlParams.toString()}`;
+    });
+  });
+</script>
+{% endblock %} 

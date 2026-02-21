@@ -1,0 +1,482 @@
+{% extends "super_admin/base.html" %} {% load static %} {% load super_admin_tags %} {% block title %}{{ title }}{% endblock %} {% block extra_css %}
+<style>
+  .form-container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 10px;
+    padding: 40px;
+    text-align: center;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+  }
+
+  .upload-area:hover {
+    border-color: #007bff;
+    background-color: #e3f2fd;
+  }
+
+  .upload-area.dragover {
+    border-color: #007bff;
+    background-color: #e3f2fd;
+  }
+
+  .file-info {
+    background-color: #e8f5e8;
+    border: 1px solid #c3e6c3;
+    border-radius: 5px;
+    padding: 15px;
+    margin-top: 15px;
+    display: none;
+  }
+
+  .backup-preview {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 15px;
+    margin-top: 15px;
+    display: none;
+  }
+
+  .step-indicator {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+  }
+
+  .step {
+    display: flex;
+    align-items: center;
+    margin: 0 10px;
+  }
+
+  .step-number {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #dee2e6;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 10px;
+  }
+
+  .step.active .step-number {
+    background-color: #007bff;
+    color: white;
+  }
+
+  .step.completed .step-number {
+    background-color: #28a745;
+    color: white;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">{{ title }}</h1>
+          <p class="text-muted">
+            {% if action == 'restore_existing' %} Restore backup data to an
+            existing school {% else %} Create a new school from backup data {% endif %}
+          </p>
+        </div>
+        <div>
+          <a
+            href="{% url 'super_admin:backup_restore_dashboard' %}"
+            class="btn btn-outline-secondary"
+          >
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step Indicator -->
+  <div class="row">
+    <div class="col-12">
+      <div class="step-indicator">
+        <div class="step active">
+          <div class="step-number">1</div>
+          <span>Upload Backup</span>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <span>Configure Options</span>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <span>Review & Execute</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="row">
+    <div class="col-12">
+      <div class="form-container">
+        <form method="post" enctype="multipart/form-data" id="restoreForm">
+          {% csrf_token %}
+
+          <!-- Step 1: Upload Backup File -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-upload"></i> Step 1: Upload Backup File
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="upload-area" id="uploadArea">
+                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                <h5>Drop your backup file here or click to browse</h5>
+                <p class="text-muted">Supported format: ZIP files only</p>
+                {{ form.backup_file }}
+              </div>
+
+              <div class="file-info" id="fileInfo">
+                <h6><i class="fas fa-file-archive"></i> File Information</h6>
+                <div id="fileDetails"></div>
+              </div>
+
+              <div class="backup-preview" id="backupPreview">
+                <h6><i class="fas fa-info-circle"></i> Backup Information</h6>
+                <div id="backupDetails"></div>
+              </div>
+
+              {% if form.backup_file.errors %}
+              <div class="alert alert-danger mt-3">
+                {{ form.backup_file.errors }}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Step 2: Configuration -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-cog"></i> Step 2: Configuration
+              </h5>
+            </div>
+            <div class="card-body">
+              {% if action == 'restore_existing' %}
+              <!-- Target School Selection -->
+              <div class="mb-3">
+                <label
+                  for="{{ form.target_school.id_for_label }}"
+                  class="form-label"
+                >
+                  <i class="fas fa-school"></i> Target School
+                </label>
+                {{ form.target_school }} {% if form.target_school.errors %}
+                <div class="text-danger">{{ form.target_school.errors }}</div>
+                {% endif %}
+                <div class="form-text">{{ form.target_school.help_text }}</div>
+              </div>
+              {% else %}
+              <!-- New School Information -->
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label
+                      for="{{ form.new_school_name.id_for_label }}"
+                      class="form-label"
+                    >
+                      <i class="fas fa-school"></i> School Name
+                    </label>
+                    {{ form.new_school_name }} {% if form.new_school_name.errors %}
+                    <div class="text-danger">
+                      {{ form.new_school_name.errors }}
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label
+                      for="{{ form.new_school_domain.id_for_label }}"
+                      class="form-label"
+                    >
+                      <i class="fas fa-globe"></i> School Domain
+                    </label>
+                    {{ form.new_school_domain }} {% if form.new_school_domain.errors %}
+                    <div class="text-danger">
+                      {{ form.new_school_domain.errors }}
+                    </div>
+                    {% endif %}
+                    <div class="form-text">
+                      {{ form.new_school_domain.help_text }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label
+                      for="{{ form.admin_name.id_for_label }}"
+                      class="form-label"
+                    >
+                      <i class="fas fa-user"></i> Admin Name
+                    </label>
+                    {{ form.admin_name }} {% if form.admin_name.errors %}
+                    <div class="text-danger">{{ form.admin_name.errors }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label
+                      for="{{ form.admin_email.id_for_label }}"
+                      class="form-label"
+                    >
+                      <i class="fas fa-envelope"></i> Admin Email
+                    </label>
+                    {{ form.admin_email }} {% if form.admin_email.errors %}
+                    <div class="text-danger">{{ form.admin_email.errors }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+
+              <!-- Restore Options -->
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="form-check">
+                    {{ form.restore_database }}
+                    <label
+                      class="form-check-label"
+                      for="{{ form.restore_database.id_for_label }}"
+                    >
+                      {{ form.restore_database.label }}
+                    </label>
+                    <div class="form-text">
+                      {{ form.restore_database.help_text }}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-check">
+                    {{ form.restore_media_files }}
+                    <label
+                      class="form-check-label"
+                      for="{{ form.restore_media_files.id_for_label }}"
+                    >
+                      {{ form.restore_media_files.label }}
+                    </label>
+                    <div class="form-text">
+                      {{ form.restore_media_files.help_text }}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-check">
+                    {{ form.restore_static_files }}
+                    <label
+                      class="form-check-label"
+                      for="{{ form.restore_static_files.id_for_label }}"
+                    >
+                      {{ form.restore_static_files.label }}
+                    </label>
+                    <div class="form-text">
+                      {{ form.restore_static_files.help_text }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {% if action == 'restore_existing' %}
+              <div class="row mt-3">
+                <div class="col-12">
+                  <div class="form-check">
+                    {{ form.backup_existing_data }}
+                    <label
+                      class="form-check-label"
+                      for="{{ form.backup_existing_data.id_for_label }}"
+                    >
+                      {{ form.backup_existing_data.label }}
+                    </label>
+                    <div class="form-text">
+                      {{ form.backup_existing_data.help_text }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Step 3: Execute -->
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-play"></i> Step 3: Execute Restore
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Warning:</strong> This operation will modify school
+                data. {% if action == 'restore_existing' %} Make sure you have
+                backed up existing data before proceeding. {% else %} A new
+                school will be created with the backup data. {% endif %}
+              </div>
+
+              <div class="d-flex justify-content-between">
+                <a
+                  href="{% url 'super_admin:backup_restore_dashboard' %}"
+                  class="btn btn-outline-secondary"
+                >
+                  <i class="fas fa-times"></i> Cancel
+                </a>
+                <button
+                  type="submit"
+                  class="btn btn-primary"
+                  id="submitBtn"
+                  disabled
+                >
+                  <i class="fas fa-play"></i>
+                  {% if action == 'restore_existing' %} Start Restore {% else %}
+                  Create School & Restore {% endif %}
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const uploadArea = document.getElementById("uploadArea");
+    const fileInput = document.getElementById(
+      "{{ form.backup_file.id_for_label }}"
+    );
+    const fileInfo = document.getElementById("fileInfo");
+    const fileDetails = document.getElementById("fileDetails");
+    const backupPreview = document.getElementById("backupPreview");
+    const backupDetails = document.getElementById("backupDetails");
+    const submitBtn = document.getElementById("submitBtn");
+
+    // File upload handling
+    uploadArea.addEventListener("click", () => fileInput.click());
+
+    uploadArea.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      uploadArea.classList.add("dragover");
+    });
+
+    uploadArea.addEventListener("dragleave", () => {
+      uploadArea.classList.remove("dragover");
+    });
+
+    uploadArea.addEventListener("drop", (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove("dragover");
+
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        fileInput.files = files;
+        handleFileSelect(files[0]);
+      }
+    });
+
+    fileInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) {
+        handleFileSelect(e.target.files[0]);
+      }
+    });
+
+    function handleFileSelect(file) {
+      // Show file info
+      fileDetails.innerHTML = `
+            <p><strong>File:</strong> ${file.name}</p>
+            <p><strong>Size:</strong> ${formatFileSize(file.size)}</p>
+            <p><strong>Type:</strong> ${file.type || "Unknown"}</p>
+        `;
+      fileInfo.style.display = "block";
+
+      // Validate and get backup info
+      validateBackupFile(file);
+    }
+
+    function validateBackupFile(file) {
+      const formData = new FormData();
+      formData.append("backup_file", file);
+
+      fetch('{% url "super_admin:validate_backup_file" %}', {
+        method: "POST",
+        body: formData,
+        headers: {
+          "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
+            .value,
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            backupDetails.innerHTML = `
+                    <p><strong>School:</strong> ${
+                      data.backup_info.school_name
+                    }</p>
+                    <p><strong>Created:</strong> ${new Date(
+                      data.backup_info.backup_created_at
+                    ).toLocaleString()}</p>
+                    <p><strong>Database:</strong> ${
+                      data.backup_info.includes_database ? "Yes" : "No"
+                    }</p>
+                    <p><strong>Media Files:</strong> ${
+                      data.backup_info.includes_media_files ? "Yes" : "No"
+                    }</p>
+                    <p><strong>Static Files:</strong> ${
+                      data.backup_info.includes_static_files ? "Yes" : "No"
+                    }</p>
+                `;
+            backupPreview.style.display = "block";
+            submitBtn.disabled = false;
+          } else {
+            alert("Error: " + data.message);
+            submitBtn.disabled = true;
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert("Error validating backup file");
+          submitBtn.disabled = true;
+        });
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes === 0) return "0 Bytes";
+      const k = 1024;
+      const sizes = ["Bytes", "KB", "MB", "GB"];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    }
+
+    // Form submission handling
+    document
+      .getElementById("restoreForm")
+      .addEventListener("submit", function (e) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> Processing...';
+      });
+  });
+</script>
+{% endblock %}

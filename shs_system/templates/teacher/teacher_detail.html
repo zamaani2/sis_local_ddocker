@@ -1,0 +1,925 @@
+{% extends 'base.html' %} 
+{% load static %} 
+{% block title %}Teacher Details{% endblock %}
+{% block page_title %}Teacher Details{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item">
+  <a href="{% url 'admin_dashboard' %}">Dashboard</a>
+</li>
+<li class="breadcrumb-item"><a href="{% url 'teacher_list' %}">Teachers</a></li>
+<li class="breadcrumb-item active">{{ teacher.full_name }}</li>
+{% endblock %} {% block extra_css %}
+
+<style>
+  /* Multi-select styling */
+  select[multiple] {
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid #ced4da;
+  }
+
+  select[multiple] option {
+    padding: 0.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  select[multiple] option:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+
+  select[multiple] option:checked {
+    background-color: var(--primary-color);
+    color: white;
+  }
+
+  .subject-count-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: var(--accent-danger);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            <i class="bi bi-person-badge me-2"></i>
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %}
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              Teacher Details
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            View and manage teacher information and assignments
+          </p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'teacher_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to List
+          </a>
+          <a
+            href="{% url 'edit_teacher' teacher.staff_id %}"
+            class="btn btn-warning"
+          >
+            <i class="bi bi-pencil me-1"></i>Edit Teacher
+          </a>
+          <a
+            href="{% url 'delete_teacher' teacher.staff_id %}"
+            class="btn btn-danger"
+          >
+            <i class="bi bi-trash me-1"></i>Delete
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Teacher Info Card -->
+    <div class="col-md-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">
+            <i class="bi bi-person-badge me-2"></i>Teacher Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="text-center mb-4">
+            {% if teacher.profile_picture %}
+            <img
+              src="{{ teacher.profile_picture.url }}"
+              alt="{{ teacher.full_name }}"
+              class="rounded-circle mx-auto mb-3"
+              style="width: 100px; height: 100px; object-fit: cover"
+            />
+            {% else %}
+            <div
+              class="bg-primary rounded-circle text-white d-flex align-items-center justify-content-center mx-auto mb-3"
+              style="width: 100px; height: 100px; font-size: 40px"
+            >
+              {{ teacher.full_name|slice:":1" }}
+            </div>
+            {% endif %}
+            <h4>{{ teacher.full_name }}</h4>
+            <p class="text-muted">Staff ID: {{ teacher.staff_id }}</p>
+          </div>
+          <hr />
+          <dl class="row">
+            <dt class="col-sm-4">Department:</dt>
+            <dd class="col-sm-8">{{ teacher.department }}</dd>
+
+            <dt class="col-sm-4">Contact:</dt>
+            <dd class="col-sm-8">{{ teacher.contact_number }}</dd>
+
+            <dt class="col-sm-4">User Account:</dt>
+            <dd class="col-sm-8">
+              {% if teacher.user %}
+              <span class="badge bg-success">
+                <i class="bi bi-check-circle me-1"></i>Active
+              </span>
+              {% else %}
+              <span class="badge bg-danger">
+                <i class="bi bi-x-circle me-1"></i>No account
+              </span>
+              {% endif %}
+            </dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <!-- Class Teacher Assignments -->
+    <div class="col-md-8 mb-4">
+      <div class="card h-100">
+        <div
+          class="card-header d-flex justify-content-between align-items-center"
+        >
+          <h5 class="mb-0">
+            <i class="bi bi-people me-2"></i>Class Teacher Assignments
+          </h5>
+          <button
+            type="button"
+            class="btn btn-primary"
+            data-bs-toggle="modal"
+            data-bs-target="#assignClassModal"
+          >
+            <i class="bi bi-plus me-1"></i>Assign Class
+          </button>
+        </div>
+        <div class="card-body">
+          {% if class_teacher_of %}
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Class Name</th>
+                  <th>Form</th>
+                  <th>Learning Area</th>
+                  <th>Students</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for class_obj in class_teacher_of %}
+                <tr>
+                  <td>{{ class_obj.name }}</td>
+                  <td>{{ class_obj.get_form_display }}</td>
+                  <td>{{ class_obj.get_learning_area_display }}</td>
+                  <td>
+                    {{ class_obj.get_current_student_count }} / {{ class_obj.maximum_students }}
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <a
+                        href="#"
+                        class="btn btn-outline-info"
+                        title="View Class"
+                      >
+                        <i class="bi bi-eye"></i>
+                      </a>
+                      <button
+                        class="btn btn-outline-danger remove-class-teacher"
+                        data-class-id="{{ class_obj.id }}"
+                        title="Remove Class Teacher"
+                      >
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-5">
+            <i class="bi bi-people text-muted" style="font-size: 3rem"></i>
+            <h5 class="mt-3 text-muted">No Class Assignments</h5>
+            <p class="text-muted">
+              This teacher is not assigned as a class teacher.
+            </p>
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-bs-toggle="modal"
+              data-bs-target="#assignClassModal"
+            >
+              <i class="bi bi-plus me-1"></i>Assign First Class
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subject Assignments -->
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div
+          class="card-header d-flex justify-content-between align-items-center"
+        >
+          <h5 class="mb-0">
+            <i class="bi bi-book me-2"></i>Subject Assignments for {{ current_academic_year.name }} - {{ current_term.get_term_number_display }}
+          </h5>
+          <button
+            type="button"
+            class="btn btn-primary"
+            data-bs-toggle="modal"
+            data-bs-target="#assignSubjectModal"
+          >
+            <i class="bi bi-plus me-1"></i>Assign Subjects
+          </button>
+        </div>
+        <div class="card-body">
+          {% if subject_assignments %}
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Subject</th>
+                  <th>Class</th>
+                  <th>Learning Area</th>
+                  <th>Assigned By</th>
+                  <th>Date Assigned</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for assignment in subject_assignments %}
+                <tr>
+                  <td>{{ assignment.subject.subject_name }}</td>
+                  <td>{{ assignment.class_assigned.name }}</td>
+                  <td>
+                    {{ assignment.class_assigned.get_learning_area_display }}
+                  </td>
+                  <td>
+                    {% if assignment.assigned_by %} {{ assignment.assigned_by.get_full_name|default:assignment.assigned_by.username}}
+                    {% else %} System {% endif %}
+                  </td>
+                  <td>{{ assignment.date_assigned }}</td>
+                  <td>
+                    <button
+                      class="btn btn-outline-danger remove-subject"
+                      data-assignment-id="{{ assignment.assignment_id }}"
+                      title="Remove Subject Assignment"
+                    >
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-5">
+            <i class="bi bi-book text-muted" style="font-size: 3rem"></i>
+            <h5 class="mt-3 text-muted">No Subject Assignments</h5>
+            <p class="text-muted">
+              No active subject assignments for the current term.
+            </p>
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-bs-toggle="modal"
+              data-bs-target="#assignSubjectModal"
+            >
+              <i class="bi bi-plus me-1"></i>Assign First Subject
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Class Modal -->
+<div
+  class="modal fade"
+  id="assignClassModal"
+  tabindex="-1"
+  aria-labelledby="assignClassModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="assignClassModalLabel">
+          <i class="bi bi-people me-2"></i>Assign Class Teacher
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <form
+        id="assignClassForm"
+        method="POST"
+        action="{% url 'assign_class_teacher' teacher.staff_id %}"
+      >
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="form-group mb-3">
+            <label for="class_id" class="form-label">
+              <i class="bi bi-building me-1"></i>Select Class
+            </label>
+            <select class="form-select" id="class_id" name="class_id" required>
+              <option value="">Choose a class...</option>
+              {% for class_obj in available_classes %}
+              <option value="{{ class_obj.id }}">
+                {{ class_obj.name }} - {{ class_obj.get_form_display }}
+              </option>
+              {% endfor %}
+            </select>
+            <div class="form-text">
+              Select the class to assign this teacher as class teacher.
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            <i class="bi bi-x me-1"></i>Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check me-1"></i>Assign Class
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Subject Modal -->
+<div
+  class="modal fade"
+  id="assignSubjectModal"
+  tabindex="-1"
+  aria-labelledby="assignSubjectModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="assignSubjectModalLabel">
+          <i class="bi bi-book me-2"></i>Assign Subjects
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <form
+        id="assignSubjectForm"
+        method="POST"
+        action="{% url 'assign_multiple_subjects' teacher.staff_id %}"
+      >
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="form-group mb-3">
+            <label for="class_id" class="form-label">
+              <i class="bi bi-building me-1"></i>Select Class
+            </label>
+            <select class="form-select" id="class_id" name="class_id" required>
+              <option value="">Choose a class...</option>
+              {% for class_obj in available_classes %}
+              <option value="{{ class_obj.id }}">
+                {{ class_obj.name }} - {{ class_obj.get_form_display }}
+              </option>
+              {% endfor %}
+            </select>
+            <div class="form-text">
+              Select the class to assign subjects for this teacher.
+            </div>
+          </div>
+          <div class="form-group mb-3">
+            <label for="subject_ids" class="form-label">
+              <i class="bi bi-book me-1"></i>Select Subjects
+            </label>
+            <div class="alert alert-info">
+              <small
+                ><i class="bi bi-info-circle me-1"></i> Select multiple subjects
+                by holding Ctrl (or Cmd on Mac) while clicking, or by dragging
+                to select multiple options.</small
+              >
+            </div>
+            <div class="position-relative">
+              <select
+                class="form-select"
+                id="subject_ids"
+                name="subject_ids[]"
+                multiple
+                required
+                style="min-height: 150px"
+              >
+                <option value="">Loading subjects...</option>
+              </select>
+              <span
+                id="selectedSubjectsCount"
+                class="subject-count-badge d-none"
+                >0</span
+              >
+            </div>
+            <div class="form-text">
+              Hold Ctrl/Cmd to select multiple subjects.
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            <i class="bi bi-x me-1"></i>Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check me-1"></i>Assign Subjects
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.all.min.js' %}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Handle class assignment form submission
+    const assignClassForm = document.getElementById("assignClassForm");
+    if (assignClassForm) {
+      assignClassForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+
+        fetch(this.action, {
+          method: "POST",
+          body: formData,
+          headers: {
+            "X-CSRFToken": formData.get("csrfmiddlewaretoken"),
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              Swal.fire({
+                title: "Success!",
+                text: data.message,
+                icon: "success",
+                confirmButtonText: "OK",
+              }).then(() => {
+                window.location.reload();
+              });
+            } else {
+              Swal.fire({
+                title: "Error!",
+                text: data.message,
+                icon: "error",
+                confirmButtonText: "OK",
+              });
+            }
+          })
+          .catch((error) => {
+            Swal.fire({
+              title: "Error!",
+              text: "An error occurred while processing your request.",
+              icon: "error",
+              confirmButtonText: "OK",
+            });
+          });
+      });
+    }
+
+    // Handle subject assignment form class selection to filter subjects
+    const assignSubjectForm = document.getElementById("assignSubjectForm");
+    if (assignSubjectForm) {
+      const classSelect = assignSubjectForm.querySelector("#class_id");
+      const subjectSelect = assignSubjectForm.querySelector("#subject_ids");
+
+      // Original subject options (save for resetting)
+      const originalSubjectOptions = Array.from(subjectSelect.options).map(
+        (option) => {
+          return {
+            value: option.value,
+            text: option.text,
+          };
+        }
+      );
+
+      // Handle subject selection to update the counter
+      subjectSelect.addEventListener("change", function () {
+        const selectedCount = Array.from(this.selectedOptions).length;
+        const countBadge = document.getElementById("selectedSubjectsCount");
+
+        if (selectedCount > 0) {
+          countBadge.textContent = selectedCount;
+          countBadge.classList.remove("d-none");
+        } else {
+          countBadge.classList.add("d-none");
+        }
+      });
+
+      // When class is selected, filter the subject options
+      classSelect.addEventListener("change", function () {
+        const selectedClassId = this.value;
+
+        if (!selectedClassId) {
+          // Reset to all subjects
+          resetSubjectOptions();
+          return;
+        }
+
+        // Fetch subjects assigned to the selected class
+        fetch(`/api/class-subjects/?class_id=${selectedClassId}`)
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              // Clear current options
+              subjectSelect.innerHTML = "";
+
+              // If no subjects found
+              if (data.subjects.length === 0) {
+                const option = document.createElement("option");
+                option.text = "No subjects assigned to this class";
+                option.disabled = true;
+                subjectSelect.add(option);
+                subjectSelect.disabled = true;
+              } else {
+                // Add the filtered subjects
+                data.subjects.forEach((subject) => {
+                  const option = document.createElement("option");
+                  option.value = subject.id;
+                  option.text = subject.subject_name;
+                  subjectSelect.add(option);
+                });
+                subjectSelect.disabled = false;
+              }
+            } else {
+              // Show error
+              console.error("Error fetching subjects:", data.message);
+              Swal.fire({
+                title: "Error!",
+                text: data.message || "Failed to load subjects for this class",
+                icon: "error",
+                confirmButtonText: "OK",
+              });
+
+              // Reset to all subjects
+              resetSubjectOptions();
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            Swal.fire({
+              title: "Error!",
+              text: "An error occurred while fetching subjects for this class",
+              icon: "error",
+              confirmButtonText: "OK",
+            });
+
+            // Reset to all subjects
+            resetSubjectOptions();
+          });
+      });
+
+      // Function to reset subject dropdown to original options
+      function resetSubjectOptions() {
+        // Clear current options
+        subjectSelect.innerHTML = "";
+
+        // Add placeholder option
+        const option = document.createElement("option");
+        option.text = "Please select a class first";
+        option.disabled = true;
+        option.selected = true;
+        subjectSelect.add(option);
+        subjectSelect.disabled = true;
+      }
+
+      // Handle form submission
+      assignSubjectForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        // Get selected subjects
+        const selectedSubjects = Array.from(subjectSelect.selectedOptions).map(
+          (option) => option.value
+        );
+
+        if (selectedSubjects.length === 0) {
+          Swal.fire({
+            title: "Error!",
+            text: "Please select at least one subject",
+            icon: "error",
+            confirmButtonText: "OK",
+          });
+          return;
+        }
+
+        // Create FormData object
+        const formData = new FormData(this);
+
+        // Remove any existing subject_ids[] entries and add selected ones
+        for (const pair of formData.entries()) {
+          if (pair[0] === "subject_ids[]") {
+            formData.delete(pair[0]);
+          }
+        }
+
+        // Add each selected subject
+        selectedSubjects.forEach((subjectId) => {
+          formData.append("subject_ids[]", subjectId);
+        });
+
+        // Show loading state
+        Swal.fire({
+          title: "Processing...",
+          text: "Assigning subjects to teacher",
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+
+        fetch(this.action, {
+          method: "POST",
+          body: formData,
+          headers: {
+            "X-CSRFToken": formData.get("csrfmiddlewaretoken"),
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              // For multiple subject assignments, show a detailed result
+              let resultHtml = `<div class="text-start">
+                <p class="mb-3">Successfully assigned ${data.success_count} subjects.</p>`;
+
+              if (data.results && data.results.length > 0) {
+                resultHtml += `<div class="mb-2">Details:</div><ul class="list-group">`;
+
+                data.results.forEach((result) => {
+                  const iconClass = result.success
+                    ? "text-success"
+                    : "text-danger";
+                  const icon = result.success ? "check-circle" : "times-circle";
+
+                  resultHtml += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>${result.subject}</span>
+                    <span class="${iconClass}"><i class="bi bi-${icon}"></i> ${result.message}</span>
+                  </li>`;
+                });
+
+                resultHtml += `</ul>`;
+              }
+
+              resultHtml += `</div>`;
+
+              Swal.fire({
+                title: "Success!",
+                html: resultHtml,
+                icon: "success",
+                confirmButtonText: "OK",
+              }).then(() => {
+                window.location.reload();
+              });
+            } else {
+              Swal.fire({
+                title: "Error!",
+                text: data.message,
+                icon: "error",
+                confirmButtonText: "OK",
+              });
+            }
+          })
+          .catch((error) => {
+            Swal.fire({
+              title: "Error!",
+              text: "An error occurred while processing your request.",
+              icon: "error",
+              confirmButtonText: "OK",
+            });
+          });
+      });
+    }
+
+    // Handle subject removal
+    const removeButtons = document.querySelectorAll(".remove-subject");
+    removeButtons.forEach((button) => {
+      button.addEventListener("click", function () {
+        const assignmentId = this.dataset.assignmentId;
+
+        Swal.fire({
+          title: "Are you sure?",
+          text: "You won't be able to revert this!",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#3085d6",
+          cancelButtonColor: "#d33",
+          confirmButtonText: "Yes, remove it!",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // Show loading
+            Swal.fire({
+              title: 'Removing...',
+              html: 'Please wait while we remove the subject assignment',
+              allowOutsideClick: false,
+              didOpen: () => {
+                Swal.showLoading();
+              }
+            });
+
+            // Try both URL patterns to handle different routing scenarios
+            const urls = [
+              `/subject-assignments/${assignmentId}/remove/`,
+              `/school/subject-assignments/${assignmentId}/remove/`
+            ];
+
+            let requestPromise = null;
+            let lastError = null;
+
+            // Try the first URL
+            requestPromise = fetch(urls[0], {
+              method: "POST",
+              headers: {
+                "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
+                "X-Requested-With": "XMLHttpRequest",
+              },
+            }).catch(error => {
+              lastError = error;
+              // If first URL fails, try the second one
+              return fetch(urls[1], {
+                method: "POST",
+                headers: {
+                  "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
+                  "X-Requested-With": "XMLHttpRequest",
+                },
+              });
+            });
+
+            requestPromise
+              .then((response) => {
+                if (!response.ok) {
+                  throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+              })
+              .then((data) => {
+                Swal.close();
+                if (data.success) {
+                  Swal.fire({
+                    title: "Removed!",
+                    text: data.message,
+                    icon: "success",
+                    confirmButtonText: "OK",
+                    timer: 1500
+                  }).then(() => {
+                    window.location.reload();
+                  });
+                } else {
+                  Swal.fire({
+                    title: "Error!",
+                    text: data.message || "Failed to remove subject assignment",
+                    icon: "error",
+                    confirmButtonText: "OK",
+                  });
+                }
+              })
+              .catch((error) => {
+                Swal.close();
+                console.error("Subject removal error:", error);
+                Swal.fire({
+                  title: "Error!",
+                  text: "An error occurred while processing your request. Please try again.",
+                  icon: "error",
+                  confirmButtonText: "OK",
+                });
+              });
+          }
+        });
+      });
+    });
+
+    // Handle class teacher removal
+    const removeClassTeachers = document.querySelectorAll(
+      ".remove-class-teacher"
+    );
+    removeClassTeachers.forEach((button) => {
+      button.addEventListener("click", function () {
+        const classId = this.dataset.classId;
+
+        Swal.fire({
+          title: "Are you sure?",
+          text: "You won't be able to revert this!",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#3085d6",
+          cancelButtonColor: "#d33",
+          confirmButtonText: "Yes, remove it!",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // Show loading
+            Swal.fire({
+              title: 'Removing...',
+              html: 'Please wait while we remove the class teacher assignment',
+              allowOutsideClick: false,
+              didOpen: () => {
+                Swal.showLoading();
+              }
+            });
+
+            // Try both URL patterns to handle different routing scenarios
+            const urls = [
+              `/class-teacher-assignments/${classId}/remove/`,
+              `/school/class-teacher-assignments/${classId}/remove/`
+            ];
+
+            // Try the first URL
+            let requestPromise = fetch(urls[0], {
+              method: "POST",
+              headers: {
+                "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
+                "X-Requested-With": "XMLHttpRequest",
+              },
+            }).catch(error => {
+              // If first URL fails, try the second one
+              return fetch(urls[1], {
+                method: "POST",
+                headers: {
+                  "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
+                  "X-Requested-With": "XMLHttpRequest",
+                },
+              });
+            });
+
+            requestPromise
+              .then((response) => {
+                if (!response.ok) {
+                  throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+              })
+              .then((data) => {
+                Swal.close();
+                if (data.success) {
+                  Swal.fire({
+                    title: "Removed!",
+                    text: data.message,
+                    icon: "success",
+                    confirmButtonText: "OK",
+                    timer: 1500
+                  }).then(() => {
+                    window.location.reload();
+                  });
+                } else {
+                  Swal.fire({
+                    title: "Error!",
+                    text: data.message || "Failed to remove class teacher assignment",
+                    icon: "error",
+                    confirmButtonText: "OK",
+                  });
+                }
+              })
+              .catch((error) => {
+                Swal.close();
+                console.error("Class teacher removal error:", error);
+                Swal.fire({
+                  title: "Error!",
+                  text: "An error occurred while processing your request. Please try again.",
+                  icon: "error",
+                  confirmButtonText: "OK",
+                });
+              });
+          }
+        });
+      });
+    });
+  });
+</script>
+{% endblock %}

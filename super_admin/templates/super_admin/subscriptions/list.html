@@ -1,0 +1,253 @@
+{% extends 'super_admin/base.html' %}
+{% load static %}
+
+{% block title %}Subscriptions - {{ block.super }}{% endblock %}
+
+{% block page_title %}Subscriptions{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Subscriptions</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Heading -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Subscription Management</h1>
+    <a href="{% url 'super_admin:subscription_create' %}" class="d-none d-sm-inline-block btn btn-primary shadow-sm">
+      <i class="bi bi-plus-circle me-1"></i> Add New Subscription
+    </a>
+  </div>
+
+  <!-- Filters and Search -->
+  <div class="card mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold">Filters</h6>
+    </div>
+    <div class="card-body">
+      <form method="get" class="row g-3">
+        <div class="col-md-3">
+          <label for="status" class="form-label">Status</label>
+          <select name="status" id="status" class="form-select">
+            <option value="">All Statuses</option>
+            <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+            <option value="trial" {% if request.GET.status == 'trial' %}selected{% endif %}>Trial</option>
+            <option value="expired" {% if request.GET.status == 'expired' %}selected{% endif %}>Expired</option>
+            <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+            <option value="expiring" {% if request.GET.status == 'expiring' %}selected{% endif %}>Expiring Soon</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="plan" class="form-label">Plan</label>
+          <select name="plan" id="plan" class="form-select">
+            <option value="">All Plans</option>
+            {% for plan in plans %}
+            <option value="{{ plan.id }}" {% if request.GET.plan|stringformat:"s" == plan.id|stringformat:"s" %}selected{% endif %}>{{ plan.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label for="search" class="form-label">Search</label>
+          <input type="text" class="form-control" id="search" name="search" placeholder="School name or subscription ID" value="{{ request.GET.search }}">
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Subscriptions List -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold">Subscriptions</h6>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover" id="subscriptionsTable" width="100%" cellspacing="0">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>School</th>
+              <th>Plan</th>
+              <th>Status</th>
+              <th>Start Date</th>
+              <th>Expiry Date</th>
+              <th>Amount</th>
+              <th>Auto Renew</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for subscription in subscriptions %}
+            <tr>
+              <td>{{ subscription.id }}</td>
+              <td>
+                <a href="{% url 'super_admin:school_detail' subscription.school.id %}">{{ subscription.school.name }}</a>
+              </td>
+              <td>{{ subscription.plan.name }}</td>
+              <td>
+                {% if subscription.status == 'active' %}
+                <span class="badge bg-success">Active</span>
+                {% elif subscription.status == 'trial' %}
+                <span class="badge bg-info">Trial</span>
+                {% elif subscription.status == 'expired' %}
+                <span class="badge bg-danger">Expired</span>
+                {% elif subscription.status == 'cancelled' %}
+                <span class="badge bg-warning">Cancelled</span>
+                {% endif %}
+              </td>
+              <td>{{ subscription.start_date|date:"M d, Y" }}</td>
+              <td>{{ subscription.end_date|date:"M d, Y" }}</td>
+              <td>${{ subscription.amount }}</td>
+              <td>
+                {% if subscription.auto_renew %}
+                <span class="text-success"><i class="bi bi-check-circle"></i> Yes</span>
+                {% else %}
+                <span class="text-danger"><i class="bi bi-x-circle"></i> No</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="dropdown">
+                  <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ subscription.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                    Actions
+                  </button>
+                  <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ subscription.id }}">
+                    <li><a class="dropdown-item" href="{% url 'super_admin:subscription_detail' subscription.id %}">View Details</a></li>
+                    <li><a class="dropdown-item" href="{% url 'super_admin:subscription_update' subscription.id %}">Edit Subscription</a></li>
+                    {% if subscription.status == 'active' or subscription.status == 'trial' %}
+                    <li><a class="dropdown-item text-warning" href="{% url 'super_admin:subscription_cancel' subscription.id %}">Cancel Subscription</a></li>
+                    {% elif subscription.status == 'expired' or subscription.status == 'cancelled' %}
+                    <li><a class="dropdown-item text-success" href="#" data-bs-toggle="modal" data-bs-target="#renewModal{{ subscription.id }}">Renew Subscription</a></li>
+                    {% endif %}
+                  </ul>
+                </div>
+                
+                {% if subscription.status == 'expired' or subscription.status == 'cancelled' %}
+                <!-- Renew Modal -->
+                <div class="modal fade" id="renewModal{{ subscription.id }}" tabindex="-1" aria-labelledby="renewModalLabel{{ subscription.id }}" aria-hidden="true">
+                  <div class="modal-dialog">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="renewModalLabel{{ subscription.id }}">Renew Subscription</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <form action="{% url 'super_admin:subscription_renew' subscription.id %}" method="post">
+                        {% csrf_token %}
+                        <div class="modal-body">
+                          <p>Renew subscription for <strong>{{ subscription.school.name }}</strong>?</p>
+                          
+                          <div class="mb-3">
+                            <label for="plan{{ subscription.id }}" class="form-label">Plan</label>
+                            <select class="form-select" id="plan{{ subscription.id }}" name="plan">
+                              {% for plan in plans %}
+                              <option value="{{ plan.id }}" {% if plan.id == subscription.plan.id %}selected{% endif %}>
+                                {{ plan.name }} - ${{ plan.price }}/{{ plan.billing_cycle }}
+                              </option>
+                              {% endfor %}
+                            </select>
+                          </div>
+                          
+                          <div class="mb-3">
+                            <label for="duration{{ subscription.id }}" class="form-label">Duration</label>
+                            <select class="form-select" id="duration{{ subscription.id }}" name="duration">
+                              <option value="1">1 month</option>
+                              <option value="3">3 months</option>
+                              <option value="6">6 months</option>
+                              <option value="12" selected>1 year</option>
+                            </select>
+                          </div>
+                          
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="autoRenew{{ subscription.id }}" name="auto_renew" checked>
+                            <label class="form-check-label" for="autoRenew{{ subscription.id }}">
+                              Enable auto-renewal
+                            </label>
+                          </div>
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                          <button type="submit" class="btn btn-success">Renew Subscription</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="9" class="text-center">No subscriptions found matching your criteria.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Pagination -->
+      {% if subscriptions.has_other_pages %}
+      <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+          {% if subscriptions.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
+              <span aria-hidden="true">&laquo;&laquo;</span>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ subscriptions.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Previous">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <a class="page-link" href="#" aria-label="First">
+              <span aria-hidden="true">&laquo;&laquo;</span>
+            </a>
+          </li>
+          <li class="page-item disabled">
+            <a class="page-link" href="#" aria-label="Previous">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+          {% endif %}
+          
+          {% for i in subscriptions.paginator.page_range %}
+            {% if subscriptions.number == i %}
+              <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+            {% elif i > subscriptions.number|add:'-3' and i < subscriptions.number|add:'3' %}
+              <li class="page-item"><a class="page-link" href="?page={{ i }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ i }}</a></li>
+            {% endif %}
+          {% endfor %}
+          
+          {% if subscriptions.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ subscriptions.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Next">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ subscriptions.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Last">
+              <span aria-hidden="true">&raquo;&raquo;</span>
+            </a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <a class="page-link" href="#" aria-label="Next">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+          <li class="page-item disabled">
+            <a class="page-link" href="#" aria-label="Last">
+              <span aria-hidden="true">&raquo;&raquo;</span>
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,123 @@
+{% extends 'super_admin/base.html' %}
+{% load static %}
+
+{% block title %}Verify Domain - {{ domain.domain }} - {{ block.super }}{% endblock %}
+
+{% block page_title %}Verify Domain: {{ domain.domain }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'super_admin:domain_list' %}">Domains</a></li>
+<li class="breadcrumb-item active">Verify {{ domain.domain }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="card mb-4">
+    <div class="card-header">
+      <h6 class="m-0 font-weight-bold">Domain Verification</h6>
+    </div>
+    <div class="card-body">
+      <div class="alert alert-info">
+        <h5 class="alert-heading">Domain Verification Methods</h5>
+        <p>To verify that you own this domain, please choose one of the following methods:</p>
+      </div>
+      
+      <div class="row">
+        <div class="col-md-6">
+          <div class="card mb-4">
+            <div class="card-header">
+              <h6 class="m-0">Method 1: DNS Record Verification</h6>
+            </div>
+            <div class="card-body">
+              <p>Add the following TXT record to your domain's DNS configuration:</p>
+              
+              <div class="mb-3">
+                <label class="form-label">Host/Name:</label>
+                <input type="text" class="form-control" value="@" readonly>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Type:</label>
+                <input type="text" class="form-control" value="TXT" readonly>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Value/Content:</label>
+                <input type="text" class="form-control" value="schoolapp-verify={{ domain.verification_token }}" readonly>
+              </div>
+              
+              <p class="small text-muted">DNS changes can take up to 24-48 hours to propagate.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-6">
+          <div class="card mb-4">
+            <div class="card-header">
+              <h6 class="m-0">Method 2: HTML File Verification</h6>
+            </div>
+            <div class="card-body">
+              <p>Upload a file with the following properties to your domain:</p>
+              
+              <div class="mb-3">
+                <label class="form-label">File Path:</label>
+                <input type="text" class="form-control" value="/schoolapp-verify.html" readonly>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">File Content:</label>
+                <textarea class="form-control" rows="3" readonly>schoolapp-verify={{ domain.verification_token }}</textarea>
+              </div>
+              
+              <p class="small text-muted">Make sure the file is accessible at https://{{ domain.domain }}/schoolapp-verify.html</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <form method="post">
+        {% csrf_token %}
+        <div class="d-flex justify-content-between">
+          <a href="{% url 'super_admin:domain_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to List
+          </a>
+          <div>
+            <button type="submit" name="action" value="check" class="btn btn-primary">
+              <i class="bi bi-check-circle me-1"></i> Check Verification
+            </button>
+            <button type="submit" name="action" value="manual" class="btn btn-success">
+              <i class="bi bi-shield-check me-1"></i> Mark as Verified
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add copy to clipboard functionality for verification tokens
+    const copyButtons = document.querySelectorAll('.copy-btn');
+    
+    copyButtons.forEach(function(button) {
+      button.addEventListener('click', function() {
+        const target = document.querySelector(button.dataset.target);
+        
+        if (target) {
+          target.select();
+          document.execCommand('copy');
+          
+          // Show copied feedback
+          button.textContent = 'Copied!';
+          setTimeout(function() {
+            button.textContent = 'Copy';
+          }, 1500);
+        }
+      });
+    });
+  });
+</script>
+{% endblock %} 

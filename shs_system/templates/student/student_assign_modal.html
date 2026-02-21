@@ -1,0 +1,79 @@
+<!-- Assign Class Modal -->
+<div
+  class="modal fade"
+  id="assignClassModal"
+  tabindex="-1"
+  aria-labelledby="assignClassModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fs-6" id="assignClassModalLabel">
+          <i class="fas fa-users me-1"></i>Assign Class
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <form
+        method="POST"
+        action="{% url 'assign_student_class' student.id %}"
+        class="assign-class-form"
+      >
+        <div class="modal-body p-2">
+          {% csrf_token %}
+          <div class="mb-3 text-center">
+            <strong>{{ student.full_name }}</strong>
+            <div class="text-muted small">{{ student.admission_number }}</div>
+            {% if student.form %}
+            <div class="text-muted small">Form: {{ student.form.name }}</div>
+            {% endif %} {% if student.learning_area %}
+            <div class="text-muted small">
+              Learning Area: {{ student.learning_area.name }}
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="alert alert-info small mb-3">
+            <i class="fas fa-info-circle me-1"></i>
+            Select a class to assign this student to for the
+            <strong>{{ current_academic_year.name }}</strong> academic year.
+          </div>
+
+          <div class="row g-1">
+            {% for field in assignment_form %}
+            <div class="col-12">
+              <div class="mb-1">
+                <label
+                  for="{{ field.id_for_label }}"
+                  class="form-label small fw-bold mb-1"
+                  >{{ field.label }}</label
+                >
+                {{ field }} {% if field.help_text %}
+                <div class="form-text small text-muted">
+                  {{ field.help_text }}
+                </div>
+                {% endif %} {% if field.errors %}
+                <div class="text-danger small">{{ field.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="modal-footer py-1">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x me-1"></i>Cancel
+          </button>
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-check me-1"></i>Assign
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

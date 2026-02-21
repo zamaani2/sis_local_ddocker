@@ -1,0 +1,6 @@
+FROM nginx:alpine
+
+# Use the project nginx config inside the image so this service can be built and pushed.
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+

@@ -1,0 +1,924 @@
+{% extends 'base.html' %} {% load custom_filters %} {% load static %} {% block
+title %}Student Class Assignment{% endblock %} {% block page_title %}Student
+Class Assignment{% endblock %} {% block extra_css %}
+<!-- Student Class Assignment CSS -->
+<link rel="stylesheet" href="{% static 'css/student_class_assignment.css' %}" />
+<!-- DataTables CSS -->
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="{% static 'vendor/datatables/1.11.5/css/dataTables.bootstrap5.min.css' %}"
+/>
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="{% static 'vendor/datatables-responsive/2.2.9/css/responsive.bootstrap5.min.css' %}"
+/>
+<!-- Sweet Alert CSS -->
+<link
+  rel="stylesheet"
+  href="{% static 'vendor/sweetalert2/11.4.8/dist/sweetalert2.min.css' %}"
+/>
+
+<style>
+  .assignment-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 2rem 0;
+  }
+
+  .assignment-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+
+  .assignment-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    text-align: center;
+    position: relative;
+  }
+
+  .assignment-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .assignment-header p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin: 0;
+  }
+
+  .filter-controls {
+    background: linear-gradient(145deg, #2d1b4e, #3d2a5e);
+    border-bottom: 1px solid #8b5cf6;
+    padding: 1.5rem;
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
+  }
+
+  .assignment-actions {
+    background: white;
+    padding: 1.5rem;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .bulk-actions {
+    display: none;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .bulk-actions.active {
+    display: flex;
+  }
+
+  .student-table-container {
+    padding: 1.5rem;
+  }
+
+  .student-checkbox {
+    transform: scale(1.2);
+  }
+
+  .student-row.selected {
+    background-color: #e3f2fd;
+  }
+
+  .class-badge {
+    font-size: 0.85em;
+    padding: 0.35em 0.65em;
+    border-radius: 20px;
+  }
+
+  .status-badge {
+    font-size: 0.8em;
+    padding: 0.3em 0.6em;
+    border-radius: 15px;
+    font-weight: 500;
+  }
+
+  .btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid;
+  }
+
+  .stat-card.total {
+    border-left-color: #6c757d;
+  }
+  .stat-card.assigned {
+    border-left-color: #28a745;
+  }
+  .stat-card.unassigned {
+    border-left-color: #dc3545;
+  }
+  .stat-card.selected {
+    border-left-color: #007bff;
+  }
+
+  .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #333;
+    display: block;
+  }
+
+  .stat-label {
+    font-size: 0.9rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  @media (max-width: 768px) {
+    .assignment-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .assignment-header h1 {
+      font-size: 2rem;
+    }
+
+    .stats-cards {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .form-select-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .table th {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+</style>
+{% endblock %} {% block breadcrumb %}
+<li class="breadcrumb-item">
+  <a href="{% url 'admin_dashboard' %}">Dashboard</a>
+</li>
+<li class="breadcrumb-item"><a href="{% url 'student_list' %}">Students</a></li>
+<li class="breadcrumb-item active">Class Assignment</li>
+{% endblock %} {% block content %}
+<div class="assignment-container">
+  <div class="container-fluid">
+    {% csrf_token %}
+    <!-- Statistics Cards -->
+    <div class="stats-cards">
+      <div class="stat-card total">
+        <span class="stat-number" id="totalStudents">{{ total_students }}</span>
+        <span class="stat-label">Total Students</span>
+      </div>
+      <div class="stat-card assigned">
+        <span class="stat-number" id="assignedStudents"
+          >{{ assigned_students }}</span
+        >
+        <span class="stat-label">Assigned</span>
+      </div>
+      <div class="stat-card unassigned">
+        <span class="stat-number" id="unassignedStudents"
+          >{{ unassigned_students }}</span
+        >
+        <span class="stat-label">Unassigned</span>
+      </div>
+      <div class="stat-card selected">
+        <span class="stat-number" id="selectedStudents">0</span>
+        <span class="stat-label">Selected</span>
+      </div>
+    </div>
+
+    <!-- Main Assignment Card -->
+    <div class="assignment-card">
+      <!-- Header -->
+      <div class="assignment-header">
+        <h1>
+          <i class="bi bi-people-fill me-2"></i>
+          {% if current_academic_year %}
+            {{ current_academic_year.name }}
+            {% if current_term %}
+              - {{ current_term.name }}
+            {% endif %}
+          {% else %}
+            Student Class Assignment
+          {% endif %}
+        </h1>
+        <p>
+          {% if current_academic_year %}
+            Current academic year and term management
+          {% else %}
+            Assign students to classes for the current academic year
+          {% endif %}
+        </p>
+      </div>
+
+      <!-- Filter Controls -->
+      <div class="filter-controls">
+        <div class="row g-3">
+          <div class="col-md-2">
+            <label class="form-label small">Current Class</label>
+            <select
+              name="current_class"
+              class="form-select form-select-sm filter-control"
+              id="currentClassFilter"
+            >
+              <option value="">All Classes</option>
+              <option value="unassigned">Unassigned</option>
+              {% for class in available_classes %}
+              <option value="{{ class.id }}">{{ class.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small">Form/Grade</label>
+            <select
+              name="form"
+              class="form-select form-select-sm filter-control"
+              id="formFilter"
+            >
+              <option value="">All Forms</option>
+              {% for form in available_forms %}
+              <option value="{{ form.id }}">{{ form.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small">Learning Area</label>
+            <select
+              name="learning_area"
+              class="form-select form-select-sm filter-control"
+              id="learningAreaFilter"
+            >
+              <option value="">All Areas</option>
+              {% for area in available_learning_areas %}
+              <option value="{{ area.id }}">{{ area.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small">Gender</label>
+            <select
+              name="gender"
+              class="form-select form-select-sm filter-control"
+              id="genderFilter"
+            >
+              <option value="">All Genders</option>
+              <option value="M">Male</option>
+              <option value="F">Female</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small">Status</label>
+            <select
+              name="status"
+              class="form-select form-select-sm filter-control"
+              id="statusFilter"
+            >
+              <option value="">All Status</option>
+              <option value="assigned">Assigned</option>
+              <option value="unassigned">Unassigned</option>
+            </select>
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <button
+              type="button"
+              class="btn btn-primary btn-sm me-2"
+              id="applyFilters"
+            >
+              <i class="bi bi-funnel me-1"></i>Apply
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary btn-sm"
+              id="resetFilters"
+            >
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Controls -->
+      <div class="assignment-actions">
+        <div class="d-flex gap-2 align-items-center">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              id="selectAllStudents"
+            />
+            <label class="form-check-label" for="selectAllStudents">
+              Select All
+            </label>
+          </div>
+          <span class="text-muted small ms-2" id="selectionCount"
+            >0 selected</span
+          >
+        </div>
+
+        <div class="bulk-actions" id="bulkActions">
+          <select
+            class="form-select form-select-sm"
+            id="bulkAssignClass"
+            style="width: 200px"
+          >
+            <option value="">Select class to assign</option>
+            {% for class in available_classes %}
+            <option value="{{ class.id }}">{{ class.name }}</option>
+            {% endfor %}
+          </select>
+          <button
+            type="button"
+            class="btn btn-success btn-sm"
+            id="bulkAssignBtn"
+          >
+            <i class="bi bi-check-circle me-1"></i>Assign Selected
+          </button>
+          <button
+            type="button"
+            class="btn btn-warning btn-sm"
+            id="bulkUnassignBtn"
+          >
+            <i class="bi bi-x-circle me-1"></i>Unassign Selected
+          </button>
+        </div>
+      </div>
+
+      <!-- Student Table -->
+      <div class="student-table-container">
+        <div class="table-responsive">
+          <table class="table table-hover" id="studentsTable">
+            <thead>
+              <tr>
+                <th style="width: 40px">
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="selectAllHeader"
+                    />
+                  </div>
+                </th>
+                <th>Student</th>
+                <th>Admission #</th>
+                <th>Form/Grade</th>
+                <th>Learning Area</th>
+                <th>Current Class</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in students %}
+              <tr class="student-row" data-student-id="{{ student.id }}">
+                <td>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input student-checkbox"
+                      type="checkbox"
+                      value="{{ student.id }}"
+                      data-student-name="{{ student.full_name }}"
+                    />
+                  </div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    {% if student.profile_picture %}
+                    <img
+                      src="{{ student.profile_picture.url }}"
+                      alt="{{ student.full_name }}"
+                      class="rounded-circle me-2"
+                      width="32"
+                      height="32"
+                    />
+                    {% else %}
+                    <div
+                      class="bg-secondary rounded-circle text-white d-flex align-items-center justify-content-center me-2"
+                      style="width: 32px; height: 32px; font-size: 0.8rem"
+                    >
+                      {{ student.full_name|slice:":1" }}
+                    </div>
+                    {% endif %}
+                    <div>
+                      <div class="fw-semibold">{{ student.full_name }}</div>
+                      <small class="text-muted"
+                        >{{ student.gender }} • Age {{ student.age }}</small
+                      >
+                    </div>
+                  </div>
+                </td>
+                <td>{{ student.admission_number }}</td>
+                <td>
+                  {% if student.form %}
+                  <span class="badge bg-info class-badge"
+                    >{{ student.form.name }}</span
+                  >
+                  {% else %}
+                  <span class="text-muted">-</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if student.learning_area %}
+                  <span class="badge bg-secondary class-badge"
+                    >{{ student.learning_area.name }}</span
+                  >
+                  {% else %}
+                  <span class="text-muted">-</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if student.current_class_assignment %}
+                  <span class="badge bg-success class-badge"
+                    >{{ student.current_class_assignment }}</span
+                  >
+                  {% else %}
+                  <span class="badge bg-danger class-badge">Unassigned</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span
+                    class="status-badge {% if student.current_class_assignment %}bg-success text-white{% else %}bg-danger text-white{% endif %}"
+                  >
+                    {% if student.current_class_assignment %}Assigned{% else
+                    %}Unassigned{% endif %}
+                  </span>
+                </td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary assign-individual"
+                      data-student-id="{{ student.id }}"
+                      data-student-name="{{ student.full_name }}"
+                    >
+                      <i class="bi bi-person-plus"></i>
+                    </button>
+                    {% if student.current_class_assignment %}
+                    <button
+                      type="button"
+                      class="btn btn-outline-warning unassign-individual"
+                      data-student-id="{{ student.id }}"
+                      data-student-name="{{ student.full_name }}"
+                    >
+                      <i class="bi bi-person-dash"></i>
+                    </button>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Individual Assignment Modal -->
+<div class="modal fade" id="individualAssignModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Assign Student to Class</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <strong>Student:</strong> <span id="modalStudentName"></span>
+        </div>
+        <div class="mb-3">
+          <label for="modalClassSelect" class="form-label">Select Class</label>
+          <select class="form-select" id="modalClassSelect">
+            <option value="">Choose a class...</option>
+            {% for class in available_classes %}
+            <option value="{{ class.id }}">{{ class.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          id="confirmIndividualAssign"
+        >
+          Assign
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<!-- DataTables JS -->
+<script src="{% static 'vendor/datatables/1.11.5/js/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'vendor/datatables/1.11.5/js/dataTables.bootstrap5.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-responsive/2.2.9/js/dataTables.responsive.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-responsive/2.2.9/js/responsive.bootstrap5.min.js' %}"></script>
+<!-- Sweet Alert JS -->
+<script src="{% static 'vendor/sweetalert2/11.4.8/dist/sweetalert2.all.min.js' %}"></script>
+
+<script>
+  $(document).ready(function () {
+    let studentsTable;
+    let currentStudentId = null;
+
+    // Initialize DataTable
+    function initializeTable() {
+      if ($.fn.DataTable.isDataTable("#studentsTable")) {
+        studentsTable.destroy();
+      }
+
+      studentsTable = $("#studentsTable").DataTable({
+        responsive: true,
+        pageLength: 25,
+        columnDefs: [
+          { targets: 0, orderable: false, searchable: false },
+          { targets: -1, orderable: false, searchable: false },
+        ],
+        language: {
+          search: "_INPUT_",
+          searchPlaceholder: "Search students...",
+          lengthMenu: "_MENU_ students per page",
+          info: "Showing _START_ to _END_ of _TOTAL_ students",
+          emptyTable: "No students found",
+        },
+        dom: '<"top"lf>rt<"bottom"ip><"clear">',
+      });
+    }
+
+    // Initialize table on page load
+    initializeTable();
+
+    // Set up event handlers after DataTable initialization
+    function setupEventHandlers() {
+      // Individual checkbox change - use DataTable event delegation
+      studentsTable.on("change", ".student-checkbox", updateSelectionState);
+
+      // Select all functionality
+      $("#selectAllStudents, #selectAllHeader").on("change", function () {
+        const isChecked = $(this).prop("checked");
+        studentsTable.$(".student-checkbox").prop("checked", isChecked);
+        $("#selectAllStudents, #selectAllHeader").prop("checked", isChecked);
+        updateSelectionState();
+      });
+
+      // Individual assignment - use DataTable event delegation
+      studentsTable.on("click", ".assign-individual", function () {
+        currentStudentId = $(this).data("student-id");
+        const studentName = $(this).data("student-name");
+
+        $("#modalStudentName").text(studentName);
+        $("#modalClassSelect").val("");
+        $("#individualAssignModal").modal("show");
+      });
+
+      // Individual unassignment - use DataTable event delegation
+      studentsTable.on("click", ".unassign-individual", function () {
+        const studentId = $(this).data("student-id");
+        const studentName = $(this).data("student-name");
+
+        Swal.fire({
+          title: "Unassign Student?",
+          text: `Remove ${studentName} from their current class?`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Yes, unassign",
+          cancelButtonText: "Cancel",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            unassignStudents([studentId], false);
+          }
+        });
+      });
+
+      // Bulk assignment
+      $("#bulkAssignBtn").on("click", function () {
+        const selectedStudents = studentsTable
+          .$(".student-checkbox:checked")
+          .map(function () {
+            return $(this).val();
+          })
+          .get();
+
+        const classId = $("#bulkAssignClass").val();
+
+        // Debug logging
+        console.log("Selected students:", selectedStudents);
+        console.log("Class ID:", classId);
+        console.log(
+          "Total checkboxes:",
+          studentsTable.$(".student-checkbox").length
+        );
+        console.log(
+          "Checked checkboxes:",
+          studentsTable.$(".student-checkbox:checked").length
+        );
+
+        if (selectedStudents.length === 0) {
+          Swal.fire("Error", "Please select students to assign", "error");
+          return;
+        }
+
+        if (!classId) {
+          Swal.fire("Error", "Please select a class", "error");
+          return;
+        }
+
+        assignStudentsToClass(selectedStudents, classId, true);
+      });
+
+      // Bulk unassignment
+      $("#bulkUnassignBtn").on("click", function () {
+        const selectedStudents = studentsTable
+          .$(".student-checkbox:checked")
+          .map(function () {
+            return $(this).val();
+          })
+          .get();
+
+        // Debug logging
+        console.log("Selected students for unassignment:", selectedStudents);
+        console.log(
+          "Total checkboxes:",
+          studentsTable.$(".student-checkbox").length
+        );
+        console.log(
+          "Checked checkboxes:",
+          studentsTable.$(".student-checkbox:checked").length
+        );
+
+        if (selectedStudents.length === 0) {
+          Swal.fire("Error", "Please select students to unassign", "error");
+          return;
+        }
+
+        Swal.fire({
+          title: "Unassign Students?",
+          text: `Remove ${selectedStudents.length} student(s) from their current classes?`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Yes, unassign all",
+          cancelButtonText: "Cancel",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            unassignStudents(selectedStudents, true);
+          }
+        });
+      });
+
+      // Confirm individual assignment
+      $("#confirmIndividualAssign").on("click", function () {
+        const classId = $("#modalClassSelect").val();
+
+        if (!classId) {
+          Swal.fire("Error", "Please select a class", "error");
+          return;
+        }
+
+        assignIndividualStudentToClass(currentStudentId, classId);
+        $("#individualAssignModal").modal("hide");
+      });
+
+      // Filter functionality
+      $("#applyFilters").on("click", function () {
+        applyFilters();
+      });
+
+      $("#resetFilters").on("click", function () {
+        $(".filter-control").val("");
+        applyFilters();
+      });
+
+      // Initial selection state
+      updateSelectionState();
+    }
+
+    // Set up event handlers after DataTable initialization
+    setupEventHandlers();
+
+    // Selection handling
+    function updateSelectionState() {
+      // Use DataTable API to get checkboxes
+      const checkboxes = studentsTable.$(".student-checkbox");
+      const checkedBoxes = studentsTable.$(".student-checkbox:checked");
+      const count = checkedBoxes.length;
+
+      // Debug logging
+      console.log(
+        "updateSelectionState - Total checkboxes:",
+        checkboxes.length
+      );
+      console.log("updateSelectionState - Checked checkboxes:", count);
+
+      // Update selection count
+      $("#selectionCount").text(`${count} selected`);
+      $("#selectedStudents").text(count);
+
+      // Show/hide bulk actions
+      if (count > 0) {
+        $("#bulkActions").addClass("active");
+      } else {
+        $("#bulkActions").removeClass("active");
+      }
+
+      // Update select all checkboxes
+      if (count === checkboxes.length && checkboxes.length > 0) {
+        $("#selectAllStudents, #selectAllHeader")
+          .prop("checked", true)
+          .prop("indeterminate", false);
+      } else if (count > 0) {
+        $("#selectAllStudents, #selectAllHeader")
+          .prop("checked", false)
+          .prop("indeterminate", true);
+      } else {
+        $("#selectAllStudents, #selectAllHeader")
+          .prop("checked", false)
+          .prop("indeterminate", false);
+      }
+
+      // Highlight selected rows
+      studentsTable.$(".student-row").removeClass("selected");
+      checkedBoxes.each(function () {
+        $(this).closest(".student-row").addClass("selected");
+      });
+    }
+
+    // Individual student assignment function
+    function assignIndividualStudentToClass(studentId, classId) {
+      Swal.fire({
+        title: "Assigning Student...",
+        text: "Please wait while we assign the student to the class",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
+      $.ajax({
+        url: `/student/${studentId}/assign-class-ajax/`,
+        type: "POST",
+        data: {
+          class_id: classId,
+          csrfmiddlewaretoken: $("[name=csrfmiddlewaretoken]").val(),
+        },
+        success: function (response) {
+          if (response.success) {
+            Swal.fire({
+              title: "Success!",
+              text: response.message,
+              icon: "success",
+              timer: 2000,
+            }).then(() => {
+              location.reload();
+            });
+          } else {
+            Swal.fire("Error", response.message, "error");
+          }
+        },
+        error: function (xhr) {
+          const errorMessage =
+            xhr.responseJSON?.message || "Failed to assign student";
+          Swal.fire("Error", errorMessage, "error");
+        },
+      });
+    }
+
+    // Assign students to class function (for bulk operations)
+    function assignStudentsToClass(studentIds, classId, isBulk) {
+      Swal.fire({
+        title: "Assigning Students...",
+        text: "Please wait while we assign the students to the class",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
+      $.ajax({
+        url: '{% url "bulk_assign_students_to_class" %}',
+        type: "POST",
+        data: {
+          student_ids: studentIds,
+          class_id: classId,
+          csrfmiddlewaretoken: $("[name=csrfmiddlewaretoken]").val(),
+        },
+        success: function (response) {
+          if (response.success) {
+            Swal.fire({
+              title: "Success!",
+              text: response.message,
+              icon: "success",
+              timer: 2000,
+            }).then(() => {
+              location.reload();
+            });
+          } else {
+            Swal.fire("Error", response.message, "error");
+          }
+        },
+        error: function (xhr) {
+          const errorMessage =
+            xhr.responseJSON?.message || "Failed to assign students";
+          Swal.fire("Error", errorMessage, "error");
+        },
+      });
+    }
+
+    // Unassign students function
+    function unassignStudents(studentIds, isBulk) {
+      Swal.fire({
+        title: "Unassigning Students...",
+        text: "Please wait while we remove the students from their classes",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
+      $.ajax({
+        url: '{% url "bulk_unassign_students_from_class" %}',
+        type: "POST",
+        data: {
+          student_ids: studentIds,
+          csrfmiddlewaretoken: $("[name=csrfmiddlewaretoken]").val(),
+        },
+        success: function (response) {
+          if (response.success) {
+            Swal.fire({
+              title: "Success!",
+              text: response.message,
+              icon: "success",
+              timer: 2000,
+            }).then(() => {
+              location.reload();
+            });
+          } else {
+            Swal.fire("Error", response.message, "error");
+          }
+        },
+        error: function (xhr) {
+          const errorMessage =
+            xhr.responseJSON?.message || "Failed to unassign students";
+          Swal.fire("Error", errorMessage, "error");
+        },
+      });
+    }
+
+    function applyFilters() {
+      const params = new URLSearchParams();
+
+      $(".filter-control").each(function () {
+        const value = $(this).val();
+        if (value) {
+          params.append($(this).attr("name"), value);
+        }
+      });
+
+      const newUrl =
+        window.location.pathname +
+        (params.toString() ? "?" + params.toString() : "");
+      window.location.href = newUrl;
+    }
+  });
+</script>
+{% endblock %}

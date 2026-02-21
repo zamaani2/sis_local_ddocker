@@ -1,0 +1,132 @@
+{% extends 'base.html' %} {% load static %} {% block title %}Student Report
+Cards{% endblock %} {% block extra_css %}
+<link
+  rel="stylesheet"
+  href="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.min.css' %}"
+/>
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            Report Cards for {{ student.full_name }} ({{
+            student.admission_number }})
+          </h3>
+          <div class="card-tools">
+            <a
+              href="{% url 'report_card_list' %}"
+              class="btn btn-secondary btn-sm"
+            >
+              <i class="bi bi-arrow-left"></i> Back to Report Cards
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+              <thead>
+                <tr>
+                  <th>Academic Year</th>
+                  <th>Term</th>
+                  <th>Class</th>
+                  <th>Total Score</th>
+                  <th>Position</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for report_card in report_cards %}
+                <tr>
+                  <td>{{ report_card.term.academic_year }}</td>
+                  <td>{{ report_card.term.name }}</td>
+                  <td>{{ report_card.class_assigned.name }}</td>
+                  <td>{{ report_card.total_score }}</td>
+                  <td>{{ report_card.position }}</td>
+                  <td>
+                    {% if report_card.is_approved %}
+                    <span class="badge bg-success">Approved</span>
+                    {% else %}
+                    <span class="badge bg-warning">Pending</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <a
+                      href="{% url 'view_report_card_details' report_card.id %}"
+                      class="btn btn-sm btn-primary"
+                      title="View Report Card"
+                    >
+                      <i class="bi bi-eye"></i> View
+                    </a>
+                    {% if not report_card.is_approved %}
+                    <form
+                      action="{% url 'approve_report_card' report_card.id %}"
+                      method="post"
+                      style="display: inline"
+                      class="approve-form"
+                    >
+                      {% csrf_token %}
+                      <button
+                        type="submit"
+                        class="btn btn-success btn-sm"
+                        title="Approve Report Card"
+                      >
+                        <i class="bi bi-check-circle"></i>
+                      </button>
+                    </form>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="7" class="text-center">
+                    No report cards found for this student.
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.all.min.js' %}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Handle individual approve forms
+    document.querySelectorAll(".approve-form").forEach(function (form) {
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        Swal.fire({
+          title: "Confirm Approval",
+          text: "Are you sure you want to approve this report card?",
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonColor: "#28a745",
+          cancelButtonColor: "#6c757d",
+          confirmButtonText: "Yes, approve it!",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // Add loading state to button
+            const button = form.querySelector("button");
+            if (button) {
+              button.innerHTML =
+                '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+              button.disabled = true;
+            }
+
+            // Submit the form
+            form.submit();
+          }
+        });
+      });
+    });
+  });
+</script>
+{% endblock %}

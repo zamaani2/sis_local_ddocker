@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+{% load static %}
+{% load score_filters %}
+
+{% block title %}Class Score Management{% endblock %}
+{% block page_title %}Class Score Management{% endblock %}
+
+{% block extra_css %}
+<style>
+    .score-cell {
+        width: 80px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        {% if current_academic_year %}
+                          {{ current_academic_year.name }}
+                          {% if current_term %}
+                            - {{ current_term.name }}
+                          {% endif %}
+                        {% else %}
+                          Class Score Management
+                        {% endif %}
+                    </h2>
+                    <p class="text-muted mb-0">
+                        {% if current_academic_year %}
+                          Current academic year and term management
+                        {% else %}
+                          Manage and view student scores for classes and subjects
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'score_management_dashboard' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> Back to Score Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="true" aria-controls="filterCollapse">
+                            <i class="bi bi-funnel"></i> Score Filters
+                        </button>
+                    </h5>
+                </div>
+                <div class="collapse show" id="filterCollapse">
+            <form action="{% url 'class_score_list' %}" method="GET" class="filter-form">
+                <div class="row">
+                    <!-- Academic Year Filter -->
+                    <div class="col-md-3">
+                        <label for="academic_year_id" class="form-label">Academic Year</label>
+                        <select class="form-select" id="academic_year_id" name="academic_year_id">
+                            {% for academic_year in academic_years %}
+                            <option value="{{ academic_year.id }}" {% if academic_year.id == selected_academic_year.id %}selected{% endif %}>
+                                {{ academic_year.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Term Filter -->
+                    <div class="col-md-3">
+                        <label for="term_id" class="form-label">Term</label>
+                        <select class="form-select" id="term_id" name="term_id">
+                            {% for term in terms %}
+                            <option value="{{ term.id }}" {% if term.id == selected_term.id %}selected{% endif %}>
+                                {{ term.get_term_number_display }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Class Filter -->
+                    <div class="col-md-3">
+                        <label for="class_id" class="form-label">Class</label>
+                        <select class="form-select" id="class_id" name="class_id">
+                            {% for class in available_classes %}
+                            <option value="{{ class.id }}" {% if selected_class and class.id == selected_class.id %}selected{% endif %}>
+                                {{ class.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Subject Filter -->
+                    <div class="col-md-3">
+                        <label for="subject_id" class="form-label">Subject</label>
+                        <select class="form-select" id="subject_id" name="subject_id">
+                            {% for subject in available_subjects %}
+                            <option value="{{ subject.id }}" {% if selected_subject and subject.id == selected_subject.id %}selected{% endif %}>
+                                {{ subject.subject_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <!-- Search Filter -->
+                    <div class="col-md-6">
+                        <label for="search" class="form-label">Search Student</label>
+                        <input type="text" class="form-control" id="search" name="search" 
+                            placeholder="Search by name or ID..." value="{{ search_query }}">
+                    </div>
+
+                    <!-- Sort By Filter -->
+                    <div class="col-md-3">
+                        <label for="sort_by" class="form-label">Sort By</label>
+                        <select class="form-select" id="sort_by" name="sort_by">
+                            <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name (A-Z)</option>
+                            <option value="id" {% if sort_by == 'id' %}selected{% endif %}>Student ID</option>
+                            <option value="score_desc" {% if sort_by == 'score_desc' %}selected{% endif %}>Highest Score</option>
+                            <option value="score_asc" {% if sort_by == 'score_asc' %}selected{% endif %}>Lowest Score</option>
+                        </select>
+                    </div>
+
+                    <!-- Apply Filters Button -->
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="bi bi-search"></i> Apply Filters
+                        </button>
+                    </div>
+                </div>
+            </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Class Score Table -->
+    {% if selected_class and selected_subject %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clipboard-data"></i> {{ selected_subject.subject_name }} Scores for {{ selected_class.name }}
+                        </h5>
+                        <!-- Export Options -->
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-primary dropdown-toggle" type="button" id="exportDropdown" 
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-download"></i> Export
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="exportDropdown">
+                                <li>
+                                    <a class="dropdown-item export-link" href="{% url 'export_scores_pdf' class_id=selected_class.id subject_id=selected_subject.id %}">
+                                        <i class="bi bi-file-pdf"></i> Export as PDF
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item export-link" href="{% url 'export_scores_excel' class_id=selected_class.id subject_id=selected_subject.id %}">
+                                        <i class="bi bi-file-excel"></i> Export as Excel
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item export-link" href="{% url 'export_scores_csv' class_id=selected_class.id subject_id=selected_subject.id %}">
+                                        <i class="bi bi-file-csv"></i> Export as CSV
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Student ID</th>
+                            <th>Student Name</th>
+                            <th class="text-center score-cell">Class Score<br>({% if scoring_config %}{{ scoring_config.class_score_percentage }}%{% else %}30%{% endif %})</th>
+                            <th class="text-center score-cell">Exam Score<br>({% if scoring_config %}{{ scoring_config.exam_score_percentage }}%{% else %}70%{% endif %})</th>
+                            <th class="text-center score-cell">Total Score<br>(100%)</th>
+                            <th class="text-center">Grade</th>
+                            <th>Remarks</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in page_obj %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ item.student.admission_number }}</span>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'student_score_detail' item.student.id %}?academic_year_id={{ selected_academic_year.id }}" class="text-decoration-none">
+                                            {{ item.student.full_name }}
+                                        </a>
+                                    </td>
+                            <td class="text-center">
+                                {% if item.assessment %}
+                                {{ item.assessment.class_score|default:"--" }}
+                                {% else %}
+                                --
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if item.assessment %}
+                                {{ item.assessment.exam_score|default:"--" }}
+                                {% else %}
+                                --
+                                {% endif %}
+                            </td>
+                            <td class="text-center font-weight-bold">
+                                {% if item.assessment and item.assessment.total_score %}
+                                {{ item.assessment.total_score|floatformat:2 }}
+                                {% else %}
+                                --
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if item.assessment and item.assessment.grade %}
+                                <span class="badge {% if item.assessment.grade == 'A1' %}bg-success text-white
+                                    {% elif item.assessment.grade == 'B2' %}bg-success text-white
+                                    {% elif item.assessment.grade == 'B3' %}bg-primary text-white
+                                    {% elif item.assessment.grade == 'C4' %}bg-info text-white
+                                    {% elif item.assessment.grade == 'C5' %}bg-info text-white
+                                    {% elif item.assessment.grade == 'C6' %}bg-warning text-dark
+                                    {% elif item.assessment.grade == 'D7' %}bg-warning text-dark
+                                    {% elif item.assessment.grade == 'E8' %}bg-danger text-white
+                                    {% elif item.assessment.grade == 'F9' %}bg-danger text-white
+                                    {% else %}bg-secondary text-white{% endif %}">
+                                    {{ item.assessment.grade }}
+                                </span>
+                                {% else %}
+                                --
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.assessment %}
+                                {{ item.assessment.remarks|default:"--" }}
+                                {% else %}
+                                --
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'student_score_detail' item.student.id %}?academic_year_id={{ selected_academic_year.id }}" 
+                                       class="btn btn-outline-primary">
+                                        <i class="bi bi-graph-up"></i> Details
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                <i class="bi bi-clipboard-data text-muted mb-3" style="font-size: 3rem"></i>
+                                <p>No students found with the selected criteria.</p>
+                                <a href="{% url 'class_score_list' %}" class="btn btn-primary">
+                                    <i class="bi bi-arrow-clockwise"></i> Clear Filters
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.paginator.num_pages > 1 %}
+            <div class="d-flex justify-content-center mt-4">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if class_id %}&class_id={{ class_id }}{% endif %}{% if subject_id %}&subject_id={{ subject_id }}{% endif %}{% if term_id %}&term_id={{ term_id }}{% endif %}{% if academic_year_id %}&academic_year_id={{ academic_year_id }}{% endif %}{% if sort_by %}&sort_by={{ sort_by }}{% endif %}">
+                                First
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if class_id %}&class_id={{ class_id }}{% endif %}{% if subject_id %}&subject_id={{ subject_id }}{% endif %}{% if term_id %}&term_id={{ term_id }}{% endif %}{% if academic_year_id %}&academic_year_id={{ academic_year_id }}{% endif %}{% if sort_by %}&sort_by={{ sort_by }}{% endif %}">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if class_id %}&class_id={{ class_id }}{% endif %}{% if subject_id %}&subject_id={{ subject_id }}{% endif %}{% if term_id %}&term_id={{ term_id }}{% endif %}{% if academic_year_id %}&academic_year_id={{ academic_year_id }}{% endif %}{% if sort_by %}&sort_by={{ sort_by }}{% endif %}">
+                                    {{ num }}
+                                </a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if class_id %}&class_id={{ class_id }}{% endif %}{% if subject_id %}&subject_id={{ subject_id }}{% endif %}{% if term_id %}&term_id={{ term_id }}{% endif %}{% if academic_year_id %}&academic_year_id={{ academic_year_id }}{% endif %}{% if sort_by %}&sort_by={{ sort_by }}{% endif %}">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if class_id %}&class_id={{ class_id }}{% endif %}{% if subject_id %}&subject_id={{ subject_id }}{% endif %}{% if term_id %}&term_id={{ term_id }}{% endif %}{% if academic_year_id %}&academic_year_id={{ academic_year_id }}{% endif %}{% if sort_by %}&sort_by={{ sort_by }}{% endif %}">
+                                Last
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+            
+                    <!-- Direct Export Options -->
+                    {% if selected_class and selected_subject %}
+                    <div class="mt-4 text-center">
+                        <div class="btn-group">
+                            <a href="{% url 'export_scores_pdf' class_id=selected_class.id subject_id=selected_subject.id %}" class="btn btn-sm btn-danger">
+                                <i class="bi bi-file-pdf"></i> Export as PDF
+                            </a>
+                            <a href="{% url 'export_scores_excel' class_id=selected_class.id subject_id=selected_subject.id %}" class="btn btn-sm btn-success">
+                                <i class="bi bi-file-excel"></i> Export as Excel
+                            </a>
+                            <a href="{% url 'export_scores_csv' class_id=selected_class.id subject_id=selected_subject.id %}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-file-csv"></i> Export as CSV
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> Please select a class and subject to view scores.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Auto-submit form when filters change (except search)
+        $('#academic_year_id, #term_id, #class_id, #subject_id, #sort_by').change(function() {
+            $('.filter-form').submit();
+        });
+        
+        // Initialize dropdowns for Bootstrap 5
+        var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
+        var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
+            return new bootstrap.Dropdown(dropdownToggleEl);
+        });
+        
+        // Direct export links
+        $('.export-link').click(function(e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            window.location.href = url;
+        });
+    });
+</script>
+{% endblock %} 

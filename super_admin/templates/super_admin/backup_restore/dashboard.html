@@ -1,0 +1,340 @@
+{% extends "super_admin/base.html" %} {% load static %} {% load super_admin_tags %} {% block title %}Backup & Restore Management{% endblock %} {% block extra_css %}
+<style>
+  .stats-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .stats-card h3 {
+    margin: 0;
+    font-size: 2.5rem;
+    font-weight: bold;
+  }
+
+  .stats-card p {
+    margin: 5px 0 0 0;
+    opacity: 0.9;
+  }
+
+  .action-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+  }
+
+  .action-card:hover {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .action-card h4 {
+    color: #333;
+    margin-bottom: 15px;
+  }
+
+  .action-card .btn {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .recent-activity {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .activity-item {
+    padding: 10px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .activity-item:last-child {
+    border-bottom: none;
+  }
+
+  .status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+  }
+
+  .status-completed {
+    background-color: #d4edda;
+    color: #155724;
+  }
+
+  .status-failed {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
+
+  .status-in-progress {
+    background-color: #fff3cd;
+    color: #856404;
+  }
+
+  .status-pending {
+    background-color: #d1ecf1;
+    color: #0c5460;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">Backup & Restore Management</h1>
+          <p class="text-muted">
+            Manage backup and restore operations across all schools
+          </p>
+        </div>
+        <div>
+          <a
+            href="{% url 'super_admin:restore_to_existing_school' %}"
+            class="btn btn-primary me-2"
+          >
+            <i class="fas fa-upload"></i> Restore to Existing School
+          </a>
+          <a
+            href="{% url 'super_admin:restore_to_new_school' %}"
+            class="btn btn-success"
+          >
+            <i class="fas fa-plus"></i> Create New School from Backup
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="stats-card">
+        <h3>{{ total_backups }}</h3>
+        <p>Total Backups</p>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="stats-card">
+        <h3>{{ successful_backups }}</h3>
+        <p>Successful Backups</p>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="stats-card">
+        <h3>{{ total_restores }}</h3>
+        <p>Total Restores</p>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="stats-card">
+        <h3>{{ successful_restores }}</h3>
+        <p>Successful Restores</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Cards -->
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <div class="action-card">
+        <h4><i class="fas fa-upload text-primary"></i> Restore Operations</h4>
+        <p class="text-muted">
+          Restore backup data to existing schools or create new schools from
+          backups.
+        </p>
+        <a
+          href="{% url 'super_admin:restore_to_existing_school' %}"
+          class="btn btn-primary"
+        >
+          <i class="fas fa-upload"></i> Restore to Existing School
+        </a>
+        <a
+          href="{% url 'super_admin:restore_to_new_school' %}"
+          class="btn btn-success"
+        >
+          <i class="fas fa-plus"></i> Create New School from Backup
+        </a>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="action-card">
+        <h4><i class="fas fa-list text-info"></i> View Operations</h4>
+        <p class="text-muted">
+          View all backup and restore operations across all schools.
+        </p>
+        <a href="{% url 'super_admin:all_backups' %}" class="btn btn-info">
+          <i class="fas fa-database"></i> View All Backups
+        </a>
+        <a href="{% url 'super_admin:all_restores' %}" class="btn btn-warning">
+          <i class="fas fa-history"></i> View All Restores
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-database text-primary"></i> Recent Backups
+          </h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="recent-activity">
+            {% for backup in recent_backups %}
+            <div class="activity-item">
+              <div>
+                <strong>{{ backup.school.name }}</strong><br />
+                <small class="text-muted">{{ backup.backup_name }}</small><br />
+                <small class="text-muted"
+                  >{{ backup.created_at|date:"M d, Y H:i" }}</small
+                >
+              </div>
+              <div class="text-end">
+                <span class="status-badge status-{{ backup.status }}">
+                  {{ backup.get_status_display }} </span
+                ><br />
+                {% if backup.status == 'completed' %}
+                <small class="text-muted"
+                  >{{ backup.backup_size|filesizeformat }}</small
+                >
+                {% endif %}
+              </div>
+            </div>
+            {% empty %}
+            <div class="p-3 text-center text-muted">
+              <i class="fas fa-database fa-2x mb-2"></i><br />
+              No recent backups
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="card-footer">
+          <a
+            href="{% url 'super_admin:all_backups' %}"
+            class="btn btn-sm btn-outline-primary"
+          >
+            View All Backups
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-history text-success"></i> Recent Restores
+          </h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="recent-activity">
+            {% for restore in recent_restores %}
+            <div class="activity-item">
+              <div>
+                <strong>{{ restore.school.name }}</strong><br />
+                <small class="text-muted"
+                  >{{ restore.backup_file_path|basename }}</small
+                ><br />
+                <small class="text-muted"
+                  >{{ restore.created_at|date:"M d, Y H:i" }}</small
+                >
+              </div>
+              <div class="text-end">
+                <span class="status-badge status-{{ restore.status }}">
+                  {{ restore.get_status_display }} </span
+                ><br />
+                {% if restore.status == 'completed' %}
+                <small class="text-muted"
+                  >{{ restore.restored_records_count }} records</small
+                >
+                {% endif %}
+              </div>
+            </div>
+            {% empty %}
+            <div class="p-3 text-center text-muted">
+              <i class="fas fa-history fa-2x mb-2"></i><br />
+              No recent restores
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="card-footer">
+          <a
+            href="{% url 'super_admin:all_restores' %}"
+            class="btn btn-sm btn-outline-success"
+          >
+            View All Restores
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Schools List -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-school text-info"></i> Schools Overview
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for school in schools %}
+            <div class="col-md-4 mb-3">
+              <div class="card border">
+                <div class="card-body">
+                  <h6 class="card-title">{{ school.name }}</h6>
+                  <p class="card-text text-muted">{{ school.short_name }}</p>
+                  <div class="d-flex justify-content-between">
+                    <a
+                      href="{% url 'super_admin:school_backups' school.id %}"
+                      class="btn btn-sm btn-outline-primary"
+                    >
+                      <i class="fas fa-database"></i> Backups
+                    </a>
+                    <a
+                      href="{% url 'super_admin:school_restores' school.id %}"
+                      class="btn btn-sm btn-outline-success"
+                    >
+                      <i class="fas fa-history"></i> Restores
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center text-muted">
+              <i class="fas fa-school fa-3x mb-3"></i><br />
+              No schools found
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  // Auto-refresh the page every 30 seconds to show updated status
+  setTimeout(function () {
+    location.reload();
+  }, 30000);
+</script>
+{% endblock %}

@@ -1,0 +1,127 @@
+{% extends 'super_admin/base.html' %}
+{% load static %}
+
+{% block title %}User: {{ user.username }} - {{ block.super }}{% endblock %}
+
+{% block page_title %}User: {{ user.username }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'super_admin:user_list' %}">Super Admin Users</a></li>
+<li class="breadcrumb-item active">{{ user.username }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h6 class="m-0 font-weight-bold">User Details</h6>
+      <div>
+        <a href="{% url 'super_admin:user_update' user.id %}" class="btn btn-sm btn-primary">
+          <i class="bi bi-pencil me-1"></i> Edit
+        </a>
+        {% if user.id != request.user.id %}
+        <a href="{% url 'super_admin:user_delete' user.id %}" class="btn btn-sm btn-danger">
+          <i class="bi bi-trash me-1"></i> Delete
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <table class="table table-bordered">
+            <tr>
+              <th style="width: 150px;">Username</th>
+              <td>{{ user.username }}</td>
+            </tr>
+            <tr>
+              <th>Full Name</th>
+              <td>{{ user.full_name }}</td>
+            </tr>
+            <tr>
+              <th>Email</th>
+              <td>{{ user.email }}</td>
+            </tr>
+            <tr>
+              <th>Status</th>
+              <td>
+                {% if user.is_active %}
+                <span class="badge bg-success">Active</span>
+                {% else %}
+                <span class="badge bg-danger">Inactive</span>
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <th>Super Admin</th>
+              <td>
+                {% if user.is_superadmin %}
+                <span class="badge bg-warning text-dark">Yes</span>
+                {% else %}
+                <span class="badge bg-secondary">No</span>
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <th>Staff Status</th>
+              <td>
+                {% if user.is_staff %}
+                <span class="badge bg-info">Staff</span>
+                {% else %}
+                <span class="badge bg-secondary">Not Staff</span>
+                {% endif %}
+              </td>
+            </tr>
+          </table>
+        </div>
+        
+        <div class="col-md-6">
+          <table class="table table-bordered">
+            <tr>
+              <th style="width: 150px;">Date Joined</th>
+              <td>{{ user.date_joined|date:"F j, Y H:i" }}</td>
+            </tr>
+            <tr>
+              <th>Last Login</th>
+              <td>
+                {% if user.last_login %}
+                {{ user.last_login|date:"F j, Y H:i" }}
+                {% else %}
+                <span class="text-muted">Never logged in</span>
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <th>Last Modified</th>
+              <td>
+                {% if user.updated_at %}
+                {{ user.updated_at|date:"F j, Y H:i" }}
+                {% else %}
+                <span class="text-muted">N/A</span>
+                {% endif %}
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      
+      <div class="d-flex justify-content-end mt-3">
+        <a href="{% url 'super_admin:user_list' %}" class="btn btn-secondary">
+          <i class="bi bi-arrow-left me-1"></i> Back to List
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card mb-4">
+    <div class="card-header">
+      <h6 class="m-0 font-weight-bold">Recent Activity</h6>
+    </div>
+    <div class="card-body">
+      <p class="text-muted">
+        This section will display recent activity logs for this user when implemented.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %} 

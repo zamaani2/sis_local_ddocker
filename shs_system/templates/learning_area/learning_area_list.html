@@ -1,0 +1,490 @@
+
+{% extends 'base.html' %} {% load static %} {% block title %}{{ title }}{% endblock %} {% block page_title %}{{ title }}{% endblock %} {% block extra_css %} 
+
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+
+            {% if current_academic_year %} {{ current_academic_year.name }} {% if current_term %} - {{ current_term.name }} {% endif %} {% else %} Learning Areas Management {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if current_academic_year %} Current academic year and term management {% else %} Manage school learning areas and subjects {% endif %}
+
+          </p>
+        </div>
+        <div class="btn-group">
+          <button
+            type="button"
+            class="btn btn-primary"
+            id="addLearningAreaBtn"
+            onclick="addLearningArea()"
+          >
+            <i class="fas fa-plus"></i> Add New Learning Area
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CSRF Token for AJAX requests -->
+  {% csrf_token %}
+
+  <!-- Learning Areas Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-book"></i> Learning Areas</h5>
+            <div class="btn-group btn-group-sm">
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                onclick="refreshTable()"
+              >
+                <i class="fas fa-sync-alt"></i> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover" id="learningAreasTable">
+              <thead>
+                <tr>
+                  <th width="120">Code</th>
+                  <th>Name</th>
+                  <th>Description</th>
+                  <th width="150">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for learning_area in learning_areas %}
+                <tr>
+                  <td>
+                    <span class="badge bg-primary"
+                      >{{ learning_area.code }}</span
+                    >
+                  </td>
+                  <td>
+                    <strong>{{ learning_area.name }}</strong>
+                  </td>
+                  <td>
+                    <span class="text-muted"
+                      >{{ learning_area.description|default:"No description provided" }}</span
+                    >
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button
+                        class="btn btn-outline-primary"
+                        data-id="{{ learning_area.id }}"
+                        title="Edit Learning Area"
+                        onclick="editLearningArea({{ learning_area.id }})"
+                      >
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button
+                        class="btn btn-outline-danger"
+                        data-id="{{ learning_area.id }}"
+                        data-name="{{ learning_area.name }}"
+                        title="Delete Learning Area"
+                        onclick="deleteLearningArea({{ learning_area.id }}, '{{ learning_area.name | escapejs }}')"
+                      >
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+
+                  <td class="text-center text-muted py-4">
+                    <i class="fas fa-book fa-3x mb-3"></i>
+                  </td>
+                  <td class="text-center text-muted py-4">
+                    <strong>No learning areas found</strong>
+                  </td>
+                  <td class="text-center text-muted py-4">
+                    Create your first learning area to get started.
+                  </td>
+                  <td class="text-center text-muted py-4">
+
+                    <button
+                      type="button"
+                      class="btn btn-primary"
+                      onclick="addLearningArea()"
+                    >
+                      <i class="fas fa-plus"></i> Add New Learning Area
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Learning Area Modal -->
+<div
+  class="modal fade"
+  id="learningAreaModal"
+  tabindex="-1"
+  aria-labelledby="learningAreaModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="learningAreaModalLabel">
+          <i class="fas fa-book"></i> Add New Learning Area
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form id="learningAreaForm">
+          {% csrf_token %}
+          <input type="hidden" id="learningAreaId" name="learning_area_id" />
+
+          <div class="mb-3">
+            <label for="learningAreaCode" class="form-label">
+              <i class="fas fa-hashtag"></i> Code
+            </label>
+            <input
+              type="text"
+              class="form-control"
+              id="learningAreaCode"
+              name="code"
+              placeholder="Enter learning area code (e.g., MATH, ENG, SCI)"
+              required
+            />
+            <div class="invalid-feedback" id="learningAreaCodeError"></div>
+            <small class="form-text text-muted">
+              Enter a unique code for this learning area.
+            </small>
+          </div>
+
+          <div class="mb-3">
+            <label for="learningAreaName" class="form-label">
+              <i class="fas fa-tag"></i> Name
+            </label>
+            <input
+              type="text"
+              class="form-control"
+              id="learningAreaName"
+              name="name"
+              placeholder="Enter learning area name (e.g., Mathematics, English, Science)"
+              required
+            />
+            <div class="invalid-feedback" id="learningAreaNameError"></div>
+            <small class="form-text text-muted">
+              Enter a descriptive name for this learning area.
+            </small>
+          </div>
+
+          <div class="mb-3">
+            <label for="learningAreaDescription" class="form-label">
+              <i class="fas fa-align-left"></i> Description
+            </label>
+            <textarea
+              class="form-control"
+              id="learningAreaDescription"
+              name="description"
+              rows="3"
+              placeholder="Enter a description for this learning area (optional)"
+            ></textarea>
+            <div
+              class="invalid-feedback"
+              id="learningAreaDescriptionError"
+            ></div>
+            <small class="form-text text-muted">
+              Provide additional details about this learning area (optional).
+            </small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          id="saveLearningAreaBtn"
+          onclick="saveLearningArea()"
+        >
+          <i class="fas fa-save"></i> Save Learning Area
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %} {% block extra_js %}
+<script>
+  // Reset modal form
+  function resetLearningAreaModal() {
+    $("#learningAreaId").val("");
+    $("#learningAreaCode").val("");
+    $("#learningAreaName").val("");
+    $("#learningAreaDescription").val("");
+
+    // Clear any error messages
+    $("#learningAreaCodeError").text("").hide();
+    $("#learningAreaNameError").text("").hide();
+    $("#learningAreaDescriptionError").text("").hide();
+
+    // Remove validation styling
+    $(
+      "#learningAreaCode, #learningAreaName, #learningAreaDescription"
+    ).removeClass("is-invalid is-valid");
+  }
+
+  // Add learning area function
+  function addLearningArea() {
+    resetLearningAreaModal();
+    $("#learningAreaModalLabel").html(
+      '<i class="fas fa-book"></i> Add New Learning Area'
+    );
+    $("#learningAreaModal").modal("show");
+  }
+
+  // Edit learning area function
+  function editLearningArea(learningAreaId) {
+    resetLearningAreaModal();
+    $("#learningAreaModalLabel").html(
+      '<i class="fas fa-edit"></i> Edit Learning Area'
+    );
+
+    // Show loading state
+    const editBtn = event.target.closest("button");
+    const originalHTML = editBtn.innerHTML;
+    editBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    editBtn.disabled = true;
+
+    // Fetch learning area data via AJAX
+    $.ajax({
+      url: `/api/learning-areas/${learningAreaId}/`,
+      type: "GET",
+      success: function (response) {
+        $("#learningAreaId").val(response.id);
+        $("#learningAreaCode").val(response.code);
+        $("#learningAreaName").val(response.name);
+        $("#learningAreaDescription").val(response.description);
+        $("#learningAreaModal").modal("show");
+
+        // Reset button
+        editBtn.innerHTML = originalHTML;
+        editBtn.disabled = false;
+      },
+      error: function (xhr) {
+        showErrorAlert(
+          "Error",
+          "Could not load learning area data. Please try again."
+        );
+        console.error("Error fetching learning area data:", xhr.responseText);
+
+        // Reset button
+        editBtn.innerHTML = originalHTML;
+        editBtn.disabled = false;
+      },
+    });
+  }
+
+  // Delete learning area function
+  function deleteLearningArea(learningAreaId, learningAreaName) {
+    Swal.fire({
+      title: "Are you sure?",
+      text: `You are about to delete the learning area "${learningAreaName}". This action cannot be undone!`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc3545",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Yes, delete it!",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Get CSRF token
+        const csrftoken = $("[name=csrfmiddlewaretoken]").val();
+
+        // Send delete request
+        $.ajax({
+          url: `/api/learning-areas/${learningAreaId}/`,
+          type: "DELETE",
+          headers: { "X-CSRFToken": csrftoken },
+          success: function () {
+            Swal.fire(
+              "Deleted!",
+              `Learning area "${learningAreaName}" has been deleted.`,
+              "success"
+            ).then(() => {
+              location.reload();
+            });
+          },
+          error: function (xhr) {
+            Swal.fire(
+              "Error!",
+              `Error deleting learning area: ${xhr.responseText}`,
+              "error"
+            );
+          },
+        });
+      }
+    });
+  }
+
+  // Save learning area function
+  function saveLearningArea() {
+    // Get form data
+    const learningAreaId = $("#learningAreaId").val();
+    const learningAreaData = {
+      code: $("#learningAreaCode").val(),
+      name: $("#learningAreaName").val(),
+      description: $("#learningAreaDescription").val(),
+    };
+
+    // Get CSRF token
+    const csrftoken = $("[name=csrfmiddlewaretoken]").val();
+
+    // Determine if this is a create or update operation
+    const isUpdate = learningAreaId !== "";
+    const url = isUpdate
+      ? `/api/learning-areas/${learningAreaId}/`
+      : "/api/learning-areas/";
+    const method = isUpdate ? "PUT" : "POST";
+
+    // Show loading state
+    const saveBtn = $("#saveLearningAreaBtn");
+    const originalHTML = saveBtn.html();
+    saveBtn.html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+    saveBtn.prop("disabled", true);
+
+    // Send request
+    $.ajax({
+      url: url,
+      type: method,
+      data: JSON.stringify(learningAreaData),
+      contentType: "application/json",
+      headers: { "X-CSRFToken": csrftoken },
+      success: function (response) {
+        $("#learningAreaModal").modal("hide");
+
+        Swal.fire({
+          title: "Success!",
+          text: isUpdate
+            ? "Learning area updated successfully."
+            : "Learning area created successfully.",
+          icon: "success",
+          confirmButtonColor: "#28a745",
+        }).then(() => {
+          location.reload();
+        });
+      },
+      error: function (xhr) {
+        // Reset button
+        saveBtn.html(originalHTML);
+        saveBtn.prop("disabled", false);
+
+        try {
+          const errors = JSON.parse(xhr.responseText);
+
+          // Clear previous errors
+          $(
+            "#learningAreaCode, #learningAreaName, #learningAreaDescription"
+          ).removeClass("is-invalid");
+          $(
+            "#learningAreaCodeError, #learningAreaNameError, #learningAreaDescriptionError"
+          )
+            .text("")
+            .hide();
+
+          // Display errors
+          if (errors.code) {
+            $("#learningAreaCode").addClass("is-invalid");
+            $("#learningAreaCodeError").text(errors.code).show();
+          }
+
+          if (errors.name) {
+            $("#learningAreaName").addClass("is-invalid");
+            $("#learningAreaNameError").text(errors.name).show();
+          }
+
+          if (errors.description) {
+            $("#learningAreaDescription").addClass("is-invalid");
+            $("#learningAreaDescriptionError").text(errors.description).show();
+          }
+
+          // Display general errors
+          if (errors.error) {
+            Swal.fire("Error!", errors.error, "error");
+          }
+        } catch (e) {
+          Swal.fire(
+            "Error!",
+            "An unexpected error occurred. Please try again.",
+            "error"
+          );
+          console.error("Error saving learning area:", xhr.responseText);
+        }
+      },
+    });
+  }
+
+  // Show error alert helper function
+  function showErrorAlert(title, message) {
+    Swal.fire({
+      title: title,
+      text: message,
+      icon: "error",
+      confirmButtonColor: "#dc3545",
+    });
+  }
+
+  // Refresh table function
+  function refreshTable() {
+    const refreshBtn = event.target.closest("button");
+    const originalHTML = refreshBtn.innerHTML;
+    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    refreshBtn.disabled = true;
+
+    // Simulate refresh (in a real implementation, you'd make an AJAX call)
+    setTimeout(() => {
+      location.reload();
+    }, 1000);
+  }
+
+  // Initialize DataTable
+  $(document).ready(function () {
+    if ($.fn.DataTable) {
+      $("#learningAreasTable").DataTable({
+        responsive: true,
+        order: [[1, "asc"]], // Sort by name column
+
+        // Handle empty tables gracefully
+        language: {
+          emptyTable:
+            "No learning areas found. Create your first learning area to get started.",
+        },
+        // Disable sorting on the Actions column
+        columnDefs: [
+          { orderable: false, targets: 3 }, // Actions column
+        ],
+
+      });
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% load custom_filters %} {% if promotion_data %}
+<!-- Promotion Sheet Header -->
+<div class="promotion-header mb-4">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-graduation-cap"></i> Promotion Sheet Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <strong>Academic Year:</strong> {{ current_academic_year.name }}
+            </div>
+            <div class="col-md-6">
+              {% if selected_form %}
+              <strong>Form:</strong> {{ selected_form.name }} {% else %}
+              <strong>Class:</strong> {{ selected_class.name }} {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Promotion Sheet Table -->
+<table class="promotion-table table table-striped table-bordered">
+  <thead>
+    <tr>
+      <th>Student ID</th>
+      <th>Student Name</th>
+      <th>1st Term</th>
+      <th>2nd Term</th>
+      <th>3rd Term</th>
+      <th>Overall Average</th>
+      <th>Position</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for student_data in promotion_data %}
+    <tr>
+      <td class="text-left">{{ student_data.student.admission_number }}</td>
+      <td class="student-name text-left">
+        {{ student_data.student.full_name }}
+      </td>
+      <td class="score-cell">
+        {{ student_data.term_averages.term_1|floatformat:2 }}
+      </td>
+      <td class="score-cell">
+        {{ student_data.term_averages.term_2|floatformat:2 }}
+      </td>
+      <td class="score-cell">
+        {{ student_data.term_averages.term_3|floatformat:2 }}
+      </td>
+      <td class="score-cell">
+        {{ student_data.overall_average|floatformat:2 }}
+      </td>
+      <td class="position-cell">{{ student_data.position }}</td>
+      <td class="status-cell status-{{ student_data.status }}">
+        {% if student_data.status == 'RETAINED' %}
+        <span
+          class="badge bg-danger clickable-status"
+          data-reason="{{ student_data.status_reason }}"
+          data-student="{{ student_data.student.full_name }}"
+          style="cursor: pointer"
+          title="Click to view reason"
+        >
+          {{ student_data.status }}
+          <i class="fas fa-info-circle ml-1"></i>
+        </span>
+        {% else %}
+        <span class="badge bg-success"> {{ student_data.status }} </span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- Summary Section -->
+<div class="mt-4">
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h6>
+            {% if selected_form %}Form{% else %}Class{% endif %} Statistics
+          </h6>
+        </div>
+        <div class="card-body">
+          <p>
+            <strong>Total Students:</strong> {{ promotion_stats.total_students|default:promotion_data|length }}
+          </p>
+          <p>
+            <strong>Promoted:</strong> {{ promotion_stats.promoted_count|default:"0" }}
+          </p>
+          <p>
+            <strong>Retained:</strong> {{ promotion_stats.retained_count|default:"0" }}
+          </p>
+          <p>
+            <strong
+              >{% if selected_form %}Form{% else %}Class{% endif %}
+              Average:</strong
+            >
+            {{ promotion_stats.class_average|default:"0.00"|floatformat:2 }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header"><h6>Top Performers</h6></div>
+        <div class="card-body">
+          {% for student_data in promotion_data|slice:":3" %}
+          <p>
+            {{ student_data.position }}. {{ student_data.student.full_name }} -
+            {{ student_data.overall_average|floatformat:2 }} ({{ student_data.status }})
+          </p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<div class="no-data-message">
+  <i class="fas fa-info-circle"></i>
+  <p>
+    No promotion data available for the selected {% if selected_form %}form{% else %}class{% endif %} and term combination.
+  </p>
+</div>
+{% endif %}

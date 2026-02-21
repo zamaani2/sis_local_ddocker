@@ -1,0 +1,6 @@
+FROM postgres:15
+
+# Keep this image buildable as a dedicated service image.
+# Initialization can still be provided at runtime with mounted SQL files.
+
+

@@ -1,0 +1,1655 @@
+<!-- templates/admin/teacher_list.html -->
+{% extends 'base.html' %} 
+{% load static %}
+{% block title %}Teacher Management{% endblock %} {% block page_title %}Teacher Management {% endblock %} {% block breadcrumb %}
+<li class="breadcrumb-item">
+  <a href="{% url 'admin_dashboard' %}">Dashboard</a>
+</li>
+{% endblock %} {% block content %}
+<div class="container-fluid py-4">
+  <div class="row mb-4 align-items-center">
+    <div class="col-md-6"></div>
+    <div class="col-md-6 text-md-end">
+      <a
+        href="{% url 'bulk_subject_assignment' %}"
+        class="btn btn-success me-2"
+      >
+        <i class="bi bi-grid-3x3"></i> Bulk Subject Assignment
+      </a>
+      <button
+        type="button"
+        class="btn btn-primary"
+        data-bs-toggle="modal"
+        data-bs-target="#addTeacherModal"
+      >
+        <i class="bi bi-plus-lg"></i> Add New Teacher
+      </button>
+    </div>
+  </div>
+  <!-- Filter and Search -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-body">
+      <h5 class="card-title mb-3">Advanced Filters</h5>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label for="department-filter" class="form-label">Department</label>
+          <select id="department-filter" class="form-select">
+            <option value="">All Departments</option>
+            {% for department in departments %}
+            <option value="{{ department.id }}">{{ department.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label for="gender-filter" class="form-label">Gender</label>
+          <select id="gender-filter" class="form-select">
+            <option value="">All Genders</option>
+            <option value="M">Male</option>
+            <option value="F">Female</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label for="account-filter" class="form-label">User Account</label>
+          <select id="account-filter" class="form-select">
+            <option value="">All Accounts</option>
+            <option value="active">With Account</option>
+            <option value="inactive">No Account</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Teachers List -->
+  <div class="card shadow-sm">
+    <div
+      class="card-header bg-primary text-white d-flex justify-content-between align-items-center"
+    >
+      <h5 class="card-title mb-0">Teachers List</h5>
+    </div>
+    <div class="table-responsive">
+      <table
+        id="teachers-table"
+        class="table table-striped table-hover align-middle mb-0 border-bottom"
+      >
+        <thead class="table-dark">
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Department</th>
+            <th>Gender</th>
+            <th>Contact</th>
+            <th>Assigned Classes</th>
+            <th>User Account</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for teacher in teachers %}
+          <tr>
+            <td>{{ teacher.staff_id }}</td>
+            <td>
+              <div class="d-flex align-items-center">
+                {% if teacher.profile_picture %}
+                <img
+                  src="{{ teacher.profile_picture.url }}"
+                  alt="{{ teacher.full_name }}"
+                  class="rounded-circle me-2"
+                  width="40"
+                  height="40"
+                />
+                {% else %}
+                <div
+                  class="bg-primary rounded-circle text-white d-flex align-items-center justify-content-center me-2"
+                  style="width: 40px; height: 40px"
+                >
+                  {{ teacher.full_name|slice:":1" }}
+                </div>
+                {% endif %}
+                <span>{{ teacher.full_name }}</span>
+              </div>
+            </td>
+            <td>{{ teacher.department.name|default:"N/A" }}</td>
+            <td>
+              {% if teacher.gender == "M" %} Male {% elif teacher.gender == "F" %} Female {% else %} N/A {% endif %}
+            </td>
+            <td>{{ teacher.contact_number }}</td>
+            <td>{{ teacher.total_assigned_classes }}</td>
+            <td>
+              {% if teacher.user %}
+              <span class="badge bg-success">Active</span>
+              {% else %}
+              <span class="badge bg-secondary">No Account</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <a
+                  href="{% url 'teacher_detail' teacher.staff_id %}"
+                  class="btn btn-outline-info"
+                  title="View Teacher Details"
+                >
+                  <i class="fas fa-eye"></i>
+                </a>
+                <button
+                  type="button"
+                  class="btn btn-outline-primary"
+                  data-bs-toggle="modal"
+                  data-bs-target="#editTeacherModal"
+                  data-teacher-id="{{ teacher.staff_id }}"
+                  data-teacher-name="{{ teacher.full_name }}"
+                  data-teacher-department-id="{{ teacher.department.id|default:'' }}"
+                  data-teacher-department-name="{{ teacher.department.name|default:'' }}"
+                  data-teacher-gender="{{ teacher.gender|default:'' }}"
+                  data-teacher-contact="{{ teacher.contact_number }}"
+                  data-teacher-qualifications="{{ teacher.qualifications }}"
+                  data-teacher-email="{% if teacher.user %}{{ teacher.user.email }}{% endif %}"
+                  title="Edit Teacher"
+                >
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-danger"
+                  data-bs-toggle="modal"
+                  data-bs-target="#deleteTeacherModal"
+                  data-teacher-id="{{ teacher.staff_id }}"
+                  data-teacher-name="{{ teacher.full_name }}"
+                  title="Delete Teacher"
+                >
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <!-- Instead of using a single row with colspan, use DataTables' built-in empty state -->
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add Teacher Modal -->
+<div
+  class="modal fade"
+  id="addTeacherModal"
+  tabindex="-1"
+  aria-labelledby="addTeacherModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addTeacherModalLabel">Add New Teacher</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <form method="post" action="{% url 'add_teacher' %}" id="addTeacherForm">
+        <div class="modal-body">
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="full_name" class="form-label">Full Name*</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="full_name"
+                  name="full_name"
+                  required
+                />
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="department" class="form-label">Department*</label>
+                <select
+                  class="form-select"
+                  id="department"
+                  name="department"
+                  required
+                >
+                  <option value="">Select Department</option>
+                  {% for department in departments %}
+                  <option value="{{ department.id }}">
+                    {{ department.name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="gender" class="form-label">Gender</label>
+                <select class="form-select" id="gender" name="gender">
+                  <option value="">Select Gender</option>
+                  <option value="M">Male</option>
+                  <option value="F">Female</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="contact_number" class="form-label"
+                  >Contact Number*</label
+                >
+                <input
+                  type="text"
+                  class="form-control"
+                  id="contact_number"
+                  name="contact_number"
+                  required
+                />
+              </div>
+            </div>
+            <div class="col-md-12">
+              <div class="form-group">
+                <label for="email" class="form-label">Email</label>
+                <input
+                  type="email"
+                  class="form-control"
+                  id="email"
+                  name="email"
+                />
+                <small class="form-text text-muted"
+                  >Teacher's email address</small
+                >
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="create_account"
+                  name="create_account"
+                />
+                <label class="form-check-label" for="create_account">
+                  Create user account for this teacher
+                </label>
+              </div>
+            </div>
+            <div class="col-md-6 account-fields" style="display: none">
+              <div class="form-group">
+                <label for="password" class="form-label">Password*</label>
+                <input
+                  type="password"
+                  class="form-control"
+                  id="password"
+                  name="password"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">Add Teacher</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Teacher Modal -->
+<div
+  class="modal fade"
+  id="editTeacherModal"
+  tabindex="-1"
+  aria-labelledby="editTeacherModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editTeacherModalLabel">Edit Teacher</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <form method="post" id="editTeacherForm">
+        <div class="modal-body">
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="edit_full_name" class="form-label"
+                  >Full Name*</label
+                >
+                <input
+                  type="text"
+                  class="form-control"
+                  id="edit_full_name"
+                  name="full_name"
+                  required
+                />
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="edit_department" class="form-label"
+                  >Department*</label
+                >
+                <select
+                  class="form-select"
+                  id="edit_department"
+                  name="department"
+                  required
+                >
+                  <option value="">Select Department</option>
+                  {% for department in departments %}
+                  <option value="{{ department.id }}">
+                    {{ department.name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="edit_gender" class="form-label">Gender</label>
+                <select class="form-select" id="edit_gender" name="gender">
+                  <option value="">Select Gender</option>
+                  <option value="M">Male</option>
+                  <option value="F">Female</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="edit_contact_number" class="form-label"
+                  >Contact Number*</label
+                >
+                <input
+                  type="text"
+                  class="form-control"
+                  id="edit_contact_number"
+                  name="contact_number"
+                  required
+                />
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="edit_create_account"
+                  name="create_account"
+                />
+                <label class="form-check-label" for="edit_create_account">
+                  Create user account for this teacher
+                </label>
+              </div>
+            </div>
+            <div class="col-md-12">
+              <div class="form-group">
+                <label for="edit_email" class="form-label">Email</label>
+                <input
+                  type="email"
+                  class="form-control"
+                  id="edit_email"
+                  name="email"
+                />
+                <small class="text-muted"
+                  >Leave empty to keep existing email or create no
+                  account</small
+                >
+              </div>
+            </div>
+            <div class="col-md-6 edit-account-fields" style="display: none">
+              <div class="form-group">
+                <label for="edit_password" class="form-label">Password</label>
+                <input
+                  type="password"
+                  class="form-control"
+                  id="edit_password"
+                  name="password"
+                />
+                <small class="text-muted"
+                  >Leave empty to keep existing password</small
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">Update Teacher</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Teacher Modal -->
+<!-- This modal is now handled through SweetAlert2 and can be removed -->
+<!--
+<div class="modal fade" id="deleteTeacherModal" tabindex="-1" aria-labelledby="deleteTeacherModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteTeacherModalLabel">Delete Teacher</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete teacher <strong id="deleteTeacherName"></strong>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" id="deleteTeacherForm" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+-->
+
+{% if messages %}
+<div id="django-messages" style="display: none">
+  {% for message in messages %}
+  <div data-message="{{ message }}" data-tags="{{ message.tags }}"></div>
+  {% endfor %}
+</div>
+{% endif %} {% block extra_css %}
+<!-- DataTables Buttons CSS -->
+<link
+  rel="stylesheet"
+  href="{% static 'vendor/datatables-buttons/2.4.2/css/buttons.bootstrap5.min.css' %}"
+/>
+<style>
+  /* Style improvements for DataTables */
+  .dataTables_wrapper .dataTables_filter {
+    margin-bottom: 10px;
+  }
+
+  /* Enhanced search bar styling */
+  .dataTables_filter label {
+    width: 100%;
+    position: relative;
+  }
+
+  .dataTables_filter input {
+    width: 100% !important;
+    padding-left: 40px !important;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    height: 38px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  }
+
+  .dataTables_filter label::before {
+    content: "\F52A";
+    font-family: "bootstrap-icons";
+    position: absolute;
+    left: 12px;
+    top: 9px;
+    color: #6c757d;
+    font-size: 1.1rem;
+  }
+
+  .dataTables_filter input:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  }
+
+  .dt-buttons {
+    margin-bottom: 10px;
+  }
+
+  .dt-button {
+    margin-right: 5px;
+  }
+
+  /* Fix for button spacing */
+  .btn-group .btn {
+    margin-right: 2px;
+  }
+
+  /* Style for clear filters link */
+  .clear-filters a {
+    display: inline-block;
+    padding: 0.375rem 0.75rem;
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+    color: #6c757d;
+    text-decoration: none;
+    border: 1px solid #dee2e6;
+    font-weight: 500;
+  }
+
+  .clear-filters a:hover {
+    background-color: #e9ecef;
+    color: #212529;
+  }
+</style>
+{% endblock %} {% block extra_js %}
+<!-- DataTables Buttons and Export extensions -->
+<script src="{% static 'vendor/datatables-buttons/2.4.2/js/dataTables.buttons.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-buttons/2.4.2/js/buttons.bootstrap5.min.js' %}"></script>
+<script src="{% static 'vendor/jszip/3.10.1/3.10.1/jszip.min.js' %}"></script>
+<script src="{% static 'vendor/pdfmake/0.1.70/0.1.70/pdfmake.min.js' %}"></script>
+<script src="{% static 'vendor/pdfmake/0.1.70/0.1.70/vfs_fonts.js' %}"></script>
+<script src="{% static 'vendor/datatables-buttons/2.4.2/js/buttons.html5.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-buttons/2.4.2/js/buttons.print.min.js' %}"></script>
+<script>
+  // Global flag to track if an alert is currently showing
+  let alertShowing = false;
+
+  // Global flag to prevent duplicate form submissions
+  let formSubmitting = false;
+
+  document.addEventListener("DOMContentLoaded", function () {
+    // Initialize DataTables with advanced features
+    const teachersTable = $("#teachers-table").DataTable({
+      responsive: true,
+      lengthMenu: [
+        [10, 25, 50, 100, -1],
+        [10, 25, 50, 100, "All"],
+      ],
+      pageLength: 10,
+      dom:
+        '<"row mb-3"<"col-md-6"B><"col-md-6 text-end"f>>' +
+        '<"row mb-2"<"col-md-12 text-end"><"clear-filters text-end">>' +
+        '<"row"<"col-md-12"tr>>' +
+        '<"row"<"col-md-5"i><"col-md-7"p>>',
+      buttons: [
+        {
+          extend: "excel",
+          text: '<i class="bi bi-file-excel"></i> Excel',
+          className: "btn btn-success btn-sm",
+          exportOptions: {
+            columns: [0, 1, 2, 3, 4, 5, 6], // Include User Account column, exclude only actions
+          },
+        },
+        {
+          extend: "pdf",
+          text: '<i class="bi bi-file-pdf"></i> PDF',
+          className: "btn btn-danger btn-sm",
+          exportOptions: {
+            columns: [0, 1, 2, 3, 4, 5, 6], // Include User Account column, exclude only actions
+          },
+        },
+        {
+          extend: "print",
+          text: '<i class="bi bi-printer"></i> Print',
+          className: "btn btn-info btn-sm text-white",
+          exportOptions: {
+            columns: [0, 1, 2, 3, 4, 5, 6], // Include User Account column, exclude only actions
+          },
+        },
+      ],
+      // Custom rendering for the account status column for better filtering
+      columnDefs: [
+        {
+          targets: 6, // User Account column (index 6)
+          render: function (data, type, row) {
+            if (type === "filter" || type === "sort") {
+              return data.includes("Active") ? "active" : "inactive";
+            }
+            return data;
+          },
+        },
+        {
+          targets: 3, // Gender column (index 3)
+          render: function (data, type, row) {
+            if (type === "filter" || type === "sort") {
+              // Make filtering case-insensitive and handle N/A values
+              if (data === "N/A") return "";
+              return data;
+            }
+            return data;
+          },
+        },
+        // Define Actions column as not orderable or searchable
+        {
+          targets: 7, // Actions column (index 7)
+          orderable: false,
+          searchable: false,
+        },
+      ],
+      // Explicitly define all columns for consistent definition
+      columns: [
+        { data: 0 }, // ID
+        { data: 1 }, // Name
+        { data: 2 }, // Department
+        { data: 3 }, // Gender
+        { data: 4 }, // Contact
+        { data: 5 }, // Assigned Classes
+        { data: 6 }, // User Account
+        { data: 7, orderable: false }, // Actions
+      ],
+      language: {
+        search: "",
+        searchPlaceholder: "Search by name, ID or department...",
+        emptyTable: "No teachers found",
+        zeroRecords: "No matching teachers found",
+        info: "Showing _START_ to _END_ of _TOTAL_ teachers",
+        infoEmpty: "Showing 0 to 0 of 0 teachers",
+        infoFiltered: "(filtered from _MAX_ total teachers)",
+      },
+      // This ensures the table layout remains stable
+      autoWidth: false,
+      // Disable row grouping which can cause column count issues
+      rowGroup: false,
+      // Fix for empty tables to avoid column count issues
+      fnDrawCallback: function () {
+        if ($(this).find("tbody tr").length === 0) {
+          $(this)
+            .find("tbody")
+            .append(
+              '<tr class="empty-row"><td colspan="8" class="text-center py-4">No teachers found.</td></tr>'
+            );
+        } else {
+          $(this).find("tbody tr.empty-row").remove();
+        }
+      },
+      initComplete: function () {
+        // Add a reset filters link
+        $(".clear-filters").html(
+          '<a href="#" class="reset-all-filters"><i class="bi bi-x-circle"></i> Reset All Filters</a>'
+        );
+
+        // Reset all filters when clicked
+        $(".clear-filters a").on("click", function (e) {
+          e.preventDefault();
+          $("#department-filter, #gender-filter, #account-filter").val("");
+          teachersTable.search("").columns().search("").draw();
+        });
+      },
+    });
+
+    // Connect custom filter dropdowns to DataTable
+    $("#department-filter").on("change", function () {
+      teachersTable.column(2).search(this.value).draw(); // Department column (index 2)
+    });
+
+    $("#gender-filter").on("change", function () {
+      teachersTable.column(3).search(this.value).draw(); // Gender column (index 3)
+    });
+
+    $("#account-filter").on("change", function () {
+      teachersTable.column(6).search(this.value).draw(); // Account column (index 6)
+    });
+
+    // Reset filters button
+    $("#reset-filters").on("click", function () {
+      $("#department-filter, #gender-filter, #account-filter").val("");
+      teachersTable.search("").columns().search("").draw();
+    });
+
+    // Alternative export button for simpler UI
+    $("#export-teachers").on("click", function () {
+      Swal.fire({
+        title: "Export Teachers",
+        text: "Choose a format to export the teacher list",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Excel",
+        cancelButtonText: "PDF",
+        showDenyButton: true,
+        denyButtonText: "Print",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          teachersTable.button(".buttons-excel").trigger();
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+          teachersTable.button(".buttons-pdf").trigger();
+        } else if (result.isDenied) {
+          teachersTable.button(".buttons-print").trigger();
+        }
+      });
+    });
+
+    // Check if we're returning from a page reload or redirect
+    const pageReloadFlag = sessionStorage.getItem("pageJustReloaded");
+
+    if (pageReloadFlag === "true") {
+      // We just reloaded the page - clear messages and reset the flag
+      window.ajaxInitiated = true; // Prevent Django messages from showing
+      const messagesContainer = document.getElementById("django-messages");
+      if (messagesContainer) {
+        messagesContainer.innerHTML = "";
+      }
+      // Clear the flag
+      sessionStorage.removeItem("pageJustReloaded");
+    } else {
+      // Check if this is a page reload (not a direct navigation or redirect)
+      try {
+        if (
+          performance &&
+          performance.navigation &&
+          performance.navigation.type === 1
+        ) {
+          // This is a page reload - set the flag for next page load
+          sessionStorage.setItem("pageJustReloaded", "true");
+        }
+      } catch (e) {
+        // If performance API is not supported, use a different approach
+        if (sessionStorage.getItem("pageLoadCount")) {
+          let count = parseInt(sessionStorage.getItem("pageLoadCount"));
+          sessionStorage.setItem("pageLoadCount", count + 1);
+          if (count > 0) {
+            // Assume this is a reload if we've loaded the page before
+            sessionStorage.setItem("pageJustReloaded", "true");
+          }
+        } else {
+          // First page load, set counter
+          sessionStorage.setItem("pageLoadCount", "1");
+        }
+      }
+    }
+
+    // Check if we're returning from a redirect with a flag to skip alerts
+    if (sessionStorage.getItem("preventDuplicateAlert") === "true") {
+      // Set window.ajaxInitiated to true to prevent Django messages from showing
+      window.ajaxInitiated = true;
+      // Clear the flag immediately
+      sessionStorage.removeItem("preventDuplicateAlert");
+      // Clear any Django messages
+      const messagesContainer = document.getElementById("django-messages");
+      if (messagesContainer) {
+        messagesContainer.innerHTML = "";
+      }
+    }
+
+    // Show alert messages with SweetAlert2 instead of Bootstrap alerts
+    if (!window.ajaxInitiated && !alertShowing) {
+      const messagesContainer = document.getElementById("django-messages");
+      if (messagesContainer && messagesContainer.children.length > 0) {
+        // Get only the first message to prevent multiple alerts
+        const messageDiv = messagesContainer.querySelector("div");
+        if (messageDiv) {
+          const message = messageDiv.dataset.message;
+          const tags = messageDiv.dataset.tags;
+
+          // Map Django message tags to SweetAlert icons
+          const iconMap = {
+            success: "success",
+            error: "error",
+            warning: "warning",
+            info: "info",
+            danger: "error",
+          };
+
+          const icon = iconMap[tags] || "info";
+
+          // Set flag to true to prevent multiple alerts
+          alertShowing = true;
+
+          Swal.fire({
+            title: tags.charAt(0).toUpperCase() + tags.slice(1),
+            text: message,
+            icon: icon,
+            toast: true,
+            position: "top-end",
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+          }).then(() => {
+            // Reset flag when alert is closed
+            alertShowing = false;
+          });
+
+          // Clear all messages to prevent them from being shown again
+          messagesContainer.innerHTML = "";
+        }
+      }
+    }
+
+    // Helper function to show SweetAlert2 notifications
+    function showNotification(
+      message,
+      type = "success",
+      title = "",
+      options = {}
+    ) {
+      // Only show if no alert is currently displayed
+      if (alertShowing) return false;
+
+      alertShowing = true;
+      const capitalizedType = type.charAt(0).toUpperCase() + type.slice(1);
+
+      // Default configuration
+      const config = {
+        title: title || capitalizedType,
+        text: message,
+        icon: type,
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        ...options,
+      };
+
+      return Swal.fire(config).then(() => {
+        alertShowing = false;
+        return true; // Return true to indicate the alert was shown
+      });
+    }
+
+    // Toggle account fields in Add Teacher modal
+    const createAccountCheckbox = document.getElementById("create_account");
+    const accountFields = document.querySelectorAll(".account-fields");
+
+    if (createAccountCheckbox) {
+      createAccountCheckbox.addEventListener("change", function () {
+        accountFields.forEach((field) => {
+          field.style.display = this.checked ? "block" : "none";
+          const inputs = field.querySelectorAll("input");
+          inputs.forEach((input) => {
+            input.required = this.checked;
+          });
+        });
+      });
+
+      // Initialize fields on page load
+      accountFields.forEach((field) => {
+        field.style.display = createAccountCheckbox.checked ? "block" : "none";
+        const inputs = field.querySelectorAll("input");
+        inputs.forEach((input) => {
+          input.required = createAccountCheckbox.checked;
+        });
+      });
+    }
+
+    // Toggle account fields in Edit Teacher modal
+    const editCreateAccountCheckbox = document.getElementById(
+      "edit_create_account"
+    );
+    const editAccountFields = document.querySelectorAll(".edit-account-fields");
+
+    if (editCreateAccountCheckbox) {
+      editCreateAccountCheckbox.addEventListener("change", function () {
+        const emailField = document.getElementById("edit_email");
+        if (emailField) {
+          emailField.required = this.checked;
+        }
+
+        editAccountFields.forEach((field) => {
+          field.style.display = this.checked ? "block" : "none";
+          // Only make password required for new accounts (when there's no existing email)
+          const inputs = field.querySelectorAll("input");
+          inputs.forEach((input) => {
+            // Don't set required for password fields when editing existing accounts
+            if (
+              emailField &&
+              emailField.value &&
+              input.id === "edit_password"
+            ) {
+              input.required = false;
+            } else {
+              input.required = this.checked;
+            }
+          });
+        });
+      });
+
+      // Initialize fields on page load
+      editAccountFields.forEach((field) => {
+        field.style.display = editCreateAccountCheckbox.checked
+          ? "block"
+          : "none";
+        const inputs = field.querySelectorAll("input");
+        const emailField = document.getElementById("edit_email");
+
+        inputs.forEach((input) => {
+          // Don't set required for password fields when editing existing accounts
+          if (emailField && emailField.value && input.id === "edit_password") {
+            input.required = false;
+          } else {
+            input.required = editCreateAccountCheckbox.checked;
+          }
+        });
+      });
+    }
+
+    // Handle Add Teacher form submission with AJAX
+    const addTeacherForm = document.getElementById("addTeacherForm");
+    if (addTeacherForm) {
+      addTeacherForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        // Prevent duplicate submissions
+        if (formSubmitting || alertShowing) {
+          return;
+        }
+        formSubmitting = true;
+
+        // Set a flag to prevent Django message handling on page reload
+        window.ajaxInitiated = true;
+
+        const formData = new FormData(this);
+        const submitButton = this.querySelector('button[type="submit"]');
+
+        // Disable button and show loading state
+        submitButton.disabled = true;
+        submitButton.innerHTML =
+          '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
+
+        fetch(this.action, {
+          method: "POST",
+          body: formData,
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+          },
+        })
+          .then((response) => {
+            if (!response.ok) {
+              // First check if the response is JSON
+              const contentType = response.headers.get("content-type");
+              if (contentType && contentType.includes("application/json")) {
+                return response.json().then((data) => {
+                  throw new Error(
+                    data.message || "Server returned " + response.status
+                  );
+                });
+              } else {
+                // If not JSON, get text and throw error with that
+                return response.text().then((text) => {
+                  throw new Error(text || "Server returned " + response.status);
+                });
+              }
+            }
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+              return response.json();
+            } else {
+              // If not JSON, handle as text
+              return response.text().then((text) => {
+                try {
+                  // Try to parse as JSON anyway in case content-type is wrong
+                  return JSON.parse(text);
+                } catch (e) {
+                  // Return object with message if parsing fails
+                  return { message: text, success: response.ok };
+                }
+              });
+            }
+          })
+          .then((data) => {
+            // Reset form and close modal
+            this.reset();
+            const modal = bootstrap.Modal.getInstance(
+              document.getElementById("addTeacherModal")
+            );
+            modal.hide();
+
+            // Clear Django messages to prevent duplicates
+            const messagesContainer =
+              document.getElementById("django-messages");
+            if (messagesContainer) {
+              messagesContainer.innerHTML = "";
+            }
+
+            // Show success message
+            alertShowing = true;
+            Swal.fire({
+              title: "Success!",
+              text: data.message || "Teacher added successfully",
+              icon: "success",
+              confirmButtonText: "OK",
+            }).then((result) => {
+              alertShowing = false;
+
+              if (data.redirect) {
+                // Make sure Django messages don't show after redirect
+                sessionStorage.setItem("preventDuplicateAlert", "true");
+                // Also clear any persisted messages in Django's message framework
+                fetch("/teachers/?clear_messages=true", {
+                  method: "HEAD",
+                  headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                  },
+                }).finally(() => {
+                  window.location.href = data.redirect;
+                });
+              } else {
+                // Instead of reloading the page, refresh just the table if data is provided
+                if (data.teacher && teachersTable) {
+                  try {
+                    // Create a new row for the table
+                    const userAccountCell = data.teacher.user
+                      ? '<span class="badge bg-success">Active</span>'
+                      : '<span class="badge bg-secondary">No Account</span>';
+
+                    const actionsHtml = `
+                      <div class="btn-group btn-group-sm">
+                        <a href="/teachers/${
+                          data.teacher.staff_id
+                        }/" class="btn btn-outline-info" title="View Teacher Details">
+                          <i class="fas fa-eye"></i>
+                        </a>
+                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" 
+                          data-bs-target="#editTeacherModal" data-teacher-id="${
+                            data.teacher.staff_id
+                          }" 
+                          data-teacher-name="${data.teacher.full_name}" 
+                          data-teacher-department-id="${
+                            data.teacher.department_id || ""
+                          }" 
+                          data-teacher-department-name="${
+                            data.teacher.department || ""
+                          }" 
+                          data-teacher-gender="${data.teacher.gender || ""}" 
+                          data-teacher-contact="${data.teacher.contact_number}" 
+                          data-teacher-qualifications="${
+                            data.teacher.qualifications || ""
+                          }" 
+                          data-teacher-email="${data.teacher.email || ""}" 
+                          title="Edit Teacher">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" 
+                          data-bs-target="#deleteTeacherModal" data-teacher-id="${
+                            data.teacher.staff_id
+                          }" 
+                          data-teacher-name="${data.teacher.full_name}" 
+                          title="Delete Teacher">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    `;
+
+                    // Add the new row to the table
+                    const newRow = teachersTable.row
+                      .add([
+                        data.teacher.staff_id,
+                        data.teacher.full_name,
+                        data.teacher.department || "N/A",
+                        data.teacher.gender === "M"
+                          ? "Male"
+                          : data.teacher.gender === "F"
+                          ? "Female"
+                          : "N/A",
+                        data.teacher.contact_number,
+                        data.teacher.total_assigned_classes || "0",
+                        userAccountCell,
+                        actionsHtml,
+                      ])
+                      .draw(false)
+                      .node();
+
+                    // Add a fade-in effect to the new row
+                    $(newRow).css("background-color", "#d4edda").animate(
+                      {
+                        backgroundColor: "transparent",
+                      },
+                      2000
+                    );
+                  } catch (e) {
+                    console.error("Error updating table:", e);
+                    // If table update fails, reload the page
+                    sessionStorage.setItem("pageJustReloaded", "true");
+                    window.location.reload();
+                  }
+                } else {
+                  // For page reload, set the reload flag to prevent messages on reload
+                  sessionStorage.setItem("pageJustReloaded", "true");
+                  window.location.reload();
+                }
+              }
+            });
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            alertShowing = true;
+
+            // Check if error message contains form errors
+            let errorMessage = error.message || "Failed to add teacher";
+
+            try {
+              // Try to parse the error message as JSON
+              const errorData = JSON.parse(errorMessage);
+              if (errorData.errors) {
+                // Format form errors for display
+                let formattedErrors = "<ul class='text-left'>";
+                for (const field in errorData.errors) {
+                  formattedErrors += `<li><strong>${field}:</strong> ${errorData.errors[
+                    field
+                  ].join(", ")}</li>`;
+                }
+                formattedErrors += "</ul>";
+
+                // Show errors with formatted HTML
+                Swal.fire({
+                  title: "Form Validation Error",
+                  html: formattedErrors,
+                  icon: "error",
+                  confirmButtonText: "OK",
+                }).then(() => {
+                  alertShowing = false;
+                });
+                return;
+              }
+            } catch (e) {
+              // Not JSON, continue with regular error display
+              console.log("Error message is not JSON:", e);
+            }
+
+            // Regular error message display
+            Swal.fire({
+              title: "Error!",
+              text: errorMessage,
+              icon: "error",
+              confirmButtonText: "OK",
+            }).then(() => {
+              alertShowing = false;
+            });
+          })
+          .finally(() => {
+            // Reset button state and form submitting flag
+            submitButton.disabled = false;
+            submitButton.innerHTML = "Add Teacher";
+            formSubmitting = false;
+          });
+      });
+    }
+
+    // Handle Edit Teacher Modal
+    const editTeacherModal = document.getElementById("editTeacherModal");
+    if (editTeacherModal) {
+      // Store teacher data in a map for quick access
+      const teacherDataCache = new Map();
+
+      // Function to update teacher data in the DOM and cache
+      function updateTeacherData(staffId, updatedData) {
+        // Find the teacher row by a safer selector
+        const editButtons = document.querySelectorAll(
+          'button[data-bs-target="#editTeacherModal"]'
+        );
+        let teacherRow = null;
+
+        // Find the specific button with matching staff ID
+        for (const button of editButtons) {
+          if (button.getAttribute("data-teacher-id") === staffId) {
+            teacherRow = button.closest("tr");
+            break;
+          }
+        }
+
+        if (!teacherRow) {
+          console.warn(`Could not find teacher row for ID: ${staffId}`);
+          return;
+        }
+
+        // Update the display in the table
+        const nameCell = teacherRow.querySelector("td:nth-child(2)");
+        const deptCell = teacherRow.querySelector("td:nth-child(3)");
+        const genderCell = teacherRow.querySelector("td:nth-child(4)");
+        const contactCell = teacherRow.querySelector("td:nth-child(5)");
+
+        if (nameCell) nameCell.textContent = updatedData.full_name;
+        if (deptCell) deptCell.textContent = updatedData.department;
+
+        // Format gender display value
+        if (genderCell) {
+          if (updatedData.gender === "M") {
+            genderCell.textContent = "Male";
+          } else if (updatedData.gender === "F") {
+            genderCell.textContent = "Female";
+          } else {
+            genderCell.textContent = "N/A";
+          }
+        }
+
+        if (contactCell) contactCell.textContent = updatedData.contact_number;
+
+        // Update all data attributes on the edit button
+        const editButton = teacherRow.querySelector(
+          'button[data-bs-target="#editTeacherModal"]'
+        );
+        if (editButton) {
+          editButton.setAttribute("data-teacher-name", updatedData.full_name);
+          editButton.setAttribute(
+            "data-teacher-department-id",
+            updatedData.department_id || ""
+          );
+          editButton.setAttribute(
+            "data-teacher-department-name",
+            updatedData.department || ""
+          );
+          editButton.setAttribute(
+            "data-teacher-gender",
+            updatedData.gender || ""
+          );
+          editButton.setAttribute(
+            "data-teacher-contact",
+            updatedData.contact_number
+          );
+          editButton.setAttribute(
+            "data-teacher-qualifications",
+            updatedData.qualifications || ""
+          );
+          editButton.setAttribute(
+            "data-teacher-email",
+            updatedData.email || ""
+          );
+        }
+
+        // Update delete button data attributes
+        const deleteButton = teacherRow.querySelector(
+          'button[data-bs-target="#deleteTeacherModal"]'
+        );
+        if (deleteButton) {
+          deleteButton.setAttribute("data-teacher-name", updatedData.full_name);
+        }
+
+        // Update the cache
+        teacherDataCache.set(staffId, {
+          full_name: updatedData.full_name,
+          department_id: updatedData.department_id,
+          department: updatedData.department,
+          gender: updatedData.gender || "",
+          contact_number: updatedData.contact_number,
+          email: updatedData.email || "",
+          qualifications: updatedData.qualifications || "",
+        });
+      }
+
+      editTeacherModal.addEventListener("show.bs.modal", function (event) {
+        const button = event.relatedTarget;
+        const staffId = button.getAttribute("data-teacher-id");
+        const name = button.getAttribute("data-teacher-name");
+        const departmentId = button.getAttribute("data-teacher-department-id");
+        const departmentName = button.getAttribute(
+          "data-teacher-department-name"
+        );
+        const gender = button.getAttribute("data-teacher-gender");
+        const contact = button.getAttribute("data-teacher-contact");
+        const qualifications = button.getAttribute(
+          "data-teacher-qualifications"
+        );
+        const email = button.getAttribute("data-teacher-email");
+
+        const form = editTeacherModal.querySelector("form");
+        form.action = "/teachers/" + staffId + "/edit/";
+
+        document.getElementById("edit_full_name").value = name;
+
+        // Find and select the department in the dropdown
+        const departmentSelect = document.getElementById("edit_department");
+        const departmentOptions = departmentSelect.options;
+        for (let i = 0; i < departmentOptions.length; i++) {
+          if (departmentOptions[i].value === departmentId) {
+            departmentSelect.selectedIndex = i;
+            break;
+          }
+        }
+
+        document.getElementById("edit_gender").value = gender || "";
+        document.getElementById("edit_contact_number").value = contact;
+        document.getElementById("edit_create_account").checked = email !== "";
+        document.getElementById("edit_email").value = email || "";
+
+        // Store the initial data in our cache
+        teacherDataCache.set(staffId, {
+          full_name: name,
+          department_id: departmentId,
+          department: departmentName,
+          gender: gender || "",
+          contact_number: contact,
+          qualifications: qualifications || "",
+          email: email || "",
+        });
+      });
+
+      // Enhanced form submission with loading indicator and SweetAlert2
+      const editForm = document.getElementById("editTeacherForm");
+      if (editForm) {
+        editForm.addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          // Prevent duplicate submissions
+          if (formSubmitting || alertShowing) {
+            return;
+          }
+          formSubmitting = true;
+
+          // Set a flag to prevent Django message handling on page reload
+          window.ajaxInitiated = true;
+
+          const formData = new FormData(this);
+          const action = this.action;
+          // Get the staff ID from the action URL
+          const staffId = action
+            .split("/")
+            .filter(Boolean)
+            .pop()
+            .replace("edit/", "");
+
+          // Show loading state on button
+          const submitButton = this.querySelector('button[type="submit"]');
+          submitButton.disabled = true;
+          submitButton.innerHTML =
+            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...';
+
+          fetch(action, {
+            method: "POST",
+            body: formData,
+            headers: {
+              "X-Requested-With": "XMLHttpRequest",
+            },
+          })
+            .then((response) => {
+              if (!response.ok) {
+                // First check if the response is JSON
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                  return response.json().then((data) => {
+                    throw new Error(
+                      data.message || `Server returned ${response.status}`
+                    );
+                  });
+                } else {
+                  // If not JSON, get text and throw error with that
+                  return response.text().then((text) => {
+                    throw new Error(
+                      text || `Server returned ${response.status}`
+                    );
+                  });
+                }
+              }
+              // Check if response is JSON before parsing
+              const contentType = response.headers.get("content-type");
+              if (contentType && contentType.includes("application/json")) {
+                return response.json();
+              } else {
+                // If not JSON, handle as text
+                return response.text().then((text) => {
+                  try {
+                    // Try to parse as JSON anyway in case content-type is wrong
+                    return JSON.parse(text);
+                  } catch (e) {
+                    // Return object with message if parsing fails
+                    return { message: text, success: response.ok };
+                  }
+                });
+              }
+            })
+            .then((data) => {
+              // Close the modal
+              const modal = bootstrap.Modal.getInstance(editTeacherModal);
+              modal.hide();
+
+              // Update teacher data in DOM and cache with the data returned from server
+              if (data.teacher) {
+                updateTeacherData(staffId, data.teacher);
+              } else {
+                // Fallback to form data if server doesn't return teacher data
+                const updatedData = {
+                  full_name: formData.get("full_name"),
+                  department_id: formData.get("department"),
+                  department:
+                    departmentSelect.options[departmentSelect.selectedIndex]
+                      .text,
+                  contact_number: formData.get("contact_number"),
+                  email: formData.get("email") || "",
+                  qualifications: formData.get("qualifications") || "",
+                };
+                updateTeacherData(staffId, updatedData);
+              }
+
+              // Clear Django messages to prevent duplicates
+              const messagesContainer =
+                document.getElementById("django-messages");
+              if (messagesContainer) {
+                messagesContainer.innerHTML = "";
+              }
+
+              // Show success message with SweetAlert2
+              alertShowing = true;
+              Swal.fire({
+                title: "Updated!",
+                text:
+                  data.message || "Teacher information updated successfully",
+                icon: "success",
+                toast: true,
+                position: "top-end",
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+              }).then(() => {
+                alertShowing = false;
+                // Clear any persisted messages in Django's message framework
+                fetch("/teachers/?clear_messages=true", {
+                  method: "HEAD",
+                  headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                  },
+                });
+              });
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+              alertShowing = true;
+              Swal.fire({
+                title: "Error!",
+                text: error.message || "Failed to update teacher",
+                icon: "error",
+                confirmButtonText: "OK",
+              }).then(() => {
+                alertShowing = false;
+              });
+            })
+            .finally(() => {
+              // Reset button state and form submitting flag
+              submitButton.disabled = false;
+              submitButton.innerHTML = "Update Teacher";
+              formSubmitting = false;
+            });
+        });
+      }
+
+      // Reset modal on hidden
+      editTeacherModal.addEventListener("hidden.bs.modal", function () {
+        const form = editTeacherModal.querySelector("form");
+        form.reset();
+      });
+    }
+
+    // Replace the Bootstrap modal with SweetAlert2 for deletion
+    document
+      .querySelectorAll('button[data-bs-target="#deleteTeacherModal"]')
+      .forEach((button) => {
+        button.addEventListener("click", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          // Prevent duplicate dialog
+          if (alertShowing || formSubmitting) return;
+
+          // Set a flag to prevent Django message handling on page reload
+          window.ajaxInitiated = true;
+
+          const staffId = this.getAttribute("data-teacher-id");
+          const name = this.getAttribute("data-teacher-name");
+          const deleteUrl = "/teachers/" + staffId + "/delete/";
+
+          // Show SweetAlert2 confirmation
+          alertShowing = true;
+          Swal.fire({
+            title: "Delete Teacher",
+            html: `Are you sure you want to delete teacher <strong>${name}</strong>?<br><span class="text-danger">This action cannot be undone.</span>`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#dc3545",
+            cancelButtonColor: "#6c757d",
+            confirmButtonText: "Yes, delete it!",
+            cancelButtonText: "Cancel",
+            reverseButtons: true,
+          }).then((result) => {
+            if (result.isConfirmed) {
+              // User confirmed, send delete request
+              formSubmitting = true;
+              const formData = new FormData();
+              const csrfToken = document.querySelector(
+                'input[name="csrfmiddlewaretoken"]'
+              ).value;
+              formData.append("csrfmiddlewaretoken", csrfToken);
+
+              // Show loading state
+              Swal.fire({
+                title: "Deleting...",
+                html: "Please wait",
+                allowOutsideClick: false,
+                didOpen: () => {
+                  Swal.showLoading();
+                },
+              });
+
+              fetch(deleteUrl, {
+                method: "POST",
+                body: formData,
+                headers: {
+                  "X-Requested-With": "XMLHttpRequest",
+                },
+              })
+                .then((response) => {
+                  if (!response.ok) {
+                    // First check if the response is JSON
+                    const contentType = response.headers.get("content-type");
+                    if (
+                      contentType &&
+                      contentType.includes("application/json")
+                    ) {
+                      return response.json().then((data) => {
+                        throw new Error(
+                          data.message || `Server returned ${response.status}`
+                        );
+                      });
+                    } else {
+                      // If not JSON, get text and throw error with that
+                      return response.text().then((text) => {
+                        throw new Error(
+                          text || `Server returned ${response.status}`
+                        );
+                      });
+                    }
+                  }
+                  // Check if response is JSON before parsing
+                  const contentType = response.headers.get("content-type");
+                  if (contentType && contentType.includes("application/json")) {
+                    return response.json();
+                  } else {
+                    // If not JSON, handle as text
+                    return response.text().then((text) => {
+                      try {
+                        // Try to parse as JSON anyway in case content-type is wrong
+                        return JSON.parse(text);
+                      } catch (e) {
+                        // Return object with message if parsing fails
+                        return { message: text, success: response.ok };
+                      }
+                    });
+                  }
+                })
+                .then((data) => {
+                  // Clear Django messages to prevent duplicates
+                  const messagesContainer =
+                    document.getElementById("django-messages");
+                  if (messagesContainer) {
+                    messagesContainer.innerHTML = "";
+                  }
+
+                  // Find and remove the teacher row from the table
+                  const deleteButtons = document.querySelectorAll(
+                    'button[data-bs-target="#deleteTeacherModal"]'
+                  );
+                  let teacherRow = null;
+
+                  // Find the specific button with matching staff ID
+                  for (const btn of deleteButtons) {
+                    if (btn.getAttribute("data-teacher-id") === staffId) {
+                      teacherRow = btn.closest("tr");
+                      break;
+                    }
+                  }
+
+                  if (teacherRow) {
+                    // Add fade-out animation
+                    teacherRow.style.transition = "opacity 0.5s";
+                    teacherRow.style.opacity = "0";
+                    setTimeout(() => {
+                      teacherRow.remove();
+
+                      // Check if table is now empty
+                      const tbody = document.querySelector("table.table tbody");
+                      if (tbody.children.length === 0) {
+                        const tr = document.createElement("tr");
+                        tr.innerHTML =
+                          '<td colspan="8" class="text-center py-4">No teachers found.</td>';
+                        tbody.appendChild(tr);
+                      }
+                    }, 500);
+                  }
+
+                  // Show success message
+                  Swal.fire({
+                    title: "Deleted!",
+                    text:
+                      data.message || "Teacher has been deleted successfully",
+                    icon: "success",
+                    confirmButtonText: "OK",
+                  }).then(() => {
+                    alertShowing = false;
+                    formSubmitting = false;
+                    // Clear any persisted messages in Django's message framework
+                    fetch("/teachers/?clear_messages=true", {
+                      method: "HEAD",
+                      headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                      },
+                    });
+                  });
+                })
+                .catch((error) => {
+                  console.error("Error:", error);
+                  Swal.fire({
+                    title: "Error!",
+                    text: error.message || "Failed to delete teacher",
+                    icon: "error",
+                    confirmButtonText: "OK",
+                  }).then(() => {
+                    alertShowing = false;
+                    formSubmitting = false;
+                  });
+                });
+            } else {
+              // Reset the alert showing flag if canceled
+              alertShowing = false;
+            }
+          });
+        });
+      });
+  });
+</script>
+{% endblock %} {% endblock %}

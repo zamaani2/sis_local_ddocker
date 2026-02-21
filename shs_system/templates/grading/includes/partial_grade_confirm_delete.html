@@ -1,0 +1,63 @@
+{% load static %}
+<form
+  method="post"
+  action="{% url 'grading_system_delete' grade.id %}"
+  class="js-grade-delete-form"
+>
+  {% csrf_token %}
+  <div class="modal-header">
+    <h5 class="modal-title">Confirm Delete Grade</h5>
+    <button
+      type="button"
+      class="btn-close"
+      data-bs-dismiss="modal"
+      aria-label="Close"
+    ></button>
+  </div>
+  <div class="modal-body">
+    <div class="messages-container"></div>
+    <p>
+      Are you sure you want to delete the grade
+      <strong>{{ grade.grade_letter }}</strong>?
+    </p>
+    <div class="alert alert-warning">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      This action cannot be undone. All reports and scores that use this grade
+      will remain, but may not display correctly.
+    </div>
+    <div class="table-responsive">
+      <table class="table table-bordered table-sm">
+        <tr>
+          <th>Grade Letter:</th>
+          <td>{{ grade.grade_letter }}</td>
+        </tr>
+        <tr>
+          <th>Score Range:</th>
+          <td>{{ grade.min_score }} - {{ grade.max_score }}</td>
+        </tr>
+        <tr>
+          <th>Remarks:</th>
+          <td>{{ grade.remarks }}</td>
+        </tr>
+        <tr>
+          <th>Status:</th>
+          <td>
+            {% if grade.is_active %}
+            <span class="badge bg-success">Active</span>
+            {% else %}
+            <span class="badge bg-secondary">Inactive</span>
+            {% endif %}
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+      Cancel
+    </button>
+    <button type="submit" class="btn btn-danger">
+      <i class="fas fa-trash me-1"></i> Delete Grade
+    </button>
+  </div>
+</form>

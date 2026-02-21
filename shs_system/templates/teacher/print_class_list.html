@@ -1,0 +1,111 @@
+{% extends 'base.html' %} {% load static %} {% block title %}Class List - {{class.name }}{% endblock %} {% block extra_css %}
+<style>
+  @media print {
+    body {
+      font-family: var(--font-family-primary);
+      color: var(--neutral-dark);
+    }
+
+    .card {
+      border: none;
+      box-shadow: none !important;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .table-bordered {
+      border: 1px solid #dee2e6;
+    }
+
+    .bg-light {
+      background-color: #f8f9fa !important;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+  }
+
+  .card {
+    box-shadow: var(--box-shadow-sm);
+  }
+
+  .text-muted {
+    color: var(--neutral-medium) !important;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container-fluid py-4">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="text-center mb-4">
+        <h4 class="mb-1">{{ school.name }}</h4>
+        <p class="text-muted mb-0">{{ school.address }}</p>
+        <p class="text-muted mb-0">
+          Tel: {{ school.phone_number }} | Email: {{ school.email }}
+        </p>
+      </div>
+
+      <div class="text-center mb-4">
+        <h5 class="mb-1">Class List</h5>
+        <p class="text-muted mb-0">
+          {{ class.name }} - {{ current_academic_year.name }}, {{
+          current_term.name }}
+        </p>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-bordered">
+          <thead class="bg-light">
+            <tr>
+              <th class="text-center" width="5%">#</th>
+              <th width="15%">Admission No.</th>
+              <th width="30%">Student Name</th>
+              <th width="15%">Gender</th>
+              <th width="15%">Date of Birth</th>
+              <th width="20%">Parent/Guardian</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for student in students %}
+            <tr>
+              <td class="text-center">{{ forloop.counter }}</td>
+              <td>{{ student.admission_number }}</td>
+              <td>{{ student.full_name|title }}</td>
+              <td>{{ student.get_gender_display }}</td>
+              <td>{{ student.date_of_birth|date:"d/m/Y" }}</td>
+              <td>{{ student.parent_guardian_name|title }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center">
+                No students found in this class.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-4">
+        <p class="mb-1">
+          <strong>Class Teacher:</strong> {{ class.class_teacher.full_name|title
+          }}
+        </p>
+        <p class="mb-0">
+          <strong>Total Students:</strong> {{ students|length }}
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %} {{ block.super }}
+<script>
+  $(document).ready(function () {
+    // Auto-print when page loads
+    window.print();
+  });
+</script>
+{% endblock %} {% endblock %}

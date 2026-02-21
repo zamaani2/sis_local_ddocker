@@ -1,0 +1,88 @@
+{% extends "base.html" %} {% load static %} {% block title %}Delete Grade{%
+endblock %} {% block page_title %}Delete Grade{% endblock %} {% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6 mx-auto">
+      <div class="card">
+        <div class="card-header bg-danger text-white">
+          <h4 class="mb-0">Confirm Deletion</h4>
+        </div>
+        <div class="card-body">
+          {% if messages %}
+          <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <div class="alert alert-warning">
+            <h5 class="alert-heading">Warning!</h5>
+            <p>
+              You are about to delete the grade
+              <strong>{{ grade.grade_letter }}</strong> ({{ grade.min_score }} -
+              {{ grade.max_score }}). This action cannot be undone and may
+              affect existing student assessments.
+            </p>
+          </div>
+
+          <div class="card mb-3">
+            <div class="card-header">
+              <h5 class="mb-0">Grade Details</h5>
+            </div>
+            <div class="card-body">
+              <table class="table table-bordered">
+                <tr>
+                  <th width="30%">Grade:</th>
+                  <td>{{ grade.grade_letter }}</td>
+                </tr>
+                <tr>
+                  <th>Score Range:</th>
+                  <td>{{ grade.min_score }} - {{ grade.max_score }}</td>
+                </tr>
+                <tr>
+                  <th>Remarks:</th>
+                  <td>{{ grade.remarks }}</td>
+                </tr>
+                {% if grade.description %}
+                <tr>
+                  <th>Description:</th>
+                  <td>{{ grade.description }}</td>
+                </tr>
+                {% endif %}
+                <tr>
+                  <th>Status:</th>
+                  <td>
+                    {% if grade.is_active %}
+                    <span class="badge bg-success">Active</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <form
+            method="post"
+            action="{% url 'grading_system_delete' grade.id %}"
+          >
+            {% csrf_token %}
+            <div class="d-flex justify-content-end gap-2">
+              <a
+                href="{% url 'grading_system_list' %}"
+                class="btn btn-secondary"
+                >Cancel</a
+              >
+              <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash me-1"></i> Confirm Delete
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

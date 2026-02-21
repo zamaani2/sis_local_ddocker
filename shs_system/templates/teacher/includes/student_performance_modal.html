@@ -1,0 +1,104 @@
+<div class="modal-header bg-primary text-white">
+  <h5 class="modal-title">Academic Performance - {{ student.full_name }}</h5>
+  <button
+    type="button"
+    class="btn-close btn-close-white"
+    data-bs-dismiss="modal"
+    aria-label="Close"
+  ></button>
+</div>
+<div class="modal-body">
+  <!-- Student Info -->
+  <div class="mb-4">
+    <p class="mb-1"><strong>Class:</strong> {{ class_obj.name }}</p>
+    <p class="mb-1">
+      <strong>Term:</strong> {{ current_term.get_term_number_display }}
+    </p>
+    <p class="mb-1">
+      <strong>Academic Year:</strong> {{ current_academic_year.name }}
+    </p>
+  </div>
+
+  <!-- Performance Summary -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-light">
+        <div class="card-body text-center">
+          <h6 class="card-title">Average Score</h6>
+          <h3 class="mb-0">{{ average_score }}%</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-light">
+        <div class="card-body text-center">
+          <h6 class="card-title">Total Subjects</h6>
+          <h3 class="mb-0">{{ total_subjects }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body text-center">
+          <h6 class="card-title">Passed</h6>
+          <h3 class="mb-0">{{ passed_subjects }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-danger text-white">
+        <div class="card-body text-center">
+          <h6 class="card-title">Failed</h6>
+          <h3 class="mb-0">{{ failed_subjects }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subject Performance Table -->
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped">
+      <thead class="table-light">
+        <tr>
+          <th>Subject</th>
+          <th>
+            Class Score ({% if scoring_config %}{{
+            scoring_config.class_score_percentage }}%{% else %}30%{% endif %})
+          </th>
+          <th>
+            Exam Score ({% if scoring_config %}{{
+            scoring_config.exam_score_percentage }}%{% else %}70%{% endif %})
+          </th>
+          <th>Total Score</th>
+          <th>Grade</th>
+          <th>Position</th>
+          <th>Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for subject in subject_assessments.values %}
+        <tr>
+          <td>{{ subject.subject_name }}</td>
+          <td>{{ subject.class_score|default:"-" }}</td>
+          <td>{{ subject.exam_score|default:"-" }}</td>
+          <td>{{ subject.total_score|default:"-" }}</td>
+          <td>{{ subject.grade|default:"-" }}</td>
+          <td>{{ subject.position|default:"-" }}</td>
+          <td>{{ subject.remarks|default:"-" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center">
+            No assessments found for this term
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+    Close
+  </button>
+</div>

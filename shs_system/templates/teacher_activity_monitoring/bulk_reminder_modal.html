@@ -1,0 +1,168 @@
+<!-- Bulk Reminder Modal -->
+<div class="modal fade" id="bulkReminderModal" tabindex="-1" aria-labelledby="bulkReminderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="bulkReminderModalLabel">
+                    <i class="bi bi-bell me-2"></i>Send Bulk Reminders
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'send_activity_reminder' %}" method="post" id="bulkReminderForm" data-confirm="true">
+                {% csrf_token %}
+                <input type="hidden" name="bulk_send" value="true">
+                <input type="hidden" name="redirect_url" value="{{ request.path }}">
+                
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i> This will send reminders to multiple teachers based on your filters.
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="bulk_activity_type" class="form-label">
+                                    <i class="bi bi-list-task me-1"></i>Activity Type <span class="text-danger">*</span>
+                                </label>
+                                <select id="bulk_activity_type" name="activity_type" class="form-select" required>
+                                    <option value="">Select Activity Type</option>
+                                    <option value="scores">Score Entry</option>
+                                    <option value="remarks">Student Remarks</option>
+                                    <option value="report_cards">Report Cards</option>
+                                </select>
+                                <div class="form-text">Choose the type of activity to send reminders for</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="bulk_completion_status" class="form-label">
+                                    <i class="bi bi-check-circle me-1"></i>Completion Status
+                                </label>
+                                <select id="bulk_completion_status" name="completion_status" class="form-select">
+                                    <option value="">Any Status</option>
+                                    <option value="not_started">Not Started</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="completed">Completed</option>
+                                </select>
+                                <div class="form-text">Filter by completion status</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="bulk_academic_year" class="form-label">
+                                    <i class="bi bi-calendar3 me-1"></i>Academic Year
+                                </label>
+                                <select id="bulk_academic_year" name="academic_year" class="form-select">
+                                    <option value="">All Academic Years</option>
+                                    {% for year in form.fields.academic_year.queryset %}
+                                        <option value="{{ year.id }}" {% if selected_academic_year.id == year.id %}selected{% endif %}>{{ year.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Select academic year for reminders</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="bulk_term" class="form-label">
+                                    <i class="bi bi-calendar-week me-1"></i>Term
+                                </label>
+                                <select id="bulk_term" name="term" class="form-select">
+                                    <option value="">All Terms</option>
+                                    {% for term in form.fields.term.queryset %}
+                                        <option value="{{ term.id }}" {% if selected_term.id == term.id %}selected{% endif %}>{{ term.get_term_number_display }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Select term for reminders</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="bulk_department" class="form-label">
+                                    <i class="bi bi-building me-1"></i>Department
+                                </label>
+                                <select id="bulk_department" name="department" class="form-select">
+                                    <option value="">All Departments</option>
+                                    {% for dept in form.fields.department.queryset %}
+                                        <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Filter by department</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="scheduled_date" class="form-label">
+                                    <i class="bi bi-clock me-1"></i>Schedule For (Optional)
+                                </label>
+                                <input type="datetime-local" id="scheduled_date" name="scheduled_date" class="form-control">
+                                <div class="form-text">Leave blank to send immediately</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i> 
+                        <strong>Warning:</strong> This will send emails to all teachers matching the selected criteria. 
+                        Please use this feature carefully to avoid overwhelming teachers with reminders.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x me-1"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="sendBulkRemindersBtn">
+                        <i class="bi bi-send me-1"></i> Send Reminders
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Schedule Reminder Modal -->
+<div class="modal fade" id="scheduleReminderModal" tabindex="-1" aria-labelledby="scheduleReminderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="scheduleReminderModalLabel">
+                    <i class="bi bi-clock me-2"></i> Schedule Reminder
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="scheduleReminderForm" action="" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="activity_type" id="schedule_activity_type">
+                <input type="hidden" name="redirect_url" value="{{ request.path }}">
+                
+                <div class="modal-body">
+                    <div class="form-group mb-3">
+                        <label for="individual_scheduled_date" class="form-label">
+                            <i class="bi bi-calendar-event me-1"></i>Schedule For <span class="text-danger">*</span>
+                        </label>
+                        <input type="datetime-local" id="individual_scheduled_date" name="scheduled_date" class="form-control" required>
+                        <div class="form-text">Select date and time for the reminder</div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i> 
+                        This reminder will be sent automatically at the scheduled time.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x me-1"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-clock me-1"></i> Schedule Reminder
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div> 

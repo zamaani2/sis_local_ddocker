@@ -1,0 +1,159 @@
+<!-- View Student Modal -->
+<div
+  class="modal fade"
+  id="viewStudentModal"
+  tabindex="-1"
+  aria-labelledby="viewStudentModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fs-6" id="viewStudentModalLabel">
+          <i class="bi bi-person me-1"></i>Student Details: {{ student.full_name
+          }}
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body p-2">
+        <div class="row g-2">
+          <!-- Left Column: Profile Picture and Basic Info -->
+          <div class="col-md-4 text-center">
+            <div class="profile-picture-container mx-auto mb-2">
+              {% if student.profile_picture %}
+              <img
+                src="{{ student.profile_picture.url }}"
+                alt="{{ student.full_name }}"
+                class="rounded-circle"
+                style="width: 100px; height: 100px; object-fit: cover"
+              />
+              {% else %}
+              <div
+                class="bg-primary rounded-circle text-white d-flex align-items-center justify-content-center"
+                style="width: 100px; height: 100px; font-size: 2rem"
+              >
+                <i class="bi bi-person"></i>
+              </div>
+              {% endif %}
+            </div>
+
+            <h5 class="mb-1">{{ student.full_name }}</h5>
+            <p
+              class="badge {% if status == 'active' %}bg-success{% else %}bg-secondary{% endif %} mb-2"
+            >
+              {{ status|title }}
+            </p>
+            <p class="small text-muted mb-0">
+              Admission #: {{ student.admission_number }}
+            </p>
+          </div>
+
+          <!-- Right Column: Detailed Information -->
+          <div class="col-md-8">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="card mb-2">
+                  <div class="card-header">
+                    <h6 class="mb-0 fs-6">
+                      <i class="bi bi-person"></i> Personal Information
+                    </h6>
+                  </div>
+                  <div class="card-body">
+                    <dl class="row mb-0 small">
+                      <dt class="col-sm-5">Gender:</dt>
+                      <dd class="col-sm-7">{{ student.gender }}</dd>
+
+                      <dt class="col-sm-5">Date of Birth:</dt>
+                      <dd class="col-sm-7">
+                        {{ student.date_of_birth|default:"-" }}
+                      </dd>
+
+                      <dt class="col-sm-5">Age:</dt>
+                      <dd class="col-sm-7">{{ age }}</dd>
+
+                      <dt class="col-sm-5">Form:</dt>
+                      <dd class="col-sm-7">
+                        {{ student.form.name|default:"-" }}
+                      </dd>
+
+                      <dt class="col-sm-5">Learning Area:</dt>
+                      <dd class="col-sm-7">
+                        {{ student.learning_area.name|default:"-" }}
+                      </dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="card mb-2">
+                  <div class="card-header">
+                    <h6 class="mb-0 fs-6">
+                      <i class="bi bi-telephone"></i> Contact Information
+                    </h6>
+                  </div>
+                  <div class="card-body">
+                    <dl class="row mb-0 small">
+                      <dt class="col-sm-5">Parent Contact:</dt>
+                      <dd class="col-sm-7">
+                        {{ student.parent_contact|default:"-" }}
+                      </dd>
+
+                      <dt class="col-sm-5">Email:</dt>
+                      <dd class="col-sm-7">{{ student.email|default:"-" }}</dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h6 class="mb-0 fs-6">
+                  <i class="bi bi-mortarboard"></i> Academic Information
+                </h6>
+              </div>
+              <div class="card-body">
+                <dl class="row mb-0 small">
+                  <dt class="col-sm-4">Current Class:</dt>
+                  <dd class="col-sm-8">
+                    {{ current_class|default:"Not Assigned" }}
+                  </dd>
+
+                  <dt class="col-sm-4">Admission Date:</dt>
+                  <dd class="col-sm-8">
+                    {{ student.admission_date|default:"-" }}
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer py-1">
+        <button
+          type="button"
+          class="btn btn-warning edit-student-btn"
+          data-id="{{ student.id }}"
+        >
+          <i class="bi bi-pencil me-1"></i>Edit
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary assign-class-btn"
+          data-id="{{ student.id }}"
+        >
+          <i class="bi bi-people me-1"></i>Assign Class
+        </button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x me-1"></i>Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

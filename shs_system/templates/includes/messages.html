@@ -1,0 +1,9 @@
+{% if messages %}
+<div id="django-messages" style="display: none;">
+    {% for message in messages %}
+        <div class="django-message" data-message-type="{{ message.tags }}">
+            {{ message }}
+        </div>
+    {% endfor %}
+</div>
+{% endif %} 

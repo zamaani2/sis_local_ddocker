@@ -1,0 +1,733 @@
+{% extends "base.html" %} {% load static %} {% block title %}Backup & Restore
+Settings - {{ school.name }}{% endblock %} {% block extra_css %}
+<style>
+  .backup-card {
+    transition: transform 0.2s ease-in-out;
+  }
+  .backup-card:hover {
+    transform: translateY(-2px);
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h2 class="mb-0">
+            <i class="fas fa-cogs text-info me-2"></i>
+            Backup & Restore Settings
+          </h2>
+          <p class="text-muted mb-0">
+            Configure backup and restore settings for {{ school.name }}
+          </p>
+        </div>
+        <div>
+          <button
+            class="btn btn-outline-secondary me-2"
+            onclick="resetSettings()"
+            title="Reset all settings to defaults"
+          >
+            <i class="fas fa-undo me-2"></i>Reset to Defaults
+          </button>
+          <button
+            class="btn btn-primary"
+            onclick="saveSettings()"
+            id="saveSettingsBtn"
+          >
+            <i class="fas fa-save me-2"></i>Save Settings
+          </button>
+        </div>
+      </div>
+
+      <form id="settingsForm">
+        {% csrf_token %}
+        <div class="row">
+          <!-- Backup Settings -->
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="mb-0">
+                  <i class="fas fa-database me-2"></i>Backup Settings
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label for="defaultBackupName" class="form-label"
+                    >Default Backup Name</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="defaultBackupName"
+                    name="default_backup_name"
+                    placeholder="Enter default backup name template"
+                  />
+                  <div class="form-text">
+                    Default name for new backups (leave empty for auto-generated
+                    names)
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Default Backup Options</label>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="defaultIncludesDatabase"
+                      name="default_includes_database"
+                    />
+                    <label
+                      class="form-check-label"
+                      for="defaultIncludesDatabase"
+                    >
+                      Include Database Records
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="defaultIncludesMediaFiles"
+                      name="default_includes_media_files"
+                    />
+                    <label
+                      class="form-check-label"
+                      for="defaultIncludesMediaFiles"
+                    >
+                      Include Media Files
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="defaultIncludesStaticFiles"
+                      name="default_includes_static_files"
+                    />
+                    <label
+                      class="form-check-label"
+                      for="defaultIncludesStaticFiles"
+                    >
+                      Include Static Files
+                    </label>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="tempFileRetentionHours" class="form-label"
+                    >Temp File Retention (Hours)</label
+                  >
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="tempFileRetentionHours"
+                    name="temp_file_retention_hours"
+                    min="1"
+                    max="168"
+                    value="24"
+                  />
+                  <div class="form-text">
+                    How long to keep temporary backup files (1-168 hours)
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Auto Cleanup</label>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="autoCleanupTempFiles"
+                      name="auto_cleanup_temp_files"
+                    />
+                    <label class="form-check-label" for="autoCleanupTempFiles">
+                      Automatically clean up temporary files
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Restore Settings -->
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="mb-0">
+                  <i class="fas fa-undo me-2"></i>Restore Settings
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label">Default Restore Options</label>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="defaultRestoreDatabase"
+                      name="default_restore_database"
+                    />
+                    <label
+                      class="form-check-label"
+                      for="defaultRestoreDatabase"
+                    >
+                      Restore Database Records
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="defaultRestoreMediaFiles"
+                      name="default_restore_media_files"
+                    />
+                    <label
+                      class="form-check-label"
+                      for="defaultRestoreMediaFiles"
+                    >
+                      Restore Media Files
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="defaultRestoreStaticFiles"
+                      name="default_restore_static_files"
+                    />
+                    <label
+                      class="form-check-label"
+                      for="defaultRestoreStaticFiles"
+                    >
+                      Restore Static Files
+                    </label>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Safety Options</label>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="defaultBackupExistingData"
+                      name="default_backup_existing_data"
+                    />
+                    <label
+                      class="form-check-label"
+                      for="defaultBackupExistingData"
+                    >
+                      Auto-backup before restore
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <!-- System Information -->
+      <div class="row mt-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="fas fa-info-circle me-2"></i>System Information
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-4">
+                  <h6>Database</h6>
+                  <ul class="list-unstyled">
+                    <li><strong>Engine:</strong> PostgreSQL</li>
+                    <li>
+                      <strong>Records:</strong> {{ school.users.count }} users
+                    </li>
+                    <li>
+                      <strong>Students:</strong> {{ school.student_set.count }}
+                    </li>
+                    <li>
+                      <strong>Teachers:</strong> {{ school.teacher_set.count }}
+                    </li>
+                  </ul>
+                </div>
+                <div class="col-md-4">
+                  <h6>Storage</h6>
+                  <ul class="list-unstyled">
+                    <li><strong>Media Directory:</strong> {{ MEDIA_ROOT }}</li>
+                    <li>
+                      <strong>Static Directory:</strong> {{ STATIC_ROOT }}
+                    </li>
+                    <li><strong>Backup Directory:</strong> {{ backup_dir }}</li>
+                  </ul>
+                </div>
+                <div class="col-md-4">
+                  <h6>Backup Statistics</h6>
+                  <ul class="list-unstyled">
+                    <li>
+                      <strong>Total Backups:</strong> {{ school.backups.count }}
+                    </li>
+                    <li>
+                      <strong>Last Backup:</strong>
+                      {% if school.backups.first %} {{
+                      school.backups.first.created_at|date:"M d, Y" }} {% else
+                      %} Never {% endif %}
+                    </li>
+                    <li>
+                      <strong>Total Restores:</strong> {{ school.restores.count
+                      }}
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="row mt-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="fas fa-tools me-2"></i>Maintenance Actions
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <h6>Backup Actions</h6>
+                  <div class="d-grid gap-2">
+                    <button
+                      class="btn btn-outline-primary"
+                      onclick="createQuickBackup()"
+                    >
+                      <i class="fas fa-database me-2"></i>Create Quick Backup
+                    </button>
+                    <button
+                      class="btn btn-outline-info"
+                      onclick="cleanupOldBackups()"
+                    >
+                      <i class="fas fa-broom me-2"></i>Cleanup Old Backups
+                    </button>
+                    <button
+                      class="btn btn-outline-warning"
+                      onclick="cleanupTempFiles()"
+                    >
+                      <i class="fas fa-trash me-2"></i>Cleanup Temp Files
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <h6>System Actions</h6>
+                  <div class="d-grid gap-2">
+                    <button
+                      class="btn btn-outline-warning"
+                      onclick="validateBackups()"
+                    >
+                      <i class="fas fa-check-circle me-2"></i>Validate All
+                      Backups
+                    </button>
+                    <button
+                      class="btn btn-outline-secondary"
+                      onclick="exportSettings()"
+                    >
+                      <i class="fas fa-download me-2"></i>Export Settings
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<!-- SweetAlert2 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+  let currentSettings = null;
+
+  // Load settings when page loads
+  function loadSettings() {
+    fetch("/backup/settings/", {
+      method: "GET",
+      headers: {
+        "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
+          .value,
+        "Content-Type": "application/json",
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          currentSettings = data.settings;
+          applySettingsToForm(data.settings);
+        } else {
+          console.error("Failed to load settings:", data.message);
+          Swal.fire({
+            icon: "error",
+            title: "Error Loading Settings",
+            text: data.message,
+            timer: 5000,
+            timerProgressBar: true,
+          });
+        }
+      })
+      .catch((error) => {
+        console.error("Error loading settings:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "An error occurred while loading settings.",
+          timer: 5000,
+          timerProgressBar: true,
+        });
+      });
+  }
+
+  // Apply settings to form
+  function applySettingsToForm(settings) {
+    // Set backup name
+    const backupNameInput = document.getElementById("defaultBackupName");
+    if (backupNameInput) {
+      backupNameInput.value = settings.default_backup_name || "";
+    }
+
+    // Set backup checkboxes
+    const backupCheckboxes = {
+      default_includes_database: settings.default_includes_database,
+      default_includes_media_files: settings.default_includes_media_files,
+      default_includes_static_files: settings.default_includes_static_files,
+      auto_cleanup_temp_files: settings.auto_cleanup_temp_files,
+    };
+
+    Object.entries(backupCheckboxes).forEach(([name, checked]) => {
+      const checkbox = document.querySelector(`[name="${name}"]`);
+      if (checkbox) {
+        checkbox.checked = checked;
+      }
+    });
+
+    // Set restore checkboxes
+    const restoreCheckboxes = {
+      default_restore_database: settings.default_restore_database,
+      default_restore_media_files: settings.default_restore_media_files,
+      default_restore_static_files: settings.default_restore_static_files,
+      default_backup_existing_data: settings.default_backup_existing_data,
+    };
+
+    Object.entries(restoreCheckboxes).forEach(([name, checked]) => {
+      const checkbox = document.querySelector(`[name="${name}"]`);
+      if (checkbox) {
+        checkbox.checked = checked;
+      }
+    });
+
+    // Set temp file retention hours
+    const retentionInput = document.getElementById("tempFileRetentionHours");
+    if (retentionInput) {
+      retentionInput.value = settings.temp_file_retention_hours || 24;
+    }
+  }
+
+  // Save settings
+  function saveSettings() {
+    const formData = new FormData(document.getElementById("settingsForm"));
+
+    // Add checkboxes manually (they only send data if checked)
+    const checkboxes = [
+      "default_includes_database",
+      "default_includes_media_files",
+      "default_includes_static_files",
+      "default_restore_database",
+      "default_restore_media_files",
+      "default_restore_static_files",
+      "default_backup_existing_data",
+      "auto_cleanup_temp_files",
+    ];
+
+    checkboxes.forEach((name) => {
+      const checkbox = document.querySelector(`[name="${name}"]`);
+      if (checkbox && checkbox.checked) {
+        formData.append(name, "true");
+      }
+    });
+
+    const saveBtn = document.getElementById("saveSettingsBtn");
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+    saveBtn.disabled = true;
+
+    fetch("/backup/settings/save/", {
+      method: "POST",
+      body: formData,
+      headers: {
+        "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
+          .value,
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          Swal.fire({
+            icon: "success",
+            title: "Settings Saved!",
+            text: data.message,
+            timer: 3000,
+            timerProgressBar: true,
+            showConfirmButton: false,
+          });
+          currentSettings = data.settings;
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Error Saving Settings",
+            text: data.message,
+            timer: 5000,
+            timerProgressBar: true,
+          });
+        }
+      })
+      .catch((error) => {
+        console.error("Error saving settings:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "An error occurred while saving settings.",
+          timer: 5000,
+          timerProgressBar: true,
+        });
+      })
+      .finally(() => {
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+      });
+  }
+
+  // Reset settings to defaults
+  function resetSettings() {
+    Swal.fire({
+      title: "Reset Settings?",
+      text: "Are you sure you want to reset all settings to defaults? This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, reset!",
+      cancelButtonText: "Cancel",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        fetch("/backup/settings/reset/", {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
+              .value,
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              Swal.fire({
+                icon: "success",
+                title: "Settings Reset!",
+                text: data.message,
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+              });
+              applySettingsToForm(data.settings);
+              currentSettings = data.settings;
+            } else {
+              Swal.fire({
+                icon: "error",
+                title: "Error Resetting Settings",
+                text: data.message,
+                timer: 5000,
+                timerProgressBar: true,
+              });
+            }
+          })
+          .catch((error) => {
+            console.error("Error resetting settings:", error);
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: "An error occurred while resetting settings.",
+              timer: 5000,
+              timerProgressBar: true,
+            });
+          });
+      }
+    });
+  }
+
+  // Load settings when page loads
+  document.addEventListener("DOMContentLoaded", function () {
+    loadSettings();
+  });
+
+  function createQuickBackup() {
+    Swal.fire({
+      title: "Create Quick Backup?",
+      text: "This will create a backup with default settings.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, create backup!",
+      cancelButtonText: "Cancel",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const formData = new FormData();
+        formData.append(
+          "backup_name",
+          "Quick Backup - " + new Date().toLocaleString()
+        );
+        formData.append("includes_database", "true");
+        formData.append("includes_media_files", "true");
+        formData.append("includes_static_files", "false");
+
+        fetch('{% url "create_backup" %}', {
+          method: "POST",
+          body: formData,
+          headers: {
+            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
+              .value,
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              Swal.fire({
+                icon: "success",
+                title: "Backup Created!",
+                text: "Quick backup created successfully!",
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+              });
+            } else {
+              Swal.fire({
+                icon: "error",
+                title: "Error Creating Backup",
+                text: data.message,
+                timer: 5000,
+                timerProgressBar: true,
+              });
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: "An error occurred while creating the backup.",
+              timer: 5000,
+              timerProgressBar: true,
+            });
+          });
+      }
+    });
+  }
+
+  function cleanupOldBackups() {
+    if (
+      confirm("This will delete backup files older than 30 days. Continue?")
+    ) {
+      showAlert(
+        "info",
+        "Cleanup functionality will be implemented in a future update."
+      );
+    }
+  }
+
+  function cleanupTempFiles() {
+    Swal.fire({
+      title: "Cleanup Temp Files?",
+      text: "This will delete temporary backup files older than 24 hours.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, cleanup!",
+      cancelButtonText: "Cancel",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const formData = new FormData();
+        formData.append("retention_hours", "24");
+
+        fetch("/backup/cleanup-temp/", {
+          method: "POST",
+          body: formData,
+          headers: {
+            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
+              .value,
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              Swal.fire({
+                icon: "success",
+                title: "Cleanup Complete!",
+                text: data.message,
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+              });
+            } else {
+              Swal.fire({
+                icon: "error",
+                title: "Error During Cleanup",
+                text: data.message,
+                timer: 5000,
+                timerProgressBar: true,
+              });
+            }
+          })
+          .catch((error) => {
+            console.error("Error cleaning up temp files:", error);
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: "An error occurred while cleaning up temp files.",
+              timer: 5000,
+              timerProgressBar: true,
+            });
+          });
+      }
+    });
+  }
+
+  function validateBackups() {
+    Swal.fire({
+      icon: "info",
+      title: "Coming Soon",
+      text: "Validation functionality will be implemented in a future update.",
+      timer: 3000,
+      timerProgressBar: true,
+      showConfirmButton: false,
+    });
+  }
+
+  function exportSettings() {
+    Swal.fire({
+      icon: "info",
+      title: "Coming Soon",
+      text: "Settings export functionality will be implemented in a future update.",
+      timer: 3000,
+      timerProgressBar: true,
+      showConfirmButton: false,
+    });
+  }
+</script>
+{% endblock %}

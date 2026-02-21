@@ -1,0 +1,1818 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Class Teacher Remarks{% endblock %}
+{% block page_title %}Class Teacher Remarks{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'teacher_dashboard' %}">Teacher Dashboard</a></li>
+<li class="breadcrumb-item active">Class Teacher Remarks</li>
+{% endblock %}
+{% block extra_css %}
+{{ block.super }}
+<!-- Select2 Bootstrap 5 Theme CSS -->
+<link rel="stylesheet" href="{% static 'vendor/select2-bootstrap-5-theme/1.3.0/dist/select2-bootstrap-5-theme.min.css' %}">
+<!-- Link to the class assignment CSS for consistent styling -->
+<link rel="stylesheet" href="{% static 'css/student_class_assignment.css' %}">
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="{% static 'vendor/datatables/1.13.7/css/dataTables.bootstrap5.min.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'vendor/datatables-responsive/2.5.0/css/responsive.bootstrap5.min.css' %}">
+<style>
+    .dataTables_filter {
+        margin-bottom: 15px;
+    }
+    .dataTable thead th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+    /* Mobile-first responsive table design */
+    #studentsTable {
+        width: 100% !important;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    
+    #studentsTable th, 
+    #studentsTable td {
+        box-sizing: border-box;
+        padding: 12px 8px !important;
+        vertical-align: middle !important;
+        border: 1px solid #dee2e6;
+    }
+    
+    /* Desktop column widths */
+    @media (min-width: 992px) {
+        #studentsTable {
+            table-layout: fixed !important;
+        }
+
+        #studentsTable th:nth-child(1) { width: 30%; } /* Name */
+
+        #studentsTable th:nth-child(2) { width: 12%; } /* Attendance */
+        #studentsTable th:nth-child(3) { width: 18%; } /* Teacher Remarks */
+        #studentsTable th:nth-child(4) { width: 14%; } /* Interest */
+        #studentsTable th:nth-child(5) { width: 14%; } /* Conduct */
+        #studentsTable th:nth-child(6) { width: 14%; } /* Attitude */
+
+        #studentsTable th:nth-child(7) { width: 10%; } /* Actions */
+
+    }
+    
+    /* Tablet responsive (768px - 991px) */
+    @media (max-width: 991px) and (min-width: 768px) {
+        #studentsTable th, 
+        #studentsTable td {
+            padding: 10px 6px !important;
+            font-size: 0.9rem;
+        }
+        
+        #studentsTable th:nth-child(1) { width: 25%; } /* Name - larger */
+        #studentsTable th:nth-child(2) { width: 15%; } /* Attendance */
+        #studentsTable th:nth-child(3) { width: 20%; } /* Teacher Remarks */
+        #studentsTable th:nth-child(4) { width: 12%; } /* Interest */
+        #studentsTable th:nth-child(5) { width: 12%; } /* Conduct */
+        #studentsTable th:nth-child(6) { width: 12%; } /* Attitude */
+        #studentsTable th:nth-child(7) { width: 4%; } /* Actions */
+    }
+    
+    /* Mobile responsive (below 768px) */
+    @media (max-width: 767px) {
+        #studentsTable {
+            table-layout: auto !important;
+        }
+        
+        #studentsTable th, 
+        #studentsTable td {
+            padding: 8px 4px !important;
+            font-size: 0.8rem;
+        }
+        
+        /* Hide all columns except name, attendance, and actions on mobile */
+        #studentsTable th:nth-child(3),
+        #studentsTable th:nth-child(4),
+        #studentsTable th:nth-child(5),
+        #studentsTable th:nth-child(6),
+        #studentsTable td:nth-child(3),
+        #studentsTable td:nth-child(4),
+        #studentsTable td:nth-child(5),
+        #studentsTable td:nth-child(6) {
+            display: none;
+        }
+        
+        /* Adjust remaining columns for mobile */
+        #studentsTable th:nth-child(1) { width: 60%; } /* Name - much larger */
+        #studentsTable th:nth-child(2) { width: 30%; } /* Attendance */
+        #studentsTable th:nth-child(7) { width: 10%; } /* Actions */
+    }
+    
+    /* Extra small mobile (below 576px) */
+    @media (max-width: 575px) {
+        #studentsTable th, 
+        #studentsTable td {
+            padding: 6px 2px !important;
+            font-size: 0.75rem;
+        }
+        
+        /* Further reduce column widths for extra small mobile */
+        #studentsTable th:nth-child(1) { width: 65%; } /* Name */
+        #studentsTable th:nth-child(2) { width: 25%; } /* Attendance */
+        #studentsTable th:nth-child(7) { width: 10%; } /* Actions */
+    }
+    
+
+    /* Ensure inputs, selects, and textareas maintain width and are responsive */
+    #studentsTable input, 
+    #studentsTable select,
+
+    #studentsTable textarea {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        font-size: inherit;
+    }
+    
+    /* Responsive textarea height */
+    #studentsTable textarea.form-control {
+        height: 50px !important;
+        resize: none;
+    }
+    
+
+    /* Select dropdown styling */
+    #studentsTable select.form-select {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        background-color: #fff;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 16px 12px;
+        appearance: none;
+    }
+    
+    #studentsTable select.form-select:focus {
+        border-color: #86b7fe;
+        outline: 0;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+
+    @media (max-width: 767px) {
+        #studentsTable textarea.form-control {
+            height: 40px !important;
+        }
+    }
+    
+    @media (max-width: 575px) {
+        #studentsTable textarea.form-control {
+            height: 35px !important;
+        }
+    }
+    
+    /* Better styling for attendance input group */
+    .attendance-input-group {
+        display: flex;
+        width: 100%;
+
+        align-items: center;
+        gap: 0.9rem;
+    }
+    
+    .attendance-input-group input {
+        flex: 1;
+        min-width: 60px;
+    }
+    
+    .attendance-input-group .attendance-percentage {
+        flex-shrink: 0;
+        white-space: nowrap;
+        font-size: 0.8rem;
+        padding: 0.2rem 0.2rem;
+
+    }
+    
+    @media (max-width: 767px) {
+        .attendance-input-group {
+            flex-direction: column;
+
+            align-items: stretch;
+            gap: 0.25rem;
+
+        }
+        
+        .attendance-input-group input {
+            width: 100% !important;
+
+        }
+        
+        .attendance-input-group .attendance-percentage {
+            text-align: center;
+            width: 100% !important;
+
+        }
+    }
+    
+    /* Action buttons responsive */
+    #studentsTable .btn-group {
+        flex-wrap: wrap;
+        gap: 0.25rem !important;
+    }
+    
+    #studentsTable .btn-group .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    @media (max-width: 767px) {
+        #studentsTable .btn-group .btn {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.7rem;
+        }
+    }
+    
+    /* Student name cell responsive */
+    .student-name-cell {
+        min-width: 120px;
+    }
+    
+
+    /* Student name and ID layout */
+    .student-name-cell .d-flex {
+        gap: 0.5rem;
+    }
+    
+    .student-name-cell .fw-medium {
+        flex: 1;
+        min-width: 0; /* Allow text to wrap if needed */
+    }
+    
+    .student-name-cell .badge {
+        flex-shrink: 0; /* Prevent badge from shrinking */
+        white-space: nowrap;
+        margin-right: 0.5rem; /* Space between ID and name */
+    }
+    
+
+    @media (max-width: 767px) {
+        .student-name-cell {
+            min-width: 100px;
+        }
+        
+        .student-name-cell .fw-medium {
+            font-size: 0.8rem;
+        }
+        
+        .student-name-cell .badge {
+            font-size: 0.6rem;
+            padding: 0.2rem 0.4rem;
+        }
+
+        
+        /* On mobile, stack ID and name vertically if needed */
+        .student-name-cell .d-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 0.25rem;
+        }
+        
+        .student-name-cell .badge {
+            margin-right: 0; /* Remove margin when stacked */
+        }
+    }
+    
+    @media (max-width: 575px) {
+        .student-name-cell .fw-medium {
+            font-size: 0.75rem;
+        }
+        
+        .student-name-cell .badge {
+            font-size: 0.55rem;
+            padding: 0.15rem 0.3rem;
+        }
+
+    }
+    
+    /* Table wrapper responsive */
+    .table-responsive {
+        border-radius: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    @media (max-width: 767px) {
+        .table-responsive {
+            border-radius: 6px;
+        }
+    }
+    
+    /* Mobile-specific improvements */
+    @media (max-width: 767px) {
+        /* Make table more touch-friendly */
+        #studentsTable tbody tr {
+            border-bottom: 2px solid #f8f9fa;
+        }
+        
+        #studentsTable tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        /* Improve form controls for mobile - only attendance input visible */
+        #studentsTable input[type="number"] {
+            font-size: 0.8rem;
+            padding: 0.4rem 0.6rem;
+        }
+        
+        /* Add mobile-specific styling for simplified layout */
+        #studentsTable .student-name-cell {
+            font-weight: 600;
+        }
+        
+        #studentsTable .attendance-cell {
+            text-align: center;
+        }
+        
+        #studentsTable .actions-cell {
+            text-align: center;
+        }
+        
+        /* Make action buttons more prominent on mobile */
+        #studentsTable .btn-group .btn {
+            margin: 0.1rem;
+            min-width: 32px;
+            min-height: 32px;
+        }
+        
+        /* Modal mobile improvements */
+        .modal-dialog {
+            margin: 0.5rem;
+            max-width: calc(100% - 1rem);
+        }
+        
+        .modal-content {
+            border-radius: 8px;
+        }
+        
+        .modal-header {
+            padding: 1rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .modal-body {
+            padding: 1rem;
+        }
+        
+        .modal-footer {
+            padding: 1rem;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        /* Mobile form improvements */
+        .modal-body .row {
+            margin-bottom: 1rem;
+        }
+        
+        .modal-body .form-control {
+            font-size: 0.9rem;
+            padding: 0.5rem 0.75rem;
+        }
+        
+        .modal-body .form-label {
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .modal-body textarea {
+            min-height: 80px;
+        }
+    }
+    
+    /* Extra small mobile modal improvements */
+    @media (max-width: 575px) {
+        .modal-dialog {
+            margin: 0.25rem;
+            max-width: calc(100% - 0.5rem);
+        }
+        
+        .modal-header {
+            padding: 0.75rem;
+        }
+        
+        .modal-body {
+            padding: 0.75rem;
+        }
+        
+        .modal-footer {
+            padding: 0.75rem;
+        }
+        
+        .modal-body .form-control {
+            font-size: 0.8rem;
+            padding: 0.4rem 0.6rem;
+        }
+        
+        .modal-body .form-label {
+            font-size: 0.8rem;
+        }
+        
+        .modal-body textarea {
+            min-height: 60px;
+        }
+    }
+
+ 
+
+    
+    /* Loading button state */
+    .btn-loading {
+        position: relative;
+        color: transparent !important;
+    }
+    .btn-loading::after {
+        content: "";
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        top: 50%;
+        left: 50%;
+        margin-left: -8px;
+        margin-top: -8px;
+        border: 2px solid #ffffff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                      {% if current_academic_year %}
+                        {{ current_academic_year.name }}
+                        {% if current_term %}
+                          - {{ current_term.name }}
+                        {% endif %}
+                      {% else %}
+                        Class Teacher Remarks
+                      {% endif %}
+                    </h2>
+                    <p class="text-muted mb-0">
+                      {% if current_academic_year %}
+                        Current academic year and term management
+                      {% else %}
+                        Manage student remarks and attendance
+                      {% endif %}
+                    </p>
+                </div>
+
+                <div class="btn-group flex-wrap">
+                    <a href="{% url 'teacher_dashboard' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left me-1"></i> <span class="d-none d-md-inline">Back to Dashboard</span><span class="d-md-none">Back</span>
+                    </a>
+                    <a href="{% url 'print_class_list' selected_class.class_id %}" class="btn btn-outline-secondary" target="_blank">
+                        <i class="bi bi-printer me-1"></i> <span class="d-none d-md-inline">Print Class List</span><span class="d-md-none">Print</span>
+                    </a>
+                    <button type="button" class="btn btn-outline-success" id="exportRemarksBtn">
+                        <i class="bi bi-download me-1"></i> <span class="d-none d-md-inline">Export Remarks</span><span class="d-md-none">Export</span>
+                    </button>
+                    <button type="button" class="btn btn-outline-info" id="importRemarksBtn">
+                        <i class="bi bi-upload me-1"></i> <span class="d-none d-md-inline">Import Remarks</span><span class="d-md-none">Import</span>
+                    </button>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Academic Period Info -->
+    <div class="row mb-4">
+
+        <div class="col-md-4">
+
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ current_academic_year.name }}</h4>
+                            <p class="mb-0">Academic Year</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-calendar3" style="font-size: 2rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ current_term.name }}</h4>
+                            <p class="mb-0">Current Term</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-calendar-check" style="font-size: 2rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+               <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ total_school_days }}</h4>
+                            <p class="mb-0">School Days ({{ term_start_date|date:"d M Y" }} to {{ term_end_date|date:"d M Y" }})</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-calendar3" style="font-size: 2rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Filters Section -->
+    <div class="row mb-4">
+
+    </div>
+
+    <!-- Attendance Management -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-calendar-check me-2"></i>Attendance Management
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <label for="totalAttendanceDays" class="form-label">Total School Days </label>
+                            <input type="number" class="form-control" id="totalAttendanceDays"
+                                name="total_attendance_days" placeholder="Enter total days" min="0"
+                                value="{{ total_school_days }}" required>
+                            <div class="form-text">
+                               
+                            </div>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="button" class="btn btn-primary" id="saveAllBtn">
+                                <i class="bi bi-save me-1"></i> Save All Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6">
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="true" aria-controls="filtersCollapse">
+                            <i class="bi bi-funnel me-2"></i>Class Selection & Search
+                        </button>
+                    </h5>
+                </div>
+                <div class="collapse show" id="filtersCollapse">
+                    <div class="card-body">
+                        <form method="get" id="classSelectForm">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label for="class_select" class="form-label">Select Class</label>
+                                    <select class="form-select" name="class_id" id="class_select" onchange="this.form.submit()">
+                                        {% for class in assigned_classes %}
+                                        <option value="{{ class.class_id }}" {% if class.class_id == selected_class.class_id %}selected{% endif %}>
+                                            {{ class.name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="studentSearch" class="form-label">Search Students</label>
+                                    <input type="text" id="studentSearch" class="form-control"
+                                        placeholder="Search by name, admission number...">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div class="d-grid">
+                                        <button type="button" class="btn btn-primary" onclick="clearSearch()">
+                                            <i class="bi bi-arrow-clockwise"></i> Clear
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Alert Container -->
+    <div id="alertContainer" style="display: none;" class="mb-4">
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>
+            <span id="alertMessage"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+
+    <!-- Students Remarks Form -->
+    <form method="post" id="bulkRemarksForm">
+        {% csrf_token %}
+        <input type="hidden" name="class_id" value="{{ selected_class.class_id }}">
+
+        <!-- Students Table -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-people me-2"></i>Student Remarks
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Mobile helper message -->
+                <div class="d-md-none alert alert-info mb-3" role="alert">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Mobile View:</strong> Use the edit button (pencil icon) to add teacher remarks, interest, conduct, and attitude for each student.
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="studentsTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="px-4 py-3 student-name-cell">NAME</th>
+                                <th class="px-4 py-3 attendance-cell">ATTENDANCE</th>
+                                <th class="px-4 py-3 remarks-cell">TEACHER REMARKS</th>
+                                <th class="px-4 py-3 text-input-cell">INTEREST</th>
+                                <th class="px-4 py-3 text-input-cell">CONDUCT</th>
+                                <th class="px-4 py-3 text-input-cell">ATTITUDE</th>
+                                <th class="px-4 py-3 actions-cell">ACTIONS</th>
+                            </tr>
+                        </thead>
+                            <tbody>
+                                {% for student_data in students_with_remarks %}
+                                {% with student=student_data.student remarks=student_data.remarks form=student_data.form %}
+                                <tr data-student-id="{{ student.id }}">
+                                    <!-- Student Name -->
+                                    <td class="px-4 py-3">
+                                        <div class="d-flex align-items-center">
+
+                                            <span class="badge bg-primary me-2">{{ student.admission_number }}</span>
+                                            <div class="fw-medium">{{ student.full_name|title }}</div>
+
+                                        </div>
+                                    </td>
+
+                                    <!-- Attendance -->
+                                    <td class="px-4 py-3">
+
+                                        <div class="attendance-input-group d-flex align-items-center">
+                                            <input type="number" class="form-control attendance-present me-2"
+                                                name="student_{{ student.id }}_days_present" placeholder="Days present"
+                                                min="0" value="{{ remarks.days_present|default:0 }}" required>
+                                            <span class="attendance-percentage badge bg-info">
+                                                {% if remarks.total_school_days > 0 %}
+                                                {{ remarks.attendance_percentage|floatformat:1 }}%
+                                                {% else %}
+                                                0%
+                                                {% endif %}
+
+                                            </span>
+                                        </div>
+                                        <input type="hidden" name="student_{{ student.id }}_days_absent" 
+                                            value="{{ remarks.days_absent|default:0 }}">
+                                        <input type="hidden" name="student_{{ student.id }}_auto_calculate" value="false">
+                                    </td>
+
+                                    <!-- General Remarks -->
+                                    <td class="px-4 py-3">
+
+                                        <select class="form-select" name="student_{{ student.id }}_general_remarks">
+                                            <option value="">Select General Remarks...</option>
+                                            <option value="More room for improvement" {% if remarks.general_remarks == "More room for improvement" %}selected{% endif %}>More room for improvement</option>
+                                            <option value="Could do better than this" {% if remarks.general_remarks == "Could do better than this" %}selected{% endif %}>Could do better than this</option>
+                                            <option value="Needs extra tuition at home" {% if remarks.general_remarks == "Needs extra tuition at home" %}selected{% endif %}>Needs extra tuition at home</option>
+                                            <option value="Good performance, keep it up" {% if remarks.general_remarks == "Good performance, keep it up" %}selected{% endif %}>Good performance, keep it up</option>
+                                            <option value="Keep it up" {% if remarks.general_remarks == "Keep it up" %}selected{% endif %}>Keep it up</option>
+                                            <option value="Must sit up" {% if remarks.general_remarks == "Must sit up" %}selected{% endif %}>Must sit up</option>
+                                            <option value="Advised to be repeated" {% if remarks.general_remarks == "Advised to be repeated" %}selected{% endif %}>Advised to be repeated</option>
+                                            <option value="Must work hard" {% if remarks.general_remarks == "Must work hard" %}selected{% endif %}>Must work hard</option>
+                                            <option value="It would be better for him/ her to be repeated" {% if remarks.general_remarks == "It would be better for him/ her to be repeated" %}selected{% endif %}>It would be better for him/ her to be repeated</option>
+                                            <option value="Good work done, Keep it up" {% if remarks.general_remarks == "Good work done, Keep it up" %}selected{% endif %}>Good work done, Keep it up</option>
+                                            <option value="Has improved" {% if remarks.general_remarks == "Has improved" %}selected{% endif %}>Has improved</option>
+                                            <option value="Hard Working" {% if remarks.general_remarks == "Hard Working" %}selected{% endif %}>Hard Working</option>
+                                            <option value="Must Buck up" {% if remarks.general_remarks == "Must Buck up" %}selected{% endif %}>Must Buck up</option>
+                                        </select>
+
+                                    </td>
+
+                                    <!-- Interest Remarks -->
+                                    <td class="px-4 py-3">
+
+                                        <select class="form-select" name="student_{{ student.id }}_interest_remarks">
+                                            <option value="">Select Interest...</option>
+                                            <option value="Has a well-developed sense of humor" {% if remarks.interest_remarks == "Has a well-developed sense of humor" %}selected{% endif %}>Has a well-developed sense of humor</option>
+                                            <option value="Holds many varied interests" {% if remarks.interest_remarks == "Holds many varied interests" %}selected{% endif %}>Holds many varied interests</option>
+                                            <option value="Has a keen interest that has been shared with the class" {% if remarks.interest_remarks == "Has a keen interest that has been shared with the class" %}selected{% endif %}>Has a keen interest that has been shared with the class</option>
+                                            <option value="Displays and talks about personal related items from home" {% if remarks.interest_remarks == "Displays and talks about personal related items from home" %}selected{% endif %}>Displays and talks about personal related items from home</option>
+                                            <option value="Provides background knowledge about topics of particular interest" {% if remarks.interest_remarks == "Provides background knowledge about topics of particular interest" %}selected{% endif %}>Provides background knowledge about topics of particular interest</option>
+                                            <option value="Impressive understanding and depth of knowledge about his interests" {% if remarks.interest_remarks == "Impressive understanding and depth of knowledge about his interests" %}selected{% endif %}>Impressive understanding and depth of knowledge about his interests</option>
+                                            <option value="Seeks additional information independently about classroom topics" {% if remarks.interest_remarks == "Seeks additional information independently about classroom topics" %}selected{% endif %}>Seeks additional information independently about classroom topics</option>
+                                            <option value="Reads extensively for enjoyment" {% if remarks.interest_remarks == "Reads extensively for enjoyment" %}selected{% endif %}>Reads extensively for enjoyment</option>
+                                            <option value="Frequently discusses concepts about which they have read" {% if remarks.interest_remarks == "Frequently discusses concepts about which they have read" %}selected{% endif %}>Frequently discusses concepts about which they have read</option>
+                                            <option value="Is a gifted performer" {% if remarks.interest_remarks == "Is a gifted performer" %}selected{% endif %}>Is a gifted performer</option>
+                                            <option value="Is a talented artist" {% if remarks.interest_remarks == "Is a talented artist" %}selected{% endif %}>Is a talented artist</option>
+                                            <option value="Has a flair for dramatic reading and acting" {% if remarks.interest_remarks == "Has a flair for dramatic reading and acting" %}selected{% endif %}>Has a flair for dramatic reading and acting</option>
+                                            <option value="Enjoys sharing their musical talent with the class" {% if remarks.interest_remarks == "Enjoys sharing their musical talent with the class" %}selected{% endif %}>Enjoys sharing their musical talent with the class</option>
+                                            <option value="Running" {% if remarks.interest_remarks == "Running" %}selected{% endif %}>Running</option>
+                                            <option value="Reading" {% if remarks.interest_remarks == "Reading" %}selected{% endif %}>Reading</option>
+                                            <option value="Drumming" {% if remarks.interest_remarks == "Drumming" %}selected{% endif %}>Drumming</option>
+                                            <option value="Football" {% if remarks.interest_remarks == "Football" %}selected{% endif %}>Football</option>
+                                            <option value="Volleyball" {% if remarks.interest_remarks == "Volleyball" %}selected{% endif %}>Volleyball</option>
+                                            <option value="Singing" {% if remarks.interest_remarks == "Singing" %}selected{% endif %}>Singing</option>
+                                            <option value="Dancing" {% if remarks.interest_remarks == "Dancing" %}selected{% endif %}>Dancing</option>
+                                            <option value="Games" {% if remarks.interest_remarks == "Games" %}selected{% endif %}>Games</option>
+                                            <option value="In-door games" {% if remarks.interest_remarks == "In-door games" %}selected{% endif %}>In-door games</option>
+                                        </select>
+
+                                    </td>
+
+                                    <!-- Conduct Remarks -->
+                                    <td class="px-4 py-3">
+
+                                        <select class="form-select" name="student_{{ student.id }}_conduct_remarks">
+                                            <option value="">Select Conduct...</option>
+                                            <option value="Shows respect for teachers and peers" {% if remarks.conduct_remarks == "Shows respect for teachers and peers" %}selected{% endif %}>Shows respect for teachers and peers</option>
+                                            <option value="Treats school property and the belongings of others with care and respect" {% if remarks.conduct_remarks == "Treats school property and the belongings of others with care and respect" %}selected{% endif %}>Treats school property and the belongings of others with care and respect</option>
+                                            <option value="Honest and trustworthy in dealing with others" {% if remarks.conduct_remarks == "Honest and trustworthy in dealing with others" %}selected{% endif %}>Honest and trustworthy in dealing with others</option>
+                                            <option value="Displays good citizenship by assisting other students" {% if remarks.conduct_remarks == "Displays good citizenship by assisting other students" %}selected{% endif %}>Displays good citizenship by assisting other students</option>
+                                            <option value="Joins in school community projects" {% if remarks.conduct_remarks == "Joins in school community projects" %}selected{% endif %}>Joins in school community projects</option>
+                                            <option value="Concerned about the feelings of peers" {% if remarks.conduct_remarks == "Concerned about the feelings of peers" %}selected{% endif %}>Concerned about the feelings of peers</option>
+                                            <option value="Faithfully performs classroom tasks" {% if remarks.conduct_remarks == "Faithfully performs classroom tasks" %}selected{% endif %}>Faithfully performs classroom tasks</option>
+                                            <option value="Can be depended on to do what they are asked to do" {% if remarks.conduct_remarks == "Can be depended on to do what they are asked to do" %}selected{% endif %}>Can be depended on to do what they are asked to do</option>
+                                            <option value="Respectful" {% if remarks.conduct_remarks == "Respectful" %}selected{% endif %}>Respectful</option>
+                                            <option value="Well-Behaved" {% if remarks.conduct_remarks == "Well-Behaved" %}selected{% endif %}>Well-Behaved</option>
+                                            <option value="Disrespectful" {% if remarks.conduct_remarks == "Disrespectful" %}selected{% endif %}>Disrespectful</option>
+                                            <option value="Calm" {% if remarks.conduct_remarks == "Calm" %}selected{% endif %}>Calm</option>
+                                            <option value="Humble" {% if remarks.conduct_remarks == "Humble" %}selected{% endif %}>Humble</option>
+                                            <option value="Approachable (Sociable)" {% if remarks.conduct_remarks == "Approachable (Sociable)" %}selected{% endif %}>Approachable (Sociable)</option>
+                                            <option value="Bully" {% if remarks.conduct_remarks == "Bully" %}selected{% endif %}>Bully</option>
+                                            <option value="Truant" {% if remarks.conduct_remarks == "Truant" %}selected{% endif %}>Truant</option>
+                                            <option value="Satisfactory" {% if remarks.conduct_remarks == "Satisfactory" %}selected{% endif %}>Satisfactory</option>
+                                            <option value="Aggressive" {% if remarks.conduct_remarks == "Aggressive" %}selected{% endif %}>Aggressive</option>
+                                        </select>
+
+                                    </td>
+
+                                    <!-- Attitude Remarks -->
+                                    <td class="px-4 py-3">
+
+                                        <select class="form-select" name="student_{{ student.id }}_attitude_remarks">
+                                            <option value="">Select Attitude...</option>
+                                            <option value="An enthusiastic learner who seems to enjoy school" {% if remarks.attitude_remarks == "An enthusiastic learner who seems to enjoy school" %}selected{% endif %}>An enthusiastic learner who seems to enjoy school</option>
+                                            <option value="Exhibits a positive outlook and attitude in the classroom" {% if remarks.attitude_remarks == "Exhibits a positive outlook and attitude in the classroom" %}selected{% endif %}>Exhibits a positive outlook and attitude in the classroom</option>
+                                            <option value="Appears well rested and ready for each day's activities" {% if remarks.attitude_remarks == "Appears well rested and ready for each day's activities" %}selected{% endif %}>Appears well rested and ready for each day's activities</option>
+                                            <option value="Shows enthusiasm for classroom activities" {% if remarks.attitude_remarks == "Shows enthusiasm for classroom activities" %}selected{% endif %}>Shows enthusiasm for classroom activities</option>
+                                            <option value="Shows initiative and looks for new ways to get involved" {% if remarks.attitude_remarks == "Shows initiative and looks for new ways to get involved" %}selected{% endif %}>Shows initiative and looks for new ways to get involved</option>
+                                            <option value="Uses instincts to deal with matters independently and in a positive way" {% if remarks.attitude_remarks == "Uses instincts to deal with matters independently and in a positive way" %}selected{% endif %}>Uses instincts to deal with matters independently and in a positive way</option>
+                                            <option value="Strives to reach their full potential" {% if remarks.attitude_remarks == "Strives to reach their full potential" %}selected{% endif %}>Strives to reach their full potential</option>
+                                            <option value="Needs to work on his talking in class" {% if remarks.attitude_remarks == "Needs to work on his talking in class" %}selected{% endif %}>Needs to work on his talking in class</option>
+                                            <option value="Has been disrupting the class lately" {% if remarks.attitude_remarks == "Has been disrupting the class lately" %}selected{% endif %}>Has been disrupting the class lately</option>
+                                            <option value="Needs to improve him/ her attention span" {% if remarks.attitude_remarks == "Needs to improve him/ her attention span" %}selected{% endif %}>Needs to improve him/ her attention span</option>
+                                            <option value="Is steadily improving" {% if remarks.attitude_remarks == "Is steadily improving" %}selected{% endif %}>Is steadily improving</option>
+                                            <option value="Needs to pay more attention" {% if remarks.attitude_remarks == "Needs to pay more attention" %}selected{% endif %}>Needs to pay more attention</option>
+                                            <option value="Hard Working" {% if remarks.attitude_remarks == "Hard Working" %}selected{% endif %}>Hard Working</option>
+                                            <option value="Dependable" {% if remarks.attitude_remarks == "Dependable" %}selected{% endif %}>Dependable</option>
+                                            <option value="Not Serious in class" {% if remarks.attitude_remarks == "Not Serious in class" %}selected{% endif %}>Not Serious in class</option>
+                                            <option value="Lazy" {% if remarks.attitude_remarks == "Lazy" %}selected{% endif %}>Lazy</option>
+                                            <option value="Aggressive" {% if remarks.attitude_remarks == "Aggressive" %}selected{% endif %}>Aggressive</option>
+                                            <option value="Calm" {% if remarks.attitude_remarks == "Calm" %}selected{% endif %}>Calm</option>
+                                            <option value="Slow in learning" {% if remarks.attitude_remarks == "Slow in learning" %}selected{% endif %}>Slow in learning</option>
+                                        </select>
+
+                                    </td>
+
+                                    <!-- Actions -->
+                                    <td class="px-4 py-3">
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-primary edit-student-btn" 
+                                                    data-student-id="{{ student.id }}" title="Edit Student">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-success save-student-btn" 
+                                                    data-student-id="{{ student.id }}" title="Save Student">
+                                                <i class="bi bi-save"></i>
+                                            </button>
+                                            <a href="{% url 'student_term_performance' selected_class.class_id student.id %}"
+                                               class="btn btn-outline-info" title="View Performance">
+                                                <i class="bi bi-graph-up"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endwith %}
+                                {% empty %}
+                                <tr class="empty-row">
+                                    <td colspan="7">
+                                        <div class="empty-state">
+                                            <i class="bi bi-people text-muted mb-3" style="font-size: 3rem"></i>
+                                            <h5>No Students Found</h5>
+                                            <p>No students are assigned to this class. Please ensure students are properly enrolled.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- No Students Message (outside of table) -->
+            {% if not students_with_remarks %}
+            <div class="alert alert-info mt-3">
+                <i class="bi bi-info-circle me-2"></i> No students found in this class. Please ensure students are assigned to this class.
+            </div>
+            {% endif %}
+        </form>
+
+
+        <!-- Import Remarks Modal -->
+        <div class="modal fade" id="importRemarksModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi bi-upload me-2"></i>Import Student Remarks
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="importRemarksForm" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="class_id" value="{{ selected_class.class_id }}">
+                        <div class="modal-body">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Instructions:</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>Use the exported Excel file template</li>
+                                    <li>Do not modify the "Admission Number" or "Student Name" columns</li>
+                                    <li><strong>Method 1:</strong> If dropdown arrows appear, click them to select from the list</li>
+                                    <li><strong>Method 2:</strong> Go to the "Options" sheet, copy the desired remark, and paste it into the remarks column</li>
+                                    <li>You can also update attendance data (Days Present, Days Absent, Total School Days)</li>
+                                    <li>Save the file and upload it here</li>
+                                </ul>
+                            </div>
+                            <div class="mb-3">
+                                <label for="remarksFile" class="form-label">Select Excel File</label>
+                                <input type="file" class="form-control" id="remarksFile" name="file" accept=".xlsx,.xls" required>
+                                <div class="form-text">Only Excel files (.xlsx, .xls) are supported</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary" id="importSubmitBtn">
+                                <i class="bi bi-upload me-1"></i> Import
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Individual Student Remarks Modal -->
+        <div class="modal fade" id="studentRemarksModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi bi-person-lines-fill me-2"></i>Detailed Student Remarks
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form method="post" id="singleStudentForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="student_id" id="modalStudentId">
+                        <input type="hidden" name="class_id" value="{{ selected_class.class_id }}">
+
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Interest</label>
+
+                                        <select class="form-select" name="interest_remarks" id="modalInterest">
+                                            <option value="">Select Interest...</option>
+                                            <option value="Has a well-developed sense of humor">Has a well-developed sense of humor</option>
+                                            <option value="Holds many varied interests">Holds many varied interests</option>
+                                            <option value="Has a keen interest that has been shared with the class">Has a keen interest that has been shared with the class</option>
+                                            <option value="Displays and talks about personal related items from home">Displays and talks about personal related items from home</option>
+                                            <option value="Provides background knowledge about topics of particular interest">Provides background knowledge about topics of particular interest</option>
+                                            <option value="Impressive understanding and depth of knowledge about his interests">Impressive understanding and depth of knowledge about his interests</option>
+                                            <option value="Seeks additional information independently about classroom topics">Seeks additional information independently about classroom topics</option>
+                                            <option value="Reads extensively for enjoyment">Reads extensively for enjoyment</option>
+                                            <option value="Frequently discusses concepts about which they have read">Frequently discusses concepts about which they have read</option>
+                                            <option value="Is a gifted performer">Is a gifted performer</option>
+                                            <option value="Is a talented artist">Is a talented artist</option>
+                                            <option value="Has a flair for dramatic reading and acting">Has a flair for dramatic reading and acting</option>
+                                            <option value="Enjoys sharing their musical talent with the class">Enjoys sharing their musical talent with the class</option>
+                                            <option value="Running">Running</option>
+                                            <option value="Reading">Reading</option>
+                                            <option value="Drumming">Drumming</option>
+                                            <option value="Football">Football</option>
+                                            <option value="Volleyball">Volleyball</option>
+                                            <option value="Singing">Singing</option>
+                                            <option value="Dancing">Dancing</option>
+                                            <option value="Games">Games</option>
+                                            <option value="In-door games">In-door games</option>
+                                        </select>
+
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Conduct</label>
+
+                                        <select class="form-select" name="conduct_remarks" id="modalConduct">
+                                            <option value="">Select Conduct...</option>
+                                            <option value="Shows respect for teachers and peers">Shows respect for teachers and peers</option>
+                                            <option value="Treats school property and the belongings of others with care and respect">Treats school property and the belongings of others with care and respect</option>
+                                            <option value="Honest and trustworthy in dealing with others">Honest and trustworthy in dealing with others</option>
+                                            <option value="Displays good citizenship by assisting other students">Displays good citizenship by assisting other students</option>
+                                            <option value="Joins in school community projects">Joins in school community projects</option>
+                                            <option value="Concerned about the feelings of peers">Concerned about the feelings of peers</option>
+                                            <option value="Faithfully performs classroom tasks">Faithfully performs classroom tasks</option>
+                                            <option value="Can be depended on to do what they are asked to do">Can be depended on to do what they are asked to do</option>
+                                            <option value="Respectful">Respectful</option>
+                                            <option value="Well-Behaved">Well-Behaved</option>
+                                            <option value="Disrespectful">Disrespectful</option>
+                                            <option value="Calm">Calm</option>
+                                            <option value="Humble">Humble</option>
+                                            <option value="Approachable (Sociable)">Approachable (Sociable)</option>
+                                            <option value="Bully">Bully</option>
+                                            <option value="Truant">Truant</option>
+                                            <option value="Satisfactory">Satisfactory</option>
+                                            <option value="Aggressive">Aggressive</option>
+                                        </select>
+
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Attitude</label>
+
+                                        <select class="form-select" name="attitude_remarks" id="modalAttitude">
+                                            <option value="">Select Attitude...</option>
+                                            <option value="An enthusiastic learner who seems to enjoy school">An enthusiastic learner who seems to enjoy school</option>
+                                            <option value="Exhibits a positive outlook and attitude in the classroom">Exhibits a positive outlook and attitude in the classroom</option>
+                                            <option value="Appears well rested and ready for each day's activities">Appears well rested and ready for each day's activities</option>
+                                            <option value="Shows enthusiasm for classroom activities">Shows enthusiasm for classroom activities</option>
+                                            <option value="Shows initiative and looks for new ways to get involved">Shows initiative and looks for new ways to get involved</option>
+                                            <option value="Uses instincts to deal with matters independently and in a positive way">Uses instincts to deal with matters independently and in a positive way</option>
+                                            <option value="Strives to reach their full potential">Strives to reach their full potential</option>
+                                            <option value="Needs to work on his talking in class">Needs to work on his talking in class</option>
+                                            <option value="Has been disrupting the class lately">Has been disrupting the class lately</option>
+                                            <option value="Needs to improve him/ her attention span">Needs to improve him/ her attention span</option>
+                                            <option value="Is steadily improving">Is steadily improving</option>
+                                            <option value="Needs to pay more attention">Needs to pay more attention</option>
+                                            <option value="Hard Working">Hard Working</option>
+                                            <option value="Dependable">Dependable</option>
+                                            <option value="Not Serious in class">Not Serious in class</option>
+                                            <option value="Lazy">Lazy</option>
+                                            <option value="Aggressive">Aggressive</option>
+                                            <option value="Calm">Calm</option>
+                                            <option value="Slow in learning">Slow in learning</option>
+                                        </select>
+
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">General Remarks</label>
+
+                                <select class="form-select" name="general_remarks" id="modalGeneral">
+                                    <option value="">Select General Remarks...</option>
+                                    <option value="More room for improvement">More room for improvement</option>
+                                    <option value="Could do better than this">Could do better than this</option>
+                                    <option value="Needs extra tuition at home">Needs extra tuition at home</option>
+                                    <option value="Good performance, keep it up">Good performance, keep it up</option>
+                                    <option value="Keep it up">Keep it up</option>
+                                    <option value="Must sit up">Must sit up</option>
+                                    <option value="Advised to be repeated">Advised to be repeated</option>
+                                    <option value="Must work hard">Must work hard</option>
+                                    <option value="It would be better for him/ her to be repeated">It would be better for him/ her to be repeated</option>
+                                    <option value="Good work done, Keep it up">Good work done, Keep it up</option>
+                                    <option value="Has improved">Has improved</option>
+                                    <option value="Hard Working">Hard Working</option>
+                                    <option value="Must Buck up">Must Buck up</option>
+                                </select>
+
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="auto_calculate_attendance"
+                                            id="modalAutoCalculate" checked>
+                                        <label class="form-check-label" for="modalAutoCalculate">
+                                            Auto calculate attendance from records
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4 mb-3 attendance-fields">
+                                    <div class="form-group">
+                                        <label class="form-label">Days Present</label>
+                                        <input type="number" class="form-control" name="days_present" id="modalDaysPresent">
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3 attendance-fields">
+                                    <div class="form-group">
+                                        <label class="form-label">Days Absent</label>
+                                        <input type="number" class="form-control" name="days_absent" id="modalDaysAbsent">
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3 attendance-fields">
+                                    <div class="form-group">
+                                        <label class="form-label">Total School Days</label>
+                                        <input type="number" class="form-control" name="total_school_days"
+                                            id="modalTotalDays">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<!-- Include SweetAlert2 (local) -->
+<script src="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.all.min.js' %}"></script>
+<!-- Include Select2 (local) -->
+<script src="{% static 'vendor/select2/4.1.0-rc.0/js/select2.min.js' %}"></script>
+<!-- DataTables JS (local) -->
+<script src="{% static 'vendor/datatables/1.13.7/js/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'vendor/datatables/1.13.7/js/dataTables.bootstrap5.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-responsive/2.5.0/js/dataTables.responsive.min.js' %}"></script>
+<script src="{% static 'vendor/datatables-responsive/2.5.0/js/responsive.bootstrap5.min.js' %}"></script>
+
+<script>
+    $(document).ready(function () {
+        'use strict';
+        
+        // ===== INITIALIZATION & CONFIGURATION =====
+        
+        // Initialize tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl, {
+                trigger: 'hover',
+                delay: { show: 300, hide: 100 }
+            });
+        });
+        
+        // Initialize Select2 for better dropdown UX
+        $('.select2-class').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Select a class'
+        });
+        
+        // Helper function to show toast notifications
+        function showToast(icon, title, timer = 3000) {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: timer,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
+            });
+            
+            Toast.fire({
+                icon: icon,
+                title: title
+            });
+        }
+        
+        // Check if there are students (not counting the empty row)
+        const hasStudents = $('#studentsTable tbody tr:not(.empty-row)').length > 0;
+        
+        // ===== DATA TABLE INITIALIZATION =====
+        
+        // Initialize DataTable with mobile-responsive configuration
+        let dataTable;
+        if (hasStudents) {
+            dataTable = $('#studentsTable').DataTable({
+                responsive: false, // Disable DataTables responsive to use our custom responsive design
+                columnDefs: [
+                    { orderable: false, targets: [1, 2, 3, 4, 5, 6] }, // Disable sorting for non-name columns
+                    { searchable: false, targets: [1, 2, 3, 4, 5, 6] }, // Only allow searching on name column
+                    { className: "align-middle", targets: "_all" } // Vertical center all cells
+                ],
+                dom: '<"row"<"col-sm-12"tr>>', // Hide default search and pagination controls
+                paging: false, // Disable pagination
+                ordering: true, // Enable sorting
+                searching: true, // Keep search functionality but use custom input
+                info: false, // Hide info text
+                scrollX: false, // Disable horizontal scrolling - use our responsive design
+                autoWidth: false, // Disable auto width calculation
+                language: {
+                    zeroRecords: '<div class="text-center py-4"><i class="fas fa-search fa-2x text-muted mb-3"></i><p>No matching students found</p></div>',
+                    emptyTable: '<div class="text-center py-4"><i class="fas fa-user-slash fa-2x text-muted mb-3"></i><p>No students in this class</p></div>'
+                },
+                drawCallback: function() {
+                    // Ensure consistent heights and alignment after drawing
+                    $('#studentsTable tbody tr:not(.empty-row)').each(function() {
+                        $(this).find('td').addClass('align-middle');
+                        
+                        // Set responsive height for textareas based on screen size
+                        const screenWidth = $(window).width();
+                        let textareaHeight = '60px';
+                        
+                        if (screenWidth <= 575) {
+                            textareaHeight = '35px';
+                        } else if (screenWidth <= 767) {
+                            textareaHeight = '40px';
+                        } else if (screenWidth <= 991) {
+                            textareaHeight = '50px';
+                        }
+                        
+                        $(this).find('textarea').css('height', textareaHeight);
+                    });
+                }
+            });
+            
+            // Use custom search field
+            $("#studentSearch").on("keyup", function () {
+                dataTable.search($(this).val()).draw();
+            });
+        } else {
+            // Hide search if no students
+            $('#studentSearch').closest('.card').hide();
+        }
+        
+        // ===== ATTENDANCE CALCULATION =====
+        
+        // Calculate attendance percentages when total days or present days change
+        function updateAttendancePercentages(totalDays) {
+            $('.attendance-present').each(function() {
+                const presentDays = parseInt($(this).val()) || 0;
+                const percentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(1) : 0;
+                $(this).closest('td').find('.attendance-percentage').text(percentage + '%');
+            });
+        }
+        
+        // Initialize attendance calculations
+        if (hasStudents) {
+            const totalDays = parseInt($("#totalAttendanceDays").val()) || 0;
+            updateAttendancePercentages(totalDays);
+            
+            // Listen for changes in total days
+            $("#totalAttendanceDays").on('input', function() {
+                const totalDays = parseInt($(this).val()) || 0;
+                updateAttendancePercentages(totalDays);
+                
+                // Update max attribute on all attendance inputs
+                $('.attendance-present').attr('max', totalDays);
+            });
+            
+            // Listen for changes in present days
+            $('.attendance-present').on('input', function() {
+                const totalDays = parseInt($("#totalAttendanceDays").val()) || 0;
+                const presentDays = parseInt($(this).val()) || 0;
+                
+                // Validate input
+                if (presentDays > totalDays) {
+                    $(this).addClass('is-invalid');
+                    $(this).val(totalDays); // Cap at total days
+                } else if (presentDays < 0) {
+                    $(this).addClass('is-invalid');
+                    $(this).val(0); // Minimum 0
+                } else {
+                    $(this).removeClass('is-invalid');
+                }
+                
+                // Update percentage
+                const percentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(1) : 0;
+                $(this).closest('td').find('.attendance-percentage').text(percentage + '%');
+            });
+        }
+        
+        // ===== MODAL FUNCTIONALITY =====
+        
+        // Toggle attendance fields visibility based on auto-calculate checkbox
+        $("#modalAutoCalculate").on("change", function() {
+            $(".attendance-fields").toggle(!$(this).is(":checked"));
+            $(".attendance-summary").toggle($(this).is(":checked"));
+        });
+
+        // Initialize attendance fields visibility
+        $(".attendance-fields").toggle(!$("#modalAutoCalculate").is(":checked"));
+        $(".attendance-summary").toggle($("#modalAutoCalculate").is(":checked"));
+        
+        // Open modal with student data
+        function openStudentModal(studentId) {
+            const row = $(`tr[data-student-id="${studentId}"]`);
+            
+            // Get the student name and admission number
+            const studentName = row.find('td:first-child .fw-medium').text();
+            const admissionNumber = row.find('td:first-child .text-muted.small').text();
+            const initials = studentName.substring(0, 2);
+            
+            // Update student info panel
+            $('#modalStudentName').text(studentName);
+            $('#modalStudentAdmission').text(admissionNumber);
+            $('#modalStudentInitials').text(initials);
+            $('.student-info-panel').removeClass('d-none');
+            
+            // Set form values
+            $("#modalStudentId").val(studentId);
+
+            $("#modalInterest").val(row.find(`select[name="student_${studentId}_interest_remarks"]`).val());
+            $("#modalConduct").val(row.find(`select[name="student_${studentId}_conduct_remarks"]`).val());
+            $("#modalAttitude").val(row.find(`select[name="student_${studentId}_attitude_remarks"]`).val());
+            $("#modalGeneral").val(row.find(`select[name="student_${studentId}_general_remarks"]`).val());
+
+            
+            const presentDays = parseInt(row.find(`input[name="student_${studentId}_days_present"]`).val()) || 0;
+            const totalDays = parseInt($("#totalAttendanceDays").val()) || 0;
+            const absentDays = totalDays - presentDays;
+            const percentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(1) : 0;
+            
+            $("#modalDaysPresent").val(presentDays);
+            $("#modalDaysAbsent").val(absentDays);
+            $("#modalTotalDays").val(totalDays);
+            
+            // Update attendance summary
+            $("#modalAttendancePercent").text(percentage + '%');
+            $("#modalDaysPresentSummary").text(presentDays);
+            $("#modalDaysAbsentSummary").text(absentDays);
+            
+            // Show modal
+            const studentModal = new bootstrap.Modal(document.getElementById('studentRemarksModal'));
+            studentModal.show();
+        }
+        
+        // Handle edit button click
+        $(document).on("click", ".edit-student-btn", function() {
+            const studentId = $(this).data("student-id");
+            openStudentModal(studentId);
+        });
+        
+        // ===== FORM SUBMISSION HANDLERS =====
+        
+        // Save individual student remarks
+        $(".save-student-btn").on("click", function() {
+            const studentId = $(this).data("student-id");
+            const row = $(`tr[data-student-id="${studentId}"]`);
+            
+            // Get values from the row
+            const daysPresent = row.find(`input[name="student_${studentId}_days_present"]`).val();
+
+            const interest = row.find(`select[name="student_${studentId}_interest_remarks"]`).val();
+            const conduct = row.find(`select[name="student_${studentId}_conduct_remarks"]`).val();
+            const attitude = row.find(`select[name="student_${studentId}_attitude_remarks"]`).val();
+            const general = row.find(`select[name="student_${studentId}_general_remarks"]`).val();
+
+            const totalDays = $("#totalAttendanceDays").val();
+            
+            // Validate attendance
+            if (parseInt(daysPresent) < 0 || parseInt(daysPresent) > parseInt(totalDays)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Attendance',
+                    text: 'Days present cannot be negative or greater than total days',
+                    confirmButtonColor: '#3085d6'
+                });
+                return;
+            }
+            
+            // Show loading state
+            const saveBtn = $(this);
+            saveBtn.prop('disabled', true).addClass('btn-loading');
+            
+            // Create a request timeout for better UX feedback
+            const timeout = setTimeout(() => {
+                saveBtn.removeClass('btn-loading').prop('disabled', false);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Request Timeout',
+                    text: 'The server is taking too long to respond. Please try again.',
+                    confirmButtonColor: '#3085d6'
+                });
+            }, 20000); // 20 second timeout
+            
+            // Send AJAX request
+            $.ajax({
+                url: "{% url 'save_student_remarks_ajax' %}",
+                type: "POST",
+                data: {
+                    student_id: studentId,
+                    class_id: "{{ selected_class.class_id }}",
+                    days_present: daysPresent,
+                    interest_remarks: interest,
+                    conduct_remarks: conduct,
+                    attitude_remarks: attitude,
+                    general_remarks: general,
+                    total_school_days: totalDays,
+                    auto_calculate_attendance: false,
+                    csrfmiddlewaretoken: $("input[name=csrfmiddlewaretoken]").val()
+                },
+                success: function(response) {
+                    clearTimeout(timeout);
+                    
+                    // Update attendance percentage
+                    row.find('.attendance-percentage').text(response.attendance_percentage + '%');
+                    
+                    // Show success notification
+                    showToast('success', 'Remarks saved successfully');
+                },
+                error: function(xhr) {
+                    clearTimeout(timeout);
+                    
+                    // Handle errors
+                    let errorMsg = "Error saving remarks. Please try again.";
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: errorMsg,
+                        confirmButtonColor: '#3085d6'
+                    });
+                },
+                complete: function() {
+                    // Restore button state
+                    saveBtn.removeClass('btn-loading').prop('disabled', false);
+                }
+            });
+        });
+
+        // Save all remarks
+        $("#saveAllBtn").on("click", function() {
+            const totalDays = $("#totalAttendanceDays").val();
+
+            if (!totalDays || parseInt(totalDays) < 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Total Days',
+                    text: 'Please enter valid total attendance days',
+                    confirmButtonColor: '#3085d6'
+                });
+                return;
+            }
+
+            // Validate individual attendance values
+            let isValid = true;
+            let invalidInputs = [];
+            
+            $('.attendance-present').each(function() {
+                const presentDays = parseInt($(this).val());
+                const studentName = $(this).closest('tr').find('td:first-child .fw-medium').text();
+                
+                if (isNaN(presentDays) || presentDays < 0 || presentDays > parseInt(totalDays)) {
+                    isValid = false;
+                    $(this).addClass('is-invalid');
+                    invalidInputs.push(studentName);
+                } else {
+                    $(this).removeClass('is-invalid');
+                }
+            });
+            
+            if (!isValid) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Attendance',
+                    html: `
+                        <p>Days present cannot be negative or greater than total days.</p>
+                        <p>Please check attendance for:</p>
+                        <ul class="text-start">
+                            ${invalidInputs.slice(0, 3).map(name => `<li>${name}</li>`).join('')}
+                            ${invalidInputs.length > 3 ? `<li>...and ${invalidInputs.length - 3} more</li>` : ''}
+                        </ul>
+                    `,
+                    confirmButtonColor: '#3085d6'
+                });
+                return;
+            }
+            
+            // Make sure to update all hidden fields with latest values
+            $('#studentsTable tbody tr').each(function() {
+                const studentId = $(this).data('student-id');
+                if (studentId) {
+                    const daysPresent = parseInt($(this).find(`input[name="student_${studentId}_days_present"]`).val() || 0);
+                    const daysAbsent = totalDays - daysPresent;
+                    
+                    // Update the days_absent hidden field
+                    $(this).find(`input[name="student_${studentId}_days_absent"]`).val(daysAbsent);
+                }
+            });
+            
+            // Confirm before saving all
+            Swal.fire({
+                title: 'Save All Changes?',
+                text: 'This will update remarks and attendance for all students in the class.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, save all',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#3085d6'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading state
+                    const saveBtn = $("#saveAllBtn");
+                    saveBtn.prop('disabled', true).addClass('btn-loading');
+                    
+                    // Create a request timeout
+                    const timeout = setTimeout(() => {
+                        saveBtn.removeClass('btn-loading').prop('disabled', false);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Request Timeout',
+                            text: 'The server is taking too long to respond. Please try again.',
+                            confirmButtonColor: '#3085d6'
+                        });
+                    }, 30000); // 30 second timeout for bulk save
+                    
+                    // Create a FormData object from the form
+                    const formData = new FormData($("#bulkRemarksForm")[0]);
+                    
+                    // Add the total attendance days to the form data
+                    formData.append('total_attendance_days', totalDays);
+                    
+                    // Debug - log form data
+                    console.log("Sending form data:");
+                    for (const [key, value] of formData.entries()) {
+                        console.log(`${key}: ${value}`);
+                    }
+                    
+                    // Make sure CSRF token is included
+                    const csrftoken = $('input[name="csrfmiddlewaretoken"]').val();
+                    
+                    // Submit form via AJAX
+                    $.ajax({
+                        url: "{% url 'save_all_remarks_ajax' %}",
+                        type: "POST",
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        headers: {
+                            'X-CSRFToken': csrftoken
+                        },
+                        success: function(response) {
+                            clearTimeout(timeout);
+                            
+                            console.log("Success response:", response);
+                            
+                            // Update attendance percentages
+                            updateAttendancePercentages(totalDays);
+                            
+                            // Show success message
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: response.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                // Optional: reload the page to get the latest data
+                                // window.location.reload();
+                            });
+                        },
+                        error: function(xhr, status, error) {
+                            clearTimeout(timeout);
+                            
+                            console.error("Error response:", xhr.responseText);
+                            
+                            let errorMsg = "Error saving remarks. Please try again.";
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMsg = xhr.responseJSON.message;
+                            }
+                            
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: errorMsg,
+                                confirmButtonColor: '#3085d6'
+                            });
+                        },
+                        complete: function() {
+                            // Restore button state
+                            saveBtn.removeClass('btn-loading').prop('disabled', false);
+                        }
+                    });
+                }
+            });
+        });
+
+        // Handle individual student form submission from modal
+        $("#singleStudentForm").on("submit", function(e) {
+            e.preventDefault();
+            
+            const studentId = $("#modalStudentId").val();
+            const totalDays = $("#modalTotalDays").val();
+            const daysPresent = $("#modalDaysPresent").val();
+            const isAutoCalculate = $("#modalAutoCalculate").is(":checked");
+            
+            // Validate attendance if auto-calculate is unchecked
+            if (!isAutoCalculate) {
+                if (parseInt(daysPresent) < 0 || parseInt(daysPresent) > parseInt(totalDays)) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Attendance',
+                        text: 'Days present cannot be negative or greater than total days',
+                        confirmButtonColor: '#3085d6'
+                    });
+                    return false;
+                }
+            }
+            
+            // Show loading state
+            const submitBtn = $(this).find('button[type="submit"]');
+            submitBtn.prop('disabled', true).addClass('btn-loading');
+            
+            // Create a request timeout
+            const timeout = setTimeout(() => {
+                submitBtn.removeClass('btn-loading').prop('disabled', false);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Request Timeout',
+                    text: 'The server is taking too long to respond. Please try again.',
+                    confirmButtonColor: '#3085d6'
+                });
+            }, 20000); // 20 second timeout
+            
+            // Send AJAX request
+            $.ajax({
+                url: "{% url 'save_student_remarks_ajax' %}",
+                type: "POST",
+                data: new FormData(this),
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    clearTimeout(timeout);
+                    
+                    // Update the row with new values
+                    const row = $(`tr[data-student-id="${studentId}"]`);
+                    
+                    // Update form values in the table
+                    row.find(`input[name="student_${studentId}_days_present"]`).val(response.days_present);
+
+                    row.find(`select[name="student_${studentId}_interest_remarks"]`).val($("#modalInterest").val());
+                    row.find(`select[name="student_${studentId}_conduct_remarks"]`).val($("#modalConduct").val());
+                    row.find(`select[name="student_${studentId}_attitude_remarks"]`).val($("#modalAttitude").val());
+                    row.find(`select[name="student_${studentId}_general_remarks"]`).val($("#modalGeneral").val());
+
+                    row.find('.attendance-percentage').text(response.attendance_percentage + '%');
+                    
+                    // Close modal
+                    const studentModal = bootstrap.Modal.getInstance(document.getElementById('studentRemarksModal'));
+                    studentModal.hide();
+                    
+                    // Show success message
+                    showToast('success', 'Student remarks updated successfully');
+                },
+                error: function(xhr) {
+                    clearTimeout(timeout);
+                    
+                    // Handle errors
+                    let errorMsg = "Error saving remarks. Please try again.";
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: errorMsg,
+                        confirmButtonColor: '#3085d6'
+                    });
+                },
+                complete: function() {
+                    // Restore button state
+                    submitBtn.removeClass('btn-loading').prop('disabled', false);
+                }
+            });
+        });
+        
+        // ===== ADDITIONAL FUNCTIONALITY =====
+        
+        // Handle changes to modal attendance fields
+        $('#modalDaysPresent, #modalTotalDays').on('input', function() {
+            if (!$("#modalAutoCalculate").is(":checked")) {
+                const presentDays = parseInt($("#modalDaysPresent").val()) || 0;
+                const totalDays = parseInt($("#modalTotalDays").val()) || 0;
+                const absentDays = Math.max(0, totalDays - presentDays);
+                
+                $("#modalDaysAbsent").val(absentDays);
+                
+                // Update attendance summary
+                const percentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(1) : 0;
+                $("#modalAttendancePercent").text(percentage + '%');
+                $("#modalDaysPresentSummary").text(presentDays);
+                $("#modalDaysAbsentSummary").text(absentDays);
+            }
+        });
+        
+        // Window resize handler for responsive table adjustments
+        $(window).on('resize', function() {
+            if (typeof dataTable !== 'undefined') {
+                // Redraw table to apply responsive changes
+                dataTable.draw();
+            }
+        });
+        
+        // Keyboard shortcuts for better UX (Save with Ctrl+S)
+        $(document).keydown(function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.keyCode === 83) { // Ctrl/Cmd + S
+                e.preventDefault();
+                
+                // If modal is open, trigger its save button
+                if ($('#studentRemarksModal').hasClass('show')) {
+                    $('#singleStudentForm button[type="submit"]').click();
+                } else {
+                    // Otherwise trigger save all
+                    $('#saveAllBtn').click();
+                }
+                return false;
+            }
+        });
+
+        
+        // ===== EXPORT/IMPORT FUNCTIONALITY =====
+        
+        // Export remarks
+        $("#exportRemarksBtn").on("click", function() {
+            const classId = "{{ selected_class.class_id }}";
+            const exportUrl = "{% url 'export_remarks' %}?class_id=" + classId;
+            
+            // Show loading state
+            const btn = $(this);
+            const originalHtml = btn.html();
+            btn.prop('disabled', true).html('<i class="bi bi-hourglass-split me-1"></i> Exporting...');
+            
+            // Create a temporary link to trigger download
+            const link = document.createElement('a');
+            link.href = exportUrl;
+            link.download = '';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Restore button after a short delay
+            setTimeout(function() {
+                btn.prop('disabled', false).html(originalHtml);
+                showToast('success', 'Remarks exported successfully');
+            }, 1000);
+        });
+        
+        // Open import modal
+        $("#importRemarksBtn").on("click", function() {
+            const importModal = new bootstrap.Modal(document.getElementById('importRemarksModal'));
+            importModal.show();
+        });
+        
+        // Handle import form submission
+        $("#importRemarksForm").on("submit", function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const submitBtn = $("#importSubmitBtn");
+            const originalHtml = submitBtn.html();
+            
+            // Validate file
+            const fileInput = $("#remarksFile")[0];
+            if (!fileInput.files || fileInput.files.length === 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'No File Selected',
+                    text: 'Please select an Excel file to import.',
+                    confirmButtonColor: '#3085d6'
+                });
+                return;
+            }
+            
+            // Show loading state
+            submitBtn.prop('disabled', true).html('<i class="bi bi-hourglass-split me-1"></i> Importing...');
+            
+            // Create timeout
+            const timeout = setTimeout(() => {
+                submitBtn.prop('disabled', false).html(originalHtml);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Request Timeout',
+                    text: 'The server is taking too long to respond. Please try again.',
+                    confirmButtonColor: '#3085d6'
+                });
+            }, 60000); // 60 second timeout for import
+            
+            // Send AJAX request
+            $.ajax({
+                url: "{% url 'import_remarks' %}",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: {
+                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                success: function(response) {
+                    clearTimeout(timeout);
+                    
+                    // Close modal
+                    const importModal = bootstrap.Modal.getInstance(document.getElementById('importRemarksModal'));
+                    importModal.hide();
+                    
+                    // Reset form
+                    $("#importRemarksForm")[0].reset();
+                    
+                    // Show success message
+                    let message = response.message;
+                    if (response.error_count > 0) {
+                        message += ` ${response.error_count} errors occurred.`;
+                        if (response.errors && response.errors.length > 0) {
+                            message += '\n\nErrors:\n' + response.errors.slice(0, 5).join('\n');
+                            if (response.errors.length > 5) {
+                                message += `\n...and ${response.errors.length - 5} more errors.`;
+                            }
+                        }
+                    }
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Import Successful!',
+                        html: message.replace(/\n/g, '<br>'),
+                        confirmButtonColor: '#3085d6',
+                        width: '600px'
+                    }).then(() => {
+                        // Reload page to show updated data
+                        window.location.reload();
+                    });
+                },
+                error: function(xhr) {
+                    clearTimeout(timeout);
+                    
+                    let errorMsg = "Error importing remarks. Please try again.";
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Import Failed',
+                        text: errorMsg,
+                        confirmButtonColor: '#3085d6'
+                    });
+                },
+                complete: function() {
+                    submitBtn.prop('disabled', false).html(originalHtml);
+                }
+            });
+        });
+
+    });
+    
+    // Clear search function
+    function clearSearch() {
+        $('#studentSearch').val('');
+        if (typeof dataTable !== 'undefined') {
+            dataTable.search('').draw();
+        }
+    }
+</script>
+{% endblock %}

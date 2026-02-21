@@ -1,0 +1,34 @@
+# Docker .gitignore additions
+# Docker files
+Dockerfile
+docker-compose.yml
+docker-compose.override.yml
+.dockerignore
+<<<<<<< HEAD
+
+=======
+backups
+>>>>>>> 3481e18... latest commit , 4th December 2025
+# Environment files
+.env
+.env.local
+.env.production
+
+# Docker volumes
+mysql_data/
+media_files/
+static_files/
+logs/
+
+# Docker images
+*.tar
+*.tar.gz
+
+# Docker logs
+docker-compose.log
+<<<<<<< HEAD
+
+
+
+=======
+>>>>>>> 3481e18... latest commit , 4th December 2025

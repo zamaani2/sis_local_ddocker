@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block extra_css %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-clipboard-check me-2"></i>
+                        {{ title }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                    <div class="mb-3">
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post" id="mockExamForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="name" class="form-label">
+                                <i class="fas fa-tag me-1"></i>
+                                Mock Exam Name <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="name" 
+                                   name="name" 
+                                   value="{% if mock_exam %}{{ mock_exam.name }}{% endif %}"
+                                   placeholder="e.g., Mock Exam 1, Mid-Term Practice, Final Prep Test"
+                                   required>
+                            <small class="form-text text-muted">
+                                Enter a descriptive name for this mock exam scenario.
+                            </small>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="exam_date" class="form-label">
+                                    <i class="fas fa-calendar-alt me-1"></i>
+                                    Exam Date <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" 
+                                       class="form-control" 
+                                       id="exam_date" 
+                                       name="exam_date" 
+                                       value="{% if mock_exam %}{{ mock_exam.exam_date|date:'Y-m-d' }}{% else %}{{ today|date:'Y-m-d' }}{% endif %}"
+                                       required>
+                                <small class="form-text text-muted">
+                                    Date when this mock exam was/will be conducted.
+                                </small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="academic_year" class="form-label">
+                                    <i class="fas fa-graduation-cap me-1"></i>
+                                    Academic Year <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="academic_year" name="academic_year" required>
+                                    <option value="">Select Academic Year...</option>
+                                    {% for year in academic_years %}
+                                    <option value="{{ year.id }}" 
+                                            {% if mock_exam and mock_exam.academic_year.id == year.id %}selected
+                                            {% elif not mock_exam and current_academic_year and current_academic_year.id == year.id %}selected{% endif %}>
+                                        {{ year.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">
+                                    Select the academic year this mock exam belongs to.
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">
+                                <i class="fas fa-align-left me-1"></i>
+                                Description
+                            </label>
+                            <textarea class="form-control" 
+                                      id="description" 
+                                      name="description" 
+                                      rows="3"
+                                      placeholder="Optional description or notes about this mock exam">{% if mock_exam %}{{ mock_exam.description }}{% endif %}</textarea>
+                            <small class="form-text text-muted">
+                                Provide additional details about this mock exam (optional).
+                            </small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       id="is_active" 
+                                       name="is_active"
+                                       {% if mock_exam and mock_exam.is_active or not mock_exam %}checked{% endif %}>
+                                <label class="form-check-label" for="is_active">
+                                    <strong>Active</strong>
+                                </label>
+                            </div>
+                            <small class="form-text text-muted">
+                                Only active mock exams are displayed for score entry. Uncheck to hide this mock exam from teachers.
+                            </small>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'mock_exam_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>
+                                {% if mock_exam %}Update Mock Exam{% else %}Create Mock Exam{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Set today's date as default if creating new mock exam
+    {% if not mock_exam %}
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('exam_date').value = today;
+    });
+    {% endif %}
+</script>
+{% endblock %}
+

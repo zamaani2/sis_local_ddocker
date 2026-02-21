@@ -1,0 +1,951 @@
+{% extends 'base.html' %} 
+{% load static %} 
+{% block title %}Bulk Subject Assignment{% endblock %}
+{% block page_title %}Bulk Subject Assignment{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item">
+  <a href="{% url 'admin_dashboard' %}">Dashboard</a>
+</li>
+<li class="breadcrumb-item"><a href="{% url 'teacher_list' %}">Teachers</a></li>
+<li class="breadcrumb-item active" aria-current="page">
+  Bulk Subject Assignment
+</li>
+{% endblock %} {% block extra_css %}
+
+<link
+  href="{% static 'vendor/select2/4.1.0-rc.0/css/select2.min.css' %}"
+  rel="stylesheet"
+/>
+<link
+  href="{% static 'vendor/select2-bootstrap-5-theme/1.3.0/dist/select2-bootstrap-5-theme.min.css' %}"
+  rel="stylesheet"
+/>
+<style>
+  /* Select2 Bootstrap 5 styling */
+  .select2-container--bootstrap-5 .select2-selection {
+    height: auto;
+    min-height: 38px;
+  }
+
+  /* Loading overlay */
+  .loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0s, opacity 0.3s;
+  }
+  .loading-overlay.active {
+    visibility: visible;
+    opacity: 1;
+  }
+  .spinner-container {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Subject selection styling */
+  .subject-checkbox-container {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    background-color: #f8f9fa;
+  }
+  .subject-checkbox-item {
+    padding: 0.5rem;
+    border-bottom: 1px solid #e9ecef;
+    border-radius: 0.25rem;
+    margin-bottom: 0.25rem;
+    transition: all 0.2s ease;
+  }
+  .subject-checkbox-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+  .subject-checkbox-item:hover {
+    background-color: #e9ecef;
+    transform: translateX(2px);
+  }
+  .subject-checkbox-item label {
+    display: block;
+    margin-bottom: 0;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .subject-search {
+    margin-bottom: 0.75rem;
+  }
+  .subject-select-actions {
+    margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Enhanced modal styling */
+  .modal-content {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  }
+  .modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.5rem 0.5rem 0 0;
+  }
+  .modal-footer {
+    border-top: 1px solid #dee2e6;
+    border-radius: 0 0 0.5rem 0.5rem;
+  }
+
+  /* Form enhancements */
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  .form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+  }
+  .form-text {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+  }
+
+  /* Button enhancements */
+  .btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  /* Color scheme consistency with class assignment templates */
+  .badge.bg-pink {
+    background-color: #e91e63 !important;
+  }
+
+  /* Primary button styling to match class assignment */
+  .btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+  }
+
+  .btn-primary:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+  }
+
+  .btn-outline-primary {
+    color: #0d6efd;
+    border-color: #0d6efd;
+  }
+
+  .btn-outline-primary:hover {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            <i class="fas fa-users me-2"></i>
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %}
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              Bulk Subject Assignment
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            Assign subjects to teachers across multiple classes
+          </p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'teacher_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Teachers
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner-container">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-2">Processing assignments...</p>
+    </div>
+  </div>
+
+  <!-- Advanced Filters -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="true" aria-controls="filtersCollapse">
+              <i class="fas fa-filter"></i> Advanced Filters
+            </button>
+          </h5>
+        </div>
+        <div class="collapse show" id="filtersCollapse">
+          <div class="card-body">
+            <form method="get" id="filterForm">
+              <div class="row">
+                <div class="col-md-3">
+                  <label for="department-filter" class="form-label text-white">Department</label>
+                  <select id="department-filter" class="form-select select2" name="department">
+                    <option value="">All Departments</option>
+                    {% for department in departments %}
+                    <option value="{{ department }}">{{ department }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <label for="gender-filter" class="form-label text-white">Gender</label>
+                  <select id="gender-filter" class="form-select" name="gender">
+                    <option value="">All Genders</option>
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <label for="search-filter" class="form-label t">Search</label>
+                  <input
+                    type="text"
+                    id="search-filter"
+                    class="form-control"
+                    name="search"
+                    placeholder="Search by name or ID..."
+                  />
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">&nbsp;</label>
+                  <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                      <i class="fas fa-search"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="row mt-3">
+                <div class="col-md-3">
+                  <label class="form-label">&nbsp;</label>
+                  <div class="d-grid">
+                    <button type="button" id="reset-filters" class="btn btn-outline-secondary">
+                      <i class="fas fa-times"></i> Clear
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Teachers Table -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0"><i class="fas fa-users me-2"></i>Teachers List</h5>
+      <button
+        class="btn btn-primary"
+        data-bs-toggle="modal"
+        data-bs-target="#bulkAssignmentModal"
+      >
+        <i class="fas fa-plus me-1"></i>Global Subject Assignment
+      </button>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table id="teachers-table" class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Department</th>
+              <th>Gender</th>
+              <th>Assigned Subjects</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for teacher in teachers %}
+            <tr>
+              <td>
+                <span class="badge bg-primary">{{ teacher.staff_id }}</span>
+              </td>
+              <td>{{ teacher.full_name }}</td>
+              <td>{{ teacher.department.name|default:"N/A" }}</td>
+              <td>
+                {% if teacher.gender == "M" %}
+                <span class="badge bg-primary">Male</span>
+                {% elif teacher.gender == "F" %}
+                <span class="badge bg-pink">Female</span>
+                {% else %}
+                <span class="badge bg-secondary">N/A</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge bg-success"
+                  >{{ teacher.total_assigned_classes }}</span
+                >
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <button
+                    type="button"
+                    class="btn btn-primary assign-subjects-btn"
+                    data-teacher-id="{{ teacher.staff_id }}"
+                    data-teacher-name="{{ teacher.full_name }}"
+                    title="Assign Subjects"
+                  >
+                    <i class="fas fa-plus"></i>
+                  </button>
+                  <a
+                    href="{% url 'teacher_detail' teacher.staff_id %}"
+                    class="btn btn-outline-primary"
+                    title="View Teacher Details"
+                  >
+                    <i class="fas fa-eye"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6">
+                <div class="text-center py-5">
+                  <i
+                    class="fas fa-users text-muted"
+                    style="font-size: 3rem"
+                  ></i>
+                  <h5 class="mt-3 text-muted">No Teachers Found</h5>
+                  <p class="text-muted">
+                    No teachers are available for subject assignment.
+                  </p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Assignment Modal (Global) -->
+<div
+  class="modal fade"
+  id="bulkAssignmentModal"
+  tabindex="-1"
+  aria-labelledby="bulkAssignmentModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="bulkAssignmentModalLabel">
+          <i class="fas fa-plus me-2"></i>Global Subject Assignment
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form id="bulkAssignmentForm">
+          {% csrf_token %}
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <div class="form-group mb-3">
+                <label for="bulk-class-select" class="form-label">
+                  <i class="fas fa-school me-1"></i>Select Class
+                </label>
+                <select id="bulk-class-select" class="form-select select2" required >
+                  <option value="">Choose a class...</option>
+                  {% for class_obj in available_classes %}
+                  <option  value="{{ class_obj.id }}"> {{ class_obj.name }} </option>
+                  {% endfor %}
+                </select>
+                <div class="form-text">
+                  Select the class for subject assignment.
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group mb-3">
+                <label for="bulk-teacher-select" class="form-label">
+                  <i class="fas fa-user me-1"></i>Select Teacher
+                </label>
+                <select
+                  id="bulk-teacher-select"
+                  class="form-select select2"
+                  required
+                >
+                  <option value="">Choose a teacher...</option>
+                  {% for teacher in teachers %}
+                  <option value="{{ teacher.staff_id }}">
+                    {{ teacher.full_name }} ({{ teacher.department.name|default:"No Dept" }})
+                  </option>
+                  {% endfor %}
+                </select>
+                <div class="form-text">
+                  Select the teacher to assign subjects to.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-12">
+              <div class="form-group mb-3">
+                <label class="form-label">
+                  <i class="fas fa-book me-1"></i>Select Subjects
+                </label>
+                <div class="alert alert-info">
+                  <small
+                    ><i class="fas fa-info-circle me-1"></i> Select subjects to
+                    assign to the selected teacher for the selected
+                    class.</small
+                  >
+                </div>
+
+                <div class="subject-select-actions">
+                  <div>
+                    <button
+                      type="button"
+                      class="btn btn-primary btn-sm select-all-subjects"
+                      data-target="bulk"
+                    >
+                      <i class="fas fa-check-square me-1"></i>Select All
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary deselect-all-subjects"
+                      data-target="bulk"
+                    >
+                      <i class="fas fa-square me-1"></i>Deselect All
+                    </button>
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      class="form-control subject-search"
+                      placeholder="Search subjects..."
+                      data-target="bulk"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="subject-checkbox-container"
+                id="bulk-subjects-container"
+              >
+                <div class="text-center py-4">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                  <p class="mt-2">Select a class to view available subjects</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert alert-warning assignment-info d-none">
+            <p class="mb-0">
+              <i class="fas fa-exclamation-triangle me-1"></i>
+              <span id="assignment-warning-text"></span>
+            </p>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Cancel
+        </button>
+        <button type="button" class="btn btn-primary" id="bulkAssignSubmit">
+          <i class="fas fa-check me-1"></i>Assign Subjects
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Teacher-Specific Assignment Modal -->
+<div
+  class="modal fade"
+  id="teacherAssignmentModal"
+  tabindex="-1"
+  aria-labelledby="teacherAssignmentModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="teacherAssignmentModalLabel">
+          <i class="fas fa-user-plus me-2"></i>Assign Subjects to
+          <span id="modal-teacher-name"></span>
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form id="teacherAssignmentForm">
+          {% csrf_token %}
+          <input type="hidden" id="teacher-id-input" name="teacher_id" />
+
+          <div class="form-group mb-3 text-dark">
+            <label for="teacher-class-select" class="form-label">
+              <i class="fas fa-school me-1"></i>Select Class
+            </label>
+            <select id="teacher-class-select" class="form-select select2" required >
+              <option value="">Choose a class...</option>
+              {% for class_obj in available_classes %}
+              <option value="{{ class_obj.id }}">{{ class_obj.name }}</option>
+              {% endfor %}
+            </select>
+            <div class="form-text">
+              Select the class for subject assignment.
+            </div>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label">
+              <i class="fas fa-book me-1"></i>Select Subjects
+            </label>
+            <div class="alert alert-info">
+              <small
+                ><i class="fas fa-info-circle me-1"></i> Select subjects to
+                assign to this teacher for the selected class.</small
+              >
+            </div>
+
+            <div class="subject-select-actions">
+              <div>
+                <button
+                  type="button"
+                  class="btn btn-primary btn-sm select-all-subjects"
+                  data-target="teacher"
+                >
+                  <i class="fas fa-check-square me-1"></i>Select All
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-primary deselect-all-subjects"
+                  data-target="teacher"
+                >
+                  <i class="fas fa-square me-1"></i>Deselect All
+                </button>
+              </div>
+              <div>
+                <input
+                  type="text"
+                  class="form-control subject-search"
+                  placeholder="Search subjects..."
+                  data-target="teacher"
+                />
+              </div>
+            </div>
+
+            <div
+              class="subject-checkbox-container"
+              id="teacher-subjects-container"
+            >
+              <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Select a class to view available subjects</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert alert-warning teacher-assignment-info d-none">
+            <p class="mb-0">
+              <i class="fas fa-exclamation-triangle me-1"></i>
+              <span id="teacher-assignment-warning-text"></span>
+            </p>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Cancel
+        </button>
+        <button type="button" class="btn btn-primary" id="teacherAssignSubmit">
+          <i class="fas fa-check me-1"></i>Assign Subjects
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="{% static 'vendor/select2/4.1.0-rc.0/js/select2.min.js' %}"></script>
+<script src="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.all.min.js' %}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Initialize DataTable
+    const teachersTable = $("#teachers-table").DataTable({
+      responsive: true,
+      pageLength: 25,
+      order: [[1, "asc"]], // Sort by name
+      columnDefs: [
+        { orderable: false, targets: [5] }, // Disable sorting on actions column
+      ],
+      language: {
+        search: "Quick search:",
+        zeroRecords: "No matching teachers found",
+        info: "Showing _START_ to _END_ of _TOTAL_ teachers",
+        infoEmpty: "No teachers available",
+        infoFiltered: "(filtered from _MAX_ total teachers)",
+      },
+    });
+
+    // Initialize Select2
+    $(".select2").select2({
+      theme: "bootstrap-5",
+      width: "100%",
+    });
+
+    // Filter functionality
+    $("#department-filter").on("change", function () {
+      const department = $(this).val();
+      teachersTable.column(2).search(department).draw();
+    });
+
+    $("#gender-filter").on("change", function () {
+      const gender = $(this).val();
+      let searchValue = "";
+
+      if (gender === "M") {
+        searchValue = "Male";
+      } else if (gender === "F") {
+        searchValue = "Female";
+      }
+
+      teachersTable.column(3).search(searchValue).draw();
+    });
+
+    $("#search-filter").on("keyup", function () {
+      teachersTable.search(this.value).draw();
+    });
+
+    $("#reset-filters").on("click", function () {
+      $("#department-filter").val("").trigger("change");
+      $("#gender-filter").val("").trigger("change");
+      $("#search-filter").val("");
+      teachersTable.search("").columns().search("").draw();
+    });
+
+    // Function to fetch subjects for a class and create checkboxes
+    function fetchSubjectsForClass(classId, targetContainer) {
+      if (!classId) {
+        targetContainer.html(
+          '<div class="text-center py-4"><p>Select a class first</p></div>'
+        );
+        return;
+      }
+
+      targetContainer.html(`
+        <div class="text-center py-4">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2">Loading subjects...</p>
+        </div>
+      `);
+
+      fetch(`/api/class-subjects/?class_id=${classId}`)
+        .then((response) => response.json())
+        .then((data) => {
+          targetContainer.empty();
+
+          if (data.success && data.subjects.length > 0) {
+            data.subjects.forEach((subject) => {
+              const subjectItem = `
+                <div class="subject-checkbox-item" data-subject-name="${subject.subject_name.toLowerCase()}">
+                  <label class="d-flex align-items-center">
+                    <input type="checkbox" class="form-check-input me-2" name="subject_ids[]" value="${
+                      subject.id
+                    }">
+                    ${subject.subject_name}
+                  </label>
+                </div>
+              `;
+              targetContainer.append(subjectItem);
+            });
+          } else {
+            targetContainer.html(
+              '<div class="text-center py-4"><p>No subjects available for this class</p></div>'
+            );
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching subjects:", error);
+          targetContainer.html(
+            '<div class="text-center py-4"><p>Error loading subjects</p></div>'
+          );
+        });
+    }
+
+    // Class selection change handlers
+    $("#bulk-class-select").on("change", function () {
+      const classId = $(this).val();
+      fetchSubjectsForClass(classId, $("#bulk-subjects-container"));
+    });
+
+    $("#teacher-class-select").on("change", function () {
+      const classId = $(this).val();
+      fetchSubjectsForClass(classId, $("#teacher-subjects-container"));
+    });
+
+    // Subject search functionality
+    $(".subject-search").on("keyup", function () {
+      const searchTerm = $(this).val().toLowerCase();
+      const target = $(this).data("target");
+      const container =
+        target === "bulk"
+          ? $("#bulk-subjects-container")
+          : $("#teacher-subjects-container");
+
+      container.find(".subject-checkbox-item").each(function () {
+        const subjectName = $(this).data("subject-name");
+        if (subjectName.includes(searchTerm)) {
+          $(this).show();
+        } else {
+          $(this).hide();
+        }
+      });
+    });
+
+    // Select/Deselect all subjects
+    $(".select-all-subjects").on("click", function (e) {
+      e.preventDefault();
+      const target = $(this).data("target");
+      const container =
+        target === "bulk"
+          ? $("#bulk-subjects-container")
+          : $("#teacher-subjects-container");
+      container.find('input[type="checkbox"]:visible').prop("checked", true);
+    });
+
+    $(".deselect-all-subjects").on("click", function (e) {
+      e.preventDefault();
+      const target = $(this).data("target");
+      const container =
+        target === "bulk"
+          ? $("#bulk-subjects-container")
+          : $("#teacher-subjects-container");
+      container.find('input[type="checkbox"]').prop("checked", false);
+    });
+
+    // Teacher-specific assignment modal
+    $(".assign-subjects-btn").on("click", function () {
+      const teacherId = $(this).data("teacher-id");
+      const teacherName = $(this).data("teacher-name");
+
+      $("#modal-teacher-name").text(teacherName);
+      $("#teacher-id-input").val(teacherId);
+      $("#teacherAssignmentModal").modal("show");
+    });
+
+    // Handle teacher assignment submission
+    $("#teacherAssignSubmit").on("click", function () {
+      const teacherId = $("#teacher-id-input").val();
+      const classId = $("#teacher-class-select").val();
+      const subjectIds = [];
+
+      // Get selected subjects
+      $('#teacher-subjects-container input[type="checkbox"]:checked').each(
+        function () {
+          subjectIds.push($(this).val());
+        }
+      );
+
+      if (!classId || subjectIds.length === 0) {
+        Swal.fire({
+          title: "Validation Error",
+          text: "Please select both a class and at least one subject",
+          icon: "error",
+        });
+        return;
+      }
+
+      // Show loading overlay
+      $("#loadingOverlay").addClass("active");
+
+      // Prepare form data
+      const formData = new FormData();
+      formData.append("class_id", classId);
+      subjectIds.forEach((id) => {
+        formData.append("subject_ids[]", id);
+      });
+      formData.append(
+        "csrfmiddlewaretoken",
+        $("input[name=csrfmiddlewaretoken]").val()
+      );
+
+      // Submit assignment
+      fetch(`/teachers/${teacherId}/assign-multiple-subjects/`, {
+        method: "POST",
+        body: formData,
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          // Hide loading overlay
+          $("#loadingOverlay").removeClass("active");
+
+          if (data.success) {
+            Swal.fire({
+              title: "Success",
+              text: data.message,
+              icon: "success",
+              confirmButtonText: "OK",
+            }).then(() => {
+              $("#teacherAssignmentModal").modal("hide");
+              window.location.reload();
+            });
+          } else {
+            Swal.fire({
+              title: "Error",
+              text: data.message,
+              icon: "error",
+              confirmButtonText: "OK",
+            });
+          }
+        })
+        .catch((error) => {
+          // Hide loading overlay
+          $("#loadingOverlay").removeClass("active");
+
+          console.error("Error:", error);
+          Swal.fire({
+            title: "Error",
+            text: "An unexpected error occurred. Please try again.",
+            icon: "error",
+            confirmButtonText: "OK",
+          });
+        });
+    });
+
+    // Handle bulk assignment submission
+    $("#bulkAssignSubmit").on("click", function () {
+      const teacherId = $("#bulk-teacher-select").val();
+      const classId = $("#bulk-class-select").val();
+      const subjectIds = [];
+
+      // Get selected subjects
+      $('#bulk-subjects-container input[type="checkbox"]:checked').each(
+        function () {
+          subjectIds.push($(this).val());
+        }
+      );
+
+      if (!teacherId || !classId || subjectIds.length === 0) {
+        Swal.fire({
+          title: "Validation Error",
+          text: "Please select a teacher, class, and at least one subject",
+          icon: "error",
+        });
+        return;
+      }
+
+      // Show loading overlay
+      $("#loadingOverlay").addClass("active");
+
+      // Prepare form data
+      const formData = new FormData();
+      formData.append("class_id", classId);
+      subjectIds.forEach((id) => {
+        formData.append("subject_ids[]", id);
+      });
+      formData.append(
+        "csrfmiddlewaretoken",
+        $("input[name=csrfmiddlewaretoken]").val()
+      );
+
+      // Submit assignment
+      fetch(`/teachers/${teacherId}/assign-multiple-subjects/`, {
+        method: "POST",
+        body: formData,
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          // Hide loading overlay
+          $("#loadingOverlay").removeClass("active");
+
+          if (data.success) {
+            Swal.fire({
+              title: "Success",
+              text: data.message,
+              icon: "success",
+              confirmButtonText: "OK",
+            }).then(() => {
+              $("#bulkAssignmentModal").modal("hide");
+              window.location.reload();
+            });
+          } else {
+            Swal.fire({
+              title: "Error",
+              text: data.message,
+              icon: "error",
+              confirmButtonText: "OK",
+            });
+          }
+        })
+        .catch((error) => {
+          // Hide loading overlay
+          $("#loadingOverlay").removeClass("active");
+
+          console.error("Error:", error);
+          Swal.fire({
+            title: "Error",
+            text: "An unexpected error occurred. Please try again.",
+            icon: "error",
+            confirmButtonText: "OK",
+          });
+        });
+    });
+  });
+</script>
+{% endblock %}

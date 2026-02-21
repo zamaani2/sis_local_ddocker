@@ -1,0 +1,53 @@
+{% extends 'super_admin/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Test Email Configuration - Super Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Test Email Configuration</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'super_admin:dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'super_admin:settings_update' %}">Settings</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'super_admin:email_config_list' %}">Email Configuration</a></li>
+        <li class="breadcrumb-item active">Test</li>
+    </ol>
+
+    <div class="row">
+        <div class="col-xl-6 mx-auto">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-paper-plane me-1"></i>
+                    Send Test Email
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-info-circle"></i> Testing Email Configuration</h5>
+                        <p>Enter an email address to send a test message using the selected configuration.</p>
+                        <p><strong>Configuration:</strong> {{ config.name }} ({{ config.get_service_type_display }})</p>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="test_email" class="form-label">Test Email Address</label>
+                            <input type="email" class="form-control" id="test_email" name="test_email" required>
+                            <div class="form-text">Enter the email address where you want to receive the test message.</div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'super_admin:email_config_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Send Test Email
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

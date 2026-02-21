@@ -1,0 +1,295 @@
+{% extends 'super_admin/base.html' %}
+{% load static %}
+
+{% block title %}Welcome - {{ block.super }}{% endblock %}
+
+{% block page_title %}Welcome to SchoolApp Platform{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Home</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Welcome Banner -->
+  <div class="card mb-4 bg-gradient-primary text-white shadow">
+    <div class="card-body py-5">
+      <div class="row align-items-center">
+        <div class="col-lg-8">
+          <h2 class="display-4 mb-3">Welcome to SchoolApp Platform</h2>
+          <p class="lead mb-4">Manage your multi-tenant school management platform from this central administration dashboard.</p>
+          <div class="mt-4">
+            <a href="{% url 'super_admin:dashboard' %}" class="btn btn-light btn-lg me-2">
+              <i class="bi bi-speedometer2 me-1"></i> Go to Dashboard
+            </a>
+            <a href="{% url 'super_admin:school_list' %}" class="btn btn-outline-light btn-lg">
+              <i class="bi bi-building me-1"></i> View Schools
+            </a>
+          </div>
+        </div>
+        <div class="col-lg-4 text-center d-none d-lg-block">
+          <i class="bi bi-layers display-1 text-white-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Access Cards -->
+  <h4 class="mb-3">Quick Access</h4>
+  <div class="row">
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-primary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Schools</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">Manage Schools</div>
+              <p class="mt-2 mb-0 small text-muted">Add, edit, and manage school accounts</p>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-building fa-2x text-gray-300"></i>
+            </div>
+          </div>
+          <div class="mt-3">
+            <a href="{% url 'super_admin:school_list' %}" class="btn btn-sm btn-primary">View Schools</a>
+            <a href="{% url 'super_admin:school_create' %}" class="btn btn-sm btn-outline-primary">Add New</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-success shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Subscriptions</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">Manage Plans</div>
+              <p class="mt-2 mb-0 small text-muted">Create and manage subscription plans</p>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-credit-card fa-2x text-gray-300"></i>
+            </div>
+          </div>
+          <div class="mt-3">
+            <a href="{% url 'super_admin:plan_list' %}" class="btn btn-sm btn-success">View Plans</a>
+            <a href="{% url 'super_admin:plan_create' %}" class="btn btn-sm btn-outline-success">Add New</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-info shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Users</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">Admin Users</div>
+              <p class="mt-2 mb-0 small text-muted">Manage platform administrators</p>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-people fa-2x text-gray-300"></i>
+            </div>
+          </div>
+          <div class="mt-3">
+            <a href="{% url 'super_admin:user_list' %}" class="btn btn-sm btn-info">View Users</a>
+            <a href="{% url 'super_admin:user_create' %}" class="btn btn-sm btn-outline-info">Add New</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Settings</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">Platform Settings</div>
+              <p class="mt-2 mb-0 small text-muted">Configure platform-wide settings</p>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-gear fa-2x text-gray-300"></i>
+            </div>
+          </div>
+          <div class="mt-3">
+            <a href="{% url 'super_admin:settings_update' %}" class="btn btn-sm btn-warning">View Settings</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Platform Overview -->
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="m-0 font-weight-bold">Platform Overview</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-4">
+                <h5>Schools</h5>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span>Total Schools:</span>
+                  <span class="badge bg-primary">{{ total_schools|default:"0" }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span>Active Schools:</span>
+                  <span class="badge bg-success">{{ active_schools|default:"0" }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                  <span>Trial Schools:</span>
+                  <span class="badge bg-info">{{ trial_schools|default:"0" }}</span>
+                </div>
+              </div>
+              
+              <div>
+                <h5>Subscriptions</h5>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span>Active Subscriptions:</span>
+                  <span class="badge bg-success">{{ active_subscriptions|default:"0" }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span>Expiring Soon:</span>
+                  <span class="badge bg-warning">{{ expiring_soon|default:"0" }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                  <span>Monthly Revenue:</span>
+                  <span class="badge bg-primary">${{ monthly_revenue|default:"0" }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="mb-4">
+                <h5>System Status</h5>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span>Server Load:</span>
+                  <div class="progress flex-grow-1 ms-3" style="height: 10px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ server_load|default:'25' }}%"></div>
+                  </div>
+                  <span class="ms-2">{{ server_load|default:"25" }}%</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span>Database Size:</span>
+                  <span class="badge bg-secondary">{{ db_size|default:"150" }} MB</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                  <span>Uptime:</span>
+                  <span class="badge bg-info">{{ uptime|default:"7 days" }}</span>
+                </div>
+              </div>
+              
+              <div>
+                <h5>Recent Activity</h5>
+                <ul class="list-group list-group-flush">
+                  {% for activity in recent_activities|slice:":3" %}
+                  <li class="list-group-item px-0">
+                    <div class="d-flex justify-content-between">
+                      <span>{{ activity.description }}</span>
+                      <small class="text-muted">{{ activity.timestamp|timesince }} ago</small>
+                    </div>
+                  </li>
+                  {% empty %}
+                  <li class="list-group-item px-0">
+                    <span class="text-muted">No recent activity</span>
+                  </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="m-0 font-weight-bold">Quick Links</h6>
+        </div>
+        <div class="card-body">
+          <div class="list-group">
+            <a href="{% url 'super_admin:dashboard' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+              <div>
+                <i class="bi bi-speedometer2 me-2"></i> Dashboard
+              </div>
+              <i class="bi bi-chevron-right"></i>
+            </a>
+            <a href="{% url 'super_admin:school_list' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+              <div>
+                <i class="bi bi-building me-2"></i> Schools
+              </div>
+              <i class="bi bi-chevron-right"></i>
+            </a>
+            <a href="{% url 'super_admin:plan_list' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+              <div>
+                <i class="bi bi-layers me-2"></i> Subscription Plans
+              </div>
+              <i class="bi bi-chevron-right"></i>
+            </a>
+            <a href="{% url 'super_admin:subscription_list' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+              <div>
+                <i class="bi bi-calendar-check me-2"></i> Subscriptions
+              </div>
+              <i class="bi bi-chevron-right"></i>
+            </a>
+            <a href="{% url 'super_admin:transaction_list' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+              <div>
+                <i class="bi bi-credit-card me-2"></i> Transactions
+              </div>
+              <i class="bi bi-chevron-right"></i>
+            </a>
+            <a href="{% url 'super_admin:user_list' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+              <div>
+                <i class="bi bi-people me-2"></i> Admin Users
+              </div>
+              <i class="bi bi-chevron-right"></i>
+            </a>
+            <a href="{% url 'super_admin:settings_update' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+              <div>
+                <i class="bi bi-gear me-2"></i> Platform Settings
+              </div>
+              <i class="bi bi-chevron-right"></i>
+            </a>
+            <a href="{% url 'admin:index' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" target="_blank">
+              <div>
+                <i class="bi bi-shield-lock me-2"></i> Django Admin
+              </div>
+              <i class="bi bi-box-arrow-up-right"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <h6 class="m-0 font-weight-bold">System Notifications</h6>
+        </div>
+        <div class="card-body">
+          <div class="list-group">
+            {% for notification in system_notifications|slice:":5" %}
+            <a href="{{ notification.url }}" class="list-group-item list-group-item-action">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">{{ notification.title }}</h6>
+                <small>{{ notification.timestamp|timesince }} ago</small>
+              </div>
+              <p class="mb-1">{{ notification.message }}</p>
+            </a>
+            {% empty %}
+            <div class="text-center py-4">
+              <i class="bi bi-bell-slash text-muted display-4"></i>
+              <p class="mt-3 mb-0">No new notifications</p>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 

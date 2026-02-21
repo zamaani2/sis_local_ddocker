@@ -1,0 +1,55 @@
+{% extends 'super_admin/base.html' %}
+{% load static %}
+
+{% block title %}Cancel Subscription - {{ block.super }}{% endblock %}
+
+{% block page_title %}Cancel Subscription{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'super_admin:subscription_list' %}">Subscriptions</a></li>
+<li class="breadcrumb-item active">Cancel Subscription</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="card mb-4">
+    <div class="card-header">
+      <h6 class="m-0 font-weight-bold">Cancel Subscription</h6>
+    </div>
+    <div class="card-body">
+      <div class="alert alert-warning">
+        <h5><i class="bi bi-exclamation-triangle me-2"></i> Warning</h5>
+        <p>You are about to cancel the subscription for <strong>{{ subscription.school.name }}</strong>.</p>
+        <p>Plan: <strong>{{ subscription.plan.name }}</strong></p>
+        <p>Status: <strong>{{ subscription.status|title }}</strong></p>
+        <p>Expiry Date: <strong>{{ subscription.end_date|date:"F d, Y" }}</strong></p>
+        <p>This action cannot be undone. The school will lose access to paid features when the subscription ends.</p>
+      </div>
+      
+      <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="cancellation_reason" class="form-label">Cancellation Reason (Optional)</label>
+          <textarea class="form-control" id="cancellation_reason" name="cancellation_reason" rows="3"></textarea>
+        </div>
+        
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="immediate" name="immediate">
+          <label class="form-check-label" for="immediate">
+            Cancel immediately (Otherwise subscription will remain active until the end of the billing period)
+          </label>
+        </div>
+        
+        <div class="d-flex justify-content-between mt-4">
+          <a href="{% url 'super_admin:subscription_detail' subscription.id %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Go Back
+          </a>
+          <button type="submit" class="btn btn-danger">
+            <i class="bi bi-x-circle me-1"></i> Confirm Cancellation
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %} 

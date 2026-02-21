@@ -1,0 +1,549 @@
+
+{% extends 'base.html' %} {% load static %} {% block title %}{{ title }}{% endblock %} {% block page_title %}{{ title }}{% endblock %} {% block extra_css %} {% endblock %} {% block content %}
+
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+
+            {% if current_academic_year %} {{ current_academic_year.name }} {% if current_term %} - {{ current_term.name }} {% endif %} {% else %}
+            Departments Management {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if current_academic_year %} Current academic year and term
+            management {% else %} Manage school departments and their
+            information {% endif %}
+
+          </p>
+        </div>
+        <div class="btn-group">
+          <button
+            type="button"
+            class="btn btn-primary"
+            id="addDepartmentBtn"
+            onclick="addDepartment()"
+          >
+            <i class="fas fa-plus"></i> Add New Department
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CSRF Token for AJAX requests -->
+  {% csrf_token %}
+
+  <!-- Departments Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-building"></i> Departments</h5>
+            <div class="btn-group btn-group-sm">
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                onclick="refreshTable()"
+              >
+                <i class="fas fa-sync-alt"></i> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover" id="departmentsTable">
+              <thead>
+                <tr>
+                  <th width="120">Code</th>
+                  <th>Name</th>
+                  <th>Head of Department</th>
+                  <th>Description</th>
+                  <th width="150">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for department in departments %}
+                <tr>
+                  <td>
+                    <span class="badge bg-primary">{{ department.code }}</span>
+                  </td>
+                  <td>
+                    <strong>{{ department.name }}</strong>
+                  </td>
+                  <td>
+                    <span class="text-muted"
+                      >{{ department.head_of_department|default:"Not assigned" }}</span
+                    >
+                  </td>
+                  <td>
+                    <span class="text-muted"
+                      >{{ department.description|default:"No description provided" }}</span
+                    >
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button
+                        class="btn btn-outline-primary"
+                        data-id="{{ department.id }}"
+                        title="Edit Department"
+                        onclick="editDepartment({{ department.id }})"
+                      >
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button
+                        class="btn btn-outline-danger"
+                        data-id="{{ department.id }}"
+                        data-name="{{ department.name }}"
+                        title="Delete Department"
+                        onclick="deleteDepartment({{ department.id }}, '{{ department.name | escapejs }}')"
+                      >
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+
+                  <td class="text-center text-muted py-4">
+                    <i class="fas fa-building fa-3x mb-3"></i>
+                  </td>
+                  <td class="text-center text-muted py-4">
+                    <strong>No departments found</strong>
+                  </td>
+                  <td class="text-center text-muted py-4">Not assigned</td>
+                  <td class="text-center text-muted py-4">
+                    Create your first department to organize your school
+                    structure.
+                  </td>
+                  <td class="text-center text-muted py-4">
+
+                    <button
+                      type="button"
+                      class="btn btn-primary"
+                      onclick="addDepartment()"
+                    >
+                      <i class="fas fa-plus"></i> Add New Department
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Department Modal -->
+<div
+  class="modal fade"
+  id="departmentModal"
+  tabindex="-1"
+  aria-labelledby="departmentModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="departmentModalLabel">
+          <i class="fas fa-building"></i> Add New Department
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form id="departmentForm">
+          {% csrf_token %}
+          <input type="hidden" id="departmentId" name="department_id" />
+
+          <div class="mb-3">
+            <label for="departmentCode" class="form-label">
+              <i class="fas fa-hashtag"></i> Code
+            </label>
+            <input
+              type="text"
+              class="form-control"
+              id="departmentCode"
+              name="code"
+              placeholder="Enter department code (e.g., MATH, ENG, SCI)"
+              required
+            />
+            <div class="invalid-feedback" id="departmentCodeError"></div>
+            <small class="form-text text-muted">
+              Enter a unique code for this department.
+            </small>
+          </div>
+
+          <div class="mb-3">
+            <label for="departmentName" class="form-label">
+              <i class="fas fa-tag"></i> Name
+            </label>
+            <input
+              type="text"
+              class="form-control"
+              id="departmentName"
+              name="name"
+              placeholder="Enter department name (e.g., Mathematics, English, Science)"
+              required
+            />
+            <div class="invalid-feedback" id="departmentNameError"></div>
+            <small class="form-text text-muted">
+              Enter a descriptive name for this department.
+            </small>
+          </div>
+
+          <div class="mb-3">
+            <label for="headOfDepartment" class="form-label">
+              <i class="fas fa-user-tie"></i> Head of Department
+            </label>
+            <select
+              class="form-select"
+              id="headOfDepartment"
+              name="head_of_department"
+            >
+              <option value="">-- Select Head of Department --</option>
+            </select>
+            <div class="invalid-feedback" id="headOfDepartmentError"></div>
+            <small class="form-text text-muted">
+              Select a teacher to be the head of this department (optional).
+            </small>
+          </div>
+
+          <div class="mb-3">
+            <label for="departmentDescription" class="form-label">
+              <i class="fas fa-align-left"></i> Description
+            </label>
+            <textarea
+              class="form-control"
+              id="departmentDescription"
+              name="description"
+              rows="3"
+              placeholder="Enter a description for this department (optional)"
+            ></textarea>
+            <div class="invalid-feedback" id="departmentDescriptionError"></div>
+            <small class="form-text text-muted">
+              Provide additional details about this department (optional).
+            </small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          id="saveDepartmentBtn"
+          onclick="saveDepartment()"
+        >
+          <i class="fas fa-save"></i> Save Department
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %} {% block extra_js %}
+<script>
+  // Reset modal form
+  function resetDepartmentModal() {
+    $("#departmentId").val("");
+    $("#departmentCode").val("");
+    $("#departmentName").val("");
+    $("#headOfDepartment").val("");
+    $("#departmentDescription").val("");
+
+    // Clear any error messages
+    $("#departmentCodeError").text("").hide();
+    $("#departmentNameError").text("").hide();
+    $("#headOfDepartmentError").text("").hide();
+    $("#departmentDescriptionError").text("").hide();
+
+    // Remove validation styling
+    $(
+      "#departmentCode, #departmentName, #headOfDepartment, #departmentDescription"
+    ).removeClass("is-invalid is-valid");
+  }
+
+  // Add department function
+  function addDepartment() {
+    resetDepartmentModal();
+    $("#departmentModalLabel").html(
+      '<i class="fas fa-building"></i> Add New Department'
+    );
+    loadTeachers();
+    $("#departmentModal").modal("show");
+  }
+
+  // Edit department function
+  function editDepartment(departmentId) {
+    resetDepartmentModal();
+    $("#departmentModalLabel").html(
+      '<i class="fas fa-edit"></i> Edit Department'
+    );
+
+    // Show loading state
+    const editBtn = event.target.closest("button");
+    const originalHTML = editBtn.innerHTML;
+    editBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    editBtn.disabled = true;
+
+    // Load teachers first
+    loadTeachers(function () {
+      // Fetch department data via AJAX
+      $.ajax({
+        url: `/api/departments/${departmentId}/`,
+        type: "GET",
+        success: function (response) {
+          $("#departmentId").val(response.id);
+          $("#departmentCode").val(response.code);
+          $("#departmentName").val(response.name);
+          $("#headOfDepartment").val(response.head_of_department);
+          $("#departmentDescription").val(response.description);
+          $("#departmentModal").modal("show");
+
+          // Reset button
+          editBtn.innerHTML = originalHTML;
+          editBtn.disabled = false;
+        },
+        error: function (xhr) {
+          showErrorAlert(
+            "Error",
+            "Could not load department data. Please try again."
+          );
+          console.error("Error fetching department data:", xhr.responseText);
+
+          // Reset button
+          editBtn.innerHTML = originalHTML;
+          editBtn.disabled = false;
+        },
+      });
+    });
+  }
+
+  // Load teachers from API
+  function loadTeachers(callback) {
+    $.ajax({
+      url: "/api/teachers/",
+      type: "GET",
+      success: function (response) {
+        // Clear existing options except the default one
+        $("#headOfDepartment option:not(:first)").remove();
+
+        // Add teacher options
+        $.each(response.teachers, function (index, teacher) {
+          $("#headOfDepartment").append(
+            $("<option></option>")
+              .attr("value", teacher.id)
+              .text(teacher.full_name)
+          );
+        });
+
+        // Call the callback function if provided
+        if (typeof callback === "function") {
+          callback();
+        }
+      },
+      error: function (xhr) {
+        console.error("Error loading teachers:", xhr.responseText);
+        showErrorAlert("Error", "Could not load teachers. Please try again.");
+
+        // Call the callback function even on error
+        if (typeof callback === "function") {
+          callback();
+        }
+      },
+    });
+  }
+
+  // Delete department function
+  function deleteDepartment(departmentId, departmentName) {
+    Swal.fire({
+      title: "Are you sure?",
+      text: `You are about to delete the department "${departmentName}". This action cannot be undone!`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc3545",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Yes, delete it!",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Get CSRF token
+        const csrftoken = $("[name=csrfmiddlewaretoken]").val();
+
+        // Send delete request
+        $.ajax({
+          url: `/api/departments/${departmentId}/`,
+          type: "DELETE",
+          headers: { "X-CSRFToken": csrftoken },
+          success: function () {
+            Swal.fire(
+              "Deleted!",
+              `Department "${departmentName}" has been deleted.`,
+              "success"
+            ).then(() => {
+              location.reload();
+            });
+          },
+          error: function (xhr) {
+            Swal.fire(
+              "Error!",
+              `Error deleting department: ${xhr.responseText}`,
+              "error"
+            );
+          },
+        });
+      }
+    });
+  }
+
+  // Save department function
+  function saveDepartment() {
+    // Get form data
+    const departmentId = $("#departmentId").val();
+    const departmentData = {
+      code: $("#departmentCode").val(),
+      name: $("#departmentName").val(),
+      head_of_department: $("#headOfDepartment").val() || null,
+      description: $("#departmentDescription").val(),
+    };
+
+    // Get CSRF token
+    const csrftoken = $("[name=csrfmiddlewaretoken]").val();
+
+    // Determine if this is a create or update operation
+    const isUpdate = departmentId !== "";
+    const url = isUpdate
+      ? `/api/departments/${departmentId}/`
+      : "/api/departments/";
+    const method = isUpdate ? "PUT" : "POST";
+
+    // Show loading state
+    const saveBtn = $("#saveDepartmentBtn");
+    const originalHTML = saveBtn.html();
+    saveBtn.html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+    saveBtn.prop("disabled", true);
+
+    // Send request
+    $.ajax({
+      url: url,
+      type: method,
+      data: JSON.stringify(departmentData),
+      contentType: "application/json",
+      headers: { "X-CSRFToken": csrftoken },
+      success: function (response) {
+        $("#departmentModal").modal("hide");
+
+        Swal.fire({
+          title: "Success!",
+          text: isUpdate
+            ? "Department updated successfully."
+            : "Department created successfully.",
+          icon: "success",
+          confirmButtonColor: "#28a745",
+        }).then(() => {
+          location.reload();
+        });
+      },
+      error: function (xhr) {
+        // Reset button
+        saveBtn.html(originalHTML);
+        saveBtn.prop("disabled", false);
+
+        try {
+          const errors = JSON.parse(xhr.responseText);
+
+          // Clear previous errors
+          $(
+            "#departmentCode, #departmentName, #headOfDepartment, #departmentDescription"
+          ).removeClass("is-invalid");
+          $(
+            "#departmentCodeError, #departmentNameError, #headOfDepartmentError, #departmentDescriptionError"
+          )
+            .text("")
+            .hide();
+
+          // Display errors
+          if (errors.code) {
+            $("#departmentCode").addClass("is-invalid");
+            $("#departmentCodeError").text(errors.code).show();
+          }
+
+          if (errors.name) {
+            $("#departmentName").addClass("is-invalid");
+            $("#departmentNameError").text(errors.name).show();
+          }
+
+          if (errors.head_of_department) {
+            $("#headOfDepartment").addClass("is-invalid");
+            $("#headOfDepartmentError").text(errors.head_of_department).show();
+          }
+
+          if (errors.description) {
+            $("#departmentDescription").addClass("is-invalid");
+            $("#departmentDescriptionError").text(errors.description).show();
+          }
+
+          // Display general errors
+          if (errors.error) {
+            Swal.fire("Error!", errors.error, "error");
+          }
+        } catch (e) {
+          Swal.fire(
+            "Error!",
+            "An unexpected error occurred. Please try again.",
+            "error"
+          );
+          console.error("Error saving department:", xhr.responseText);
+        }
+      },
+    });
+  }
+
+  // Show error alert helper function
+  function showErrorAlert(title, message) {
+    Swal.fire({
+      title: title,
+      text: message,
+      icon: "error",
+      confirmButtonColor: "#dc3545",
+    });
+  }
+
+  // Refresh table function
+  function refreshTable() {
+    const refreshBtn = event.target.closest("button");
+    const originalHTML = refreshBtn.innerHTML;
+    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    refreshBtn.disabled = true;
+
+    // Simulate refresh (in a real implementation, you'd make an AJAX call)
+    setTimeout(() => {
+      location.reload();
+    }, 1000);
+  }
+
+  // Initialize DataTable
+  $(document).ready(function () {
+    if ($.fn.DataTable) {
+      $("#departmentsTable").DataTable({
+        responsive: true,
+        order: [[1, "asc"]], // Sort by name column
+      });
+    }
+  });
+</script>
+{% endblock %}

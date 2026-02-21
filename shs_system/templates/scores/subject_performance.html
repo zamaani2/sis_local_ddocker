@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+{% load static %}
+{% load score_filters %}
+
+{% block title %}Subject Performance Analysis{% endblock %}
+{% block page_title %}Subject Performance Analysis{% endblock %}
+
+{% block extra_css %}
+<!-- Link to the class assignment CSS for consistent styling -->
+<style>
+    .filter-form .form-group {
+        margin-bottom: 10px;
+    }
+    .filter-section {
+        background: linear-gradient(145deg, #2d1b4e, #3d2a5e);
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        border: 1px solid #8b5cf6;
+        box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
+    }
+    .performance-card {
+        transition: all 0.2s;
+    }
+    .performance-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    }
+</style>
+<!-- Chart.js for data visualization (local) -->
+<script src="{% static 'vendor/chartjs/4.4.0/dist/chart.umd.min.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h3 mb-0 text-gray-800">
+                <i class="bi bi-graph-up me-2"></i>
+                {% if current_academic_year %}
+                  {{ current_academic_year.name }}
+                  {% if current_term %}
+                    - {{ current_term.name }}
+                  {% endif %}
+                {% else %}
+                  Subject Performance Analysis
+                {% endif %}
+            </h2>
+            <p class="text-muted mb-0">Analyze subject performance across classes and terms</p>
+        </div>
+        <div class="btn-group">
+            <a href="{% url 'score_management_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to Score Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h5 class="m-0 font-weight-bold text-primary">
+                <i class="bi bi-funnel me-2"></i>Performance Filters
+            </h5>
+            <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="true" aria-controls="filterCollapse">
+                <i class="bi bi-funnel me-1"></i> Toggle Filters
+            </button>
+        </div>
+        <div class="card-body collapse show" id="filterCollapse">
+            <form action="{% url 'subject_performance' %}" method="GET" class="filter-form">
+                <div class="row">
+                    <!-- Academic Year Filter -->
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="academic_year_id" class="form-label"><strong>Academic Year</strong></label>
+                            <select class="form-select" id="academic_year_id" name="academic_year_id">
+                                {% for academic_year in academic_years %}
+                                <option value="{{ academic_year.id }}" {% if academic_year.id == selected_academic_year.id %}selected{% endif %}>
+                                    {{ academic_year.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Term Filter -->
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="term_id" class="form-label"><strong>Term</strong></label>
+                            <select class="form-select" id="term_id" name="term_id">
+                                <option value="">All Terms</option>
+                                {% for term in terms %}
+                                <option value="{{ term.id }}" {% if selected_term and term.id == selected_term.id %}selected{% endif %}>
+                                    {{ term.get_term_number_display }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Subject Filter -->
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="subject_id" class="form-label"><strong>Subject</strong></label>
+                            <select class="form-select" id="subject_id" name="subject_id">
+                                {% for subject in available_subjects %}
+                                <option value="{{ subject.id }}" {% if selected_subject and subject.id == selected_subject.id %}selected{% endif %}>
+                                    {{ subject.subject_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search me-1"></i> Apply Filters
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if selected_subject %}
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h5 class="m-0 font-weight-bold text-primary">
+                        <i class="bi bi-graph-up me-2"></i>{{ selected_subject.subject_name }} Performance Overview
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if performance_graph %}
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="chart-container" style="position: relative; height: 300px;">
+                                <canvas id="classPerformanceChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="chart-container" style="position: relative; height: 300px;">
+                                <canvas id="gradeDistributionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>No performance data available for the selected subject.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        {% if class_performance %}
+        {% for class_data in class_performance %}
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow performance-card">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h5 class="m-0 font-weight-bold text-primary">
+                        <i class="bi bi-people me-2"></i>{{ class_data.class.name }}
+                    </h5>
+                    <span class="badge bg-primary text-white">{{ class_data.stats.count }} Students</span>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4 text-center">
+                            <h4 class="font-weight-bold text-primary">{{ class_data.stats.average|floatformat:2 }}</h4>
+                            <small class="text-muted">Average Score</small>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <h4 class="font-weight-bold text-success">{{ class_data.stats.maximum|floatformat:2 }}</h4>
+                            <small class="text-muted">Highest Score</small>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <h4 class="font-weight-bold text-danger">{{ class_data.stats.minimum|floatformat:2 }}</h4>
+                            <small class="text-muted">Lowest Score</small>
+                        </div>
+                    </div>
+                    <h6 class="font-weight-bold">Grade Distribution</h6>
+                    <div class="progress mb-4" style="height: 25px;">
+                        {% for grade, count in class_data.grade_distribution.items %}
+                        {% if count > 0 %}
+                        <div class="progress-bar {% if grade == 'A' %}bg-success{% elif grade == 'B' %}bg-primary{% elif grade == 'C' %}bg-info{% elif grade == 'D' %}bg-warning{% else %}bg-danger{% endif %}" 
+                             role="progressbar" 
+                             style="width: {{ count|floatformat:0 }}%;" 
+                             aria-valuenow="{{ count }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="{{ class_data.stats.count }}"
+                             title="{{ grade }}: {{ count }} students">
+                            {{ grade }}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>No class performance data available for the selected subject.
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i> Please select a subject to view performance analysis.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Auto-submit form when filters change
+        $('#academic_year_id, #term_id, #subject_id').change(function() {
+            $('.filter-form').submit();
+        });
+    });
+
+    {% if performance_graph %}
+    // Class Performance Chart
+    document.addEventListener('DOMContentLoaded', function() {
+        var ctx = document.getElementById('classPerformanceChart').getContext('2d');
+        var classChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: {{ performance_graph.labels|safe }},
+                datasets: [{
+                    label: 'Average Score',
+                    data: {{ performance_graph.averages|safe }},
+                    backgroundColor: 'rgba(78, 115, 223, 0.7)',
+                    borderColor: 'rgba(78, 115, 223, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Min Score',
+                    data: {{ performance_graph.min_scores|safe }},
+                    backgroundColor: 'rgba(231, 74, 59, 0.7)',
+                    borderColor: 'rgba(231, 74, 59, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Max Score',
+                    data: {{ performance_graph.max_scores|safe }},
+                    backgroundColor: 'rgba(28, 200, 138, 0.7)',
+                    borderColor: 'rgba(28, 200, 138, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Score'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Classes'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Grade Distribution Chart
+        var gradeLabels = [];
+        var gradeCounts = [];
+        var gradeColors = [
+            'rgba(28, 200, 138, 0.7)',  // A - Green
+            'rgba(54, 185, 204, 0.7)',  // B - Blue
+            'rgba(78, 115, 223, 0.7)',  // C - Primary
+            'rgba(246, 194, 62, 0.7)',  // D - Yellow
+            'rgba(231, 74, 59, 0.7)'    // F - Red
+        ];
+
+        {% for dataset in performance_graph.grade_datasets %}
+        gradeLabels.push('{{ dataset.label }}');
+        // Calculate total for this grade
+        var gradeTotal = 0;
+        {% for value in dataset.data %}
+        gradeTotal += {{ value }};
+        {% endfor %}
+        gradeCounts.push(gradeTotal);
+        {% endfor %}
+
+        var gradeCtx = document.getElementById('gradeDistributionChart').getContext('2d');
+        var gradeChart = new Chart(gradeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: gradeLabels,
+                datasets: [{
+                    data: gradeCounts,
+                    backgroundColor: gradeColors.slice(0, gradeLabels.length),
+                    borderColor: gradeColors.map(color => color.replace('0.7', '1')).slice(0, gradeLabels.length),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Grade Distribution'
+                    }
+                }
+            }
+        });
+    });
+    {% endif %}
+</script>
+{% endblock %} 

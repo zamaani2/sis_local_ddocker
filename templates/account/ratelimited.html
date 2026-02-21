@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Rate Limited{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h4><i class="fas fa-exclamation-triangle me-2"></i>Rate Limited</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <p><strong>You've made too many requests in a short period of time.</strong></p>
+                        <p>This is a security measure to protect our services from overuse.</p>
+                    </div>
+                    
+                    <h5>What happened?</h5>
+                    <p>Our system detected an unusually high number of requests from your device. To ensure fair usage and system stability, we've temporarily limited your access.</p>
+                    
+                    <h5>What can you do now?</h5>
+                    <ul>
+                        <li>Wait a few minutes before trying again</li>
+                        <li>Avoid making multiple requests in quick succession</li>
+                        <li>Contact the system administrator if you believe this is an error</li>
+                    </ul>
+                    
+                    <div class="mt-4">
+                        <a href="{% url 'home' %}" class="btn btn-outline-secondary">Return to Homepage</a>
+                    </div>
+                </div>
+                <div class="card-footer text-muted">
+                    <small>This rate limit will expire automatically after a short period.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

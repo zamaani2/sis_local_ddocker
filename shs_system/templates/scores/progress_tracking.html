@@ -1,0 +1,449 @@
+{% extends "base.html" %}
+{% load static %}
+{% load score_filters %}
+
+{% block title %}Student Progress Tracking{% endblock %}
+{% block page_title %}Student Progress Tracking{% endblock %}
+
+{% block extra_css %}
+<style>
+    .progress-card {
+        transition: all 0.2s;
+    }
+    .progress-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    }
+    .student-info {
+        background: linear-gradient(to right, #4e73df, #224abe);
+        color: white;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+    .term-progress {
+        height: 8px;
+    }
+</style>
+<!-- Chart.js for data visualization (local) -->
+<script src="{% static 'vendor/chartjs/4.4.0/dist/chart.umd.min.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        {% if current_academic_year %}
+                          {{ current_academic_year.name }}
+                          {% if current_term %}
+                            - {{ current_term.name }}
+                          {% endif %}
+                        {% else %}
+                          Student Progress Tracking
+                        {% endif %}
+                    </h2>
+                    <p class="text-muted mb-0">
+                        {% if current_academic_year %}
+                          Current academic year and term management
+                        {% else %}
+                          Track individual student academic progress over time
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'score_management_dashboard' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> Back to Score Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-funnel"></i> Student Selection
+                    </h5>
+                </div>
+                <div class="card-body">
+            <form action="{% url 'progress_tracking' %}" method="GET" class="filter-form">
+                <div class="row">
+                    <!-- Form/Grade Filter -->
+                    <div class="col-md-6">
+                        <label for="form_id" class="form-label">Form/Grade</label>
+                        <select class="form-select" id="form_id" name="form_id">
+                            {% for form in forms %}
+                            <option value="{{ form.id }}" {% if selected_form and form.id == selected_form.id %}selected{% endif %}>
+                                {{ form.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Student Filter -->
+                    <div class="col-md-6">
+                        <label for="student_id" class="form-label">Student</label>
+                        <select class="form-select" id="student_id" name="student_id">
+                            {% for student in available_students %}
+                            <option value="{{ student.id }}" {% if selected_student and student.id == selected_student.id %}selected{% endif %}>
+                                {{ student.full_name }} ({{ student.admission_number }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Track Progress
+                        </button>
+                    </div>
+                </div>
+            </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if selected_student and progress_data %}
+    <!-- Student Info Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="student-info shadow">
+                <div class="row">
+                    <div class="col-md-2 d-flex justify-content-center align-items-center">
+                        <div class="text-center">
+                            <i class="bi bi-person-circle fa-5x mb-2"></i>
+                            <h5 class="font-weight-bold">{{ selected_student.full_name }}</h5>
+                            <span class="badge bg-light text-primary">{{ selected_student.admission_number }}</span>
+                        </div>
+                    </div>
+            <div class="col-md-10">
+                <div class="row">
+                    <div class="col-md-3">
+                        <small class="d-block">Current Form</small>
+                        <h6>{{ selected_student.current_form.name }}</h6>
+                    </div>
+                    <div class="col-md-3">
+                        <small class="d-block">Current Class</small>
+                        <h6>{{ selected_student.get_current_class.name|default:"--" }}</h6>
+                    </div>
+                    <div class="col-md-3">
+                        <small class="d-block">Learning Area</small>
+                        <h6>{{ selected_student.current_learning_area.name|default:"--" }}</h6>
+                    </div>
+                    <div class="col-md-3">
+                        <small class="d-block">Gender</small>
+                        <h6>{{ selected_student.get_gender_display }}</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overall Progress Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up"></i> Overall Academic Progress
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height: 300px;">
+                        <canvas id="overallProgressChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subject Progress -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up"></i> Subject Progress Over Time
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height: 300px;">
+                        <canvas id="subjectProgressChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Academic Year Details -->
+    <div class="row">
+        {% for year_data in progress_data.academic_years %}
+        <div class="col-lg-6 mb-4">
+            <div class="card progress-card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-calendar3"></i> {{ year_data.academic_year.name }}
+                        </h5>
+                    {% if year_data.overall_average %}
+                    <span class="badge {% if year_data.overall_average >= 70 %}bg-success{% elif year_data.overall_average >= 60 %}bg-primary{% elif year_data.overall_average >= 50 %}bg-info{% elif year_data.overall_average >= 40 %}bg-warning{% else %}bg-danger{% endif %} text-white">
+                        Average: {{ year_data.overall_average|floatformat:1 }}
+                    </span>
+                    {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        {% for term_data in year_data.terms %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h6 class="text-primary">{{ term_data.term.get_term_number_display }}</h6>
+                                    {% if term_data.average %}
+                                    <h4 class="font-weight-bold {% if term_data.average >= 70 %}text-success{% elif term_data.average >= 60 %}text-primary{% elif term_data.average >= 50 %}text-info{% elif term_data.average >= 40 %}text-warning{% else %}text-danger{% endif %}">
+                                        {{ term_data.average|floatformat:1 }}
+                                    </h4>
+                                    {% else %}
+                                    <h4 class="text-muted">--</h4>
+                                    {% endif %}
+                                    <small class="text-muted">{{ term_data.assessments|length }} Subject(s)</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Top Subjects -->
+                    <h6 class="font-weight-bold mb-3">Top Performing Subjects</h6>
+                    {% with subjects=year_data.subjects.items|dictsortreversed:1 %}
+                    {% for subject_name, term_scores in subjects|slice:":3" %}
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span>{{ subject_name }}</span>
+                            
+                            {% with total=0 count=0 %}
+                                {% for term_score in term_scores %}
+                                    {% with new_total=total|add:term_score.score new_count=count|add:1 %}
+                                        {% with total=new_total count=new_count %}
+                                        {% endwith %}
+                                    {% endwith %}
+                                {% endfor %}
+                                
+                                {% if count > 0 %}
+                                    {% with avg=total|divided_by:count %}
+                                    <span class="font-weight-bold {% if avg >= 70 %}text-success{% elif avg >= 60 %}text-primary{% elif avg >= 50 %}text-info{% elif avg >= 40 %}text-warning{% else %}text-danger{% endif %}">
+                                        {{ avg|floatformat:1 }}
+                                    </span>
+                                    {% endwith %}
+                                {% else %}
+                                    <span class="text-muted">--</span>
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                        <div class="progress term-progress">
+                            {% for term_score in term_scores %}
+                            <div class="progress-bar {% if term_score.score >= 70 %}bg-success{% elif term_score.score >= 60 %}bg-primary{% elif term_score.score >= 50 %}bg-info{% elif term_score.score >= 40 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                 role="progressbar" 
+                                 style="width: {{ term_score.score }}%;" 
+                                 aria-valuenow="{{ term_score.score }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100"
+                                 title="{{ term_score.term.get_term_number_display }}: {{ term_score.score|floatformat:1 }}"></div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No subject data available for this academic year.
+                    </div>
+                    {% endfor %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> Please select a student to view progress tracking.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Auto-submit form when filters change
+        $('#form_id, #student_id').change(function() {
+            $('.filter-form').submit();
+        });
+    });
+
+    {% if selected_student and progress_data %}
+    // Overall Progress Chart
+    document.addEventListener('DOMContentLoaded', function() {
+        var overallCtx = document.getElementById('overallProgressChart').getContext('2d');
+        
+        // Prepare data for overall progress chart
+        var labels = [];
+        var data = [];
+        
+        {% for point in progress_data.overall_trend %}
+        labels.push('{{ point.academic_year.name }}');
+        data.push({{ point.average|default:'null' }});
+        {% endfor %}
+        
+        var overallChart = new Chart(overallCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Overall Average',
+                    data: data,
+                    backgroundColor: 'rgba(78, 115, 223, 0.2)',
+                    borderColor: 'rgba(78, 115, 223, 1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Average Score'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Academic Year'
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Average: ' + context.parsed.y.toFixed(1);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Subject Progress Chart
+        var subjectCtx = document.getElementById('subjectProgressChart').getContext('2d');
+        var subjectDatasets = [];
+        var timeLabels = [];
+        var allLabels = {};
+        
+        // Collect all possible time labels first
+        {% for subject, trends in progress_data.subject_trends.items %}
+        {% for point in trends %}
+        var label = '{{ point.academic_year.name }} {{ point.term.get_term_number_display }}';
+        allLabels[label] = true;
+        {% endfor %}
+        {% endfor %}
+        
+        // Convert to sorted array
+        for (var label in allLabels) {
+            timeLabels.push(label);
+        }
+        timeLabels.sort();
+        
+        // Create datasets for each subject (limit to top 5 subjects)
+        var colorIndex = 0;
+        var colors = [
+            {bg: 'rgba(78, 115, 223, 0.2)', border: 'rgba(78, 115, 223, 1)'},
+            {bg: 'rgba(28, 200, 138, 0.2)', border: 'rgba(28, 200, 138, 1)'},
+            {bg: 'rgba(54, 185, 204, 0.2)', border: 'rgba(54, 185, 204, 1)'},
+            {bg: 'rgba(246, 194, 62, 0.2)', border: 'rgba(246, 194, 62, 1)'},
+            {bg: 'rgba(231, 74, 59, 0.2)', border: 'rgba(231, 74, 59, 1)'}
+        ];
+        
+        {% for subject, trends in progress_data.subject_trends.items %}
+        {% if forloop.counter <= 5 %}
+        var dataset = {
+            label: '{{ subject }}',
+            backgroundColor: colors[colorIndex].bg,
+            borderColor: colors[colorIndex].border,
+            data: [],
+            borderWidth: 2,
+            fill: false,
+            tension: 0.4
+        };
+        
+        // Map the data to the common timeline
+        var dataMap = {};
+        {% for point in trends %}
+        dataMap['{{ point.academic_year.name }} {{ point.term.get_term_number_display }}'] = {{ point.score }};
+        {% endfor %}
+        
+        // Fill in the dataset with values or null
+        for (var i = 0; i < timeLabels.length; i++) {
+            if (dataMap[timeLabels[i]] !== undefined) {
+                dataset.data.push(dataMap[timeLabels[i]]);
+            } else {
+                dataset.data.push(null);
+            }
+        }
+        
+        subjectDatasets.push(dataset);
+        colorIndex = (colorIndex + 1) % colors.length;
+        {% endif %}
+        {% endfor %}
+        
+        var subjectChart = new Chart(subjectCtx, {
+            type: 'line',
+            data: {
+                labels: timeLabels,
+                datasets: subjectDatasets
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Score'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Academic Period'
+                        }
+                    }
+                }
+            }
+        });
+    });
+    {% endif %}
+</script>
+{% endblock %} 

@@ -1,0 +1,312 @@
+{% extends "base.html" %} {% load static %} {% load custom_filters %} {% block title %}Auto Generate Terminal Reports{% endblock %} {% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="fas fa-magic"></i> Automatic Terminal Report Generation
+          </h3>
+          <div class="card-tools">
+            <a
+              href="{% url 'auto_terminal_reports_dashboard' %}"
+              class="btn btn-secondary btn-sm"
+            >
+              <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info">
+            <h5><i class="fas fa-info-circle"></i> How It Works</h5>
+            <p>
+              This system automatically generates terminal report cards based on
+              existing student data without requiring manual bulk generation.
+              Simply select the academic year, term, and optionally a specific
+              class, and the system will:
+            </p>
+            <ul>
+              <li>Automatically create report cards for all students</li>
+              <li>Calculate scores, positions, and attendance</li>
+              <li>Apply grading systems and performance requirements</li>
+              <li>Generate consistent, accurate reports</li>
+            </ul>
+          </div>
+
+          <form method="post" id="autoGenerateForm">
+            {% csrf_token %}
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="academic_year"
+                    >Academic Year <span class="text-danger">*</span></label
+                  >
+                  <select
+                    class="form-control"
+                    id="academic_year"
+                    name="academic_year"
+                    required
+                  >
+                    <option value="">Select Academic Year</option>
+                    {% for year in academic_years %}
+                    <option value="{{ year.id }}">{{ year.name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="term"
+                    >Term <span class="text-danger">*</span></label
+                  >
+                  <select class="form-control" id="term" name="term" required>
+                    <option value="">Select Term</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="class">Class (Optional)</label>
+                  <select class="form-control" id="class" name="class">
+                    <option value="">All Classes</option>
+                  </select>
+                  <small class="form-text text-muted"
+                    >Leave empty to generate for all classes</small
+                  >
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="auto_calculate">Auto Calculate</label>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="auto_calculate"
+                      name="auto_calculate"
+                      value="true"
+                      checked
+                    />
+                    <label class="form-check-label" for="auto_calculate">
+                      Automatically calculate scores, positions, and attendance
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="overwrite_existing">Overwrite Existing</label>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="overwrite_existing"
+                      name="overwrite_existing"
+                      value="true"
+                    />
+                    <label class="form-check-label" for="overwrite_existing">
+                      Overwrite existing report cards
+                    </label>
+                  </div>
+                  <small class="form-text text-muted"
+                    >Check to regenerate existing report cards</small
+                  >
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12">
+                <button type="submit" class="btn btn-primary btn-lg">
+                  <i class="fas fa-magic"></i> Generate Terminal Reports
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-lg"
+                  onclick="resetForm()"
+                >
+                  <i class="fas fa-undo"></i> Reset Form
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <!-- Preview Section -->
+          <div id="previewSection" class="mt-4" style="display: none">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Generation Preview</h5>
+              </div>
+              <div class="card-body">
+                <div id="previewContent">
+                  <!-- Preview content will be loaded here -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Academic year change handler
+    $("#academic_year").change(function () {
+      var academicYearId = $(this).val();
+      if (academicYearId) {
+        loadTerms(academicYearId);
+      } else {
+        $("#term").html('<option value="">Select Term</option>');
+        $("#class").html('<option value="">All Classes</option>');
+      }
+    });
+
+    // Term change handler
+    $("#term").change(function () {
+      var termId = $(this).val();
+      if (termId) {
+        loadClasses(termId);
+      } else {
+        $("#class").html('<option value="">All Classes</option>');
+      }
+    });
+
+    // Form submission handler
+    $("#autoGenerateForm").submit(function (e) {
+      e.preventDefault();
+
+      // Show loading state
+      var submitBtn = $(this).find('button[type="submit"]');
+      var originalText = submitBtn.html();
+      submitBtn
+        .html('<i class="fas fa-spinner fa-spin"></i> Generating...')
+        .prop("disabled", true);
+
+      // Submit form
+      $.ajax({
+        url: $(this).attr("action"),
+        method: "POST",
+        data: $(this).serialize(),
+        success: function (response) {
+          if (response.success) {
+            Swal.fire({
+              title: "Success!",
+              text: response.message,
+              icon: "success",
+              confirmButtonText: "OK",
+            }).then(function () {
+              window.location.href = response.redirect_url;
+            });
+          } else {
+            Swal.fire({
+              title: "Error!",
+              text: response.message,
+              icon: "error",
+              confirmButtonText: "OK",
+            });
+          }
+        },
+        error: function (xhr, status, error) {
+          Swal.fire({
+            title: "Error!",
+            text: "An error occurred while generating reports.",
+            icon: "error",
+            confirmButtonText: "OK",
+          });
+        },
+        complete: function () {
+          submitBtn.html(originalText).prop("disabled", false);
+        },
+      });
+    });
+  });
+
+  function loadTerms(academicYearId) {
+    $.ajax({
+      url: '{% url "get_terms_for_auto_generation" 0 %}'.replace(
+        "0",
+        academicYearId
+      ),
+      method: "GET",
+      success: function (response) {
+        var options = '<option value="">Select Term</option>';
+        response.terms.forEach(function (term) {
+          options +=
+            '<option value="' + term.id + '">' + term.name + "</option>";
+        });
+        $("#term").html(options);
+      },
+      error: function () {
+        $("#term").html('<option value="">Error loading terms</option>');
+      },
+    });
+  }
+
+  function loadClasses(termId) {
+    $.ajax({
+      url: '{% url "get_classes_for_auto_generation" 0 %}'.replace("0", termId),
+      method: "GET",
+      success: function (response) {
+        var options = '<option value="">All Classes</option>';
+        response.classes.forEach(function (classObj) {
+          options +=
+            '<option value="' +
+            classObj.id +
+            '">' +
+            classObj.name +
+            "</option>";
+        });
+        $("#class").html(options);
+      },
+      error: function () {
+        $("#class").html('<option value="">Error loading classes</option>');
+      },
+    });
+  }
+
+  function resetForm() {
+    $("#autoGenerateForm")[0].reset();
+    $("#term").html('<option value="">Select Term</option>');
+    $("#class").html('<option value="">All Classes</option>');
+    $("#previewSection").hide();
+  }
+
+  function showPreview() {
+    var academicYear = $("#academic_year option:selected").text();
+    var term = $("#term option:selected").text();
+    var classSelected = $("#class option:selected").text();
+
+    if (academicYear && term) {
+      var previewHtml = '<div class="alert alert-info">';
+      previewHtml += "<h6>Generation Preview:</h6>";
+      previewHtml +=
+        "<p><strong>Academic Year:</strong> " + academicYear + "</p>";
+      previewHtml += "<p><strong>Term:</strong> " + term + "</p>";
+      previewHtml +=
+        "<p><strong>Class:</strong> " +
+        (classSelected || "All Classes") +
+        "</p>";
+      previewHtml +=
+        "<p><strong>Auto Calculate:</strong> " +
+        ($("#auto_calculate").is(":checked") ? "Yes" : "No") +
+        "</p>";
+      previewHtml +=
+        "<p><strong>Overwrite Existing:</strong> " +
+        ($("#overwrite_existing").is(":checked") ? "Yes" : "No") +
+        "</p>";
+      previewHtml += "</div>";
+
+      $("#previewContent").html(previewHtml);
+      $("#previewSection").show();
+    }
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends 'super_admin/base.html' %}
+{% load static %}
+
+{% block title %}Super Admin Users - {{ block.super }}{% endblock %}
+
+{% block page_title %}Super Admin Users{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Super Admin Users</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Heading -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Super Admin Users</h1>
+    {% if perms.super_admin.add_superadminuser %}
+    <a href="{% url 'super_admin:user_create' %}" class="d-none d-sm-inline-block btn btn-primary shadow-sm">
+      <i class="bi bi-person-plus me-1"></i> Add New User
+    </a>
+    {% endif %}
+  </div>
+
+  <!-- User List Card -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+      <h6 class="m-0 font-weight-bold">All Super Admin Users</h6>
+      <div>
+        <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+          <i class="bi bi-funnel me-1"></i> Filter
+        </button>
+      </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="collapse" id="filterCollapse">
+      <div class="card-body bg-light border-bottom">
+        <form method="get" class="row g-3">
+          <div class="col-md-4">
+            <label for="search" class="form-label">Search</label>
+            <input type="text" class="form-control" id="search" name="search" placeholder="Name, email, or username" value="{{ request.GET.search }}">
+          </div>
+          <div class="col-md-3">
+            <label for="role" class="form-label">Role</label>
+            <select name="role" id="role" class="form-select">
+              <option value="">All Roles</option>
+              <option value="admin" {% if request.GET.role == 'admin' %}selected{% endif %}>Administrator</option>
+              <option value="manager" {% if request.GET.role == 'manager' %}selected{% endif %}>Manager</option>
+              <option value="support" {% if request.GET.role == 'support' %}selected{% endif %}>Support</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label for="status" class="form-label">Status</label>
+            <select name="status" id="status" class="form-select">
+              <option value="">All Statuses</option>
+              <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+              <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <div class="d-grid gap-2 w-100">
+              <button type="submit" class="btn btn-primary">Apply</button>
+              <a href="{% url 'super_admin:user_list' %}" class="btn btn-outline-secondary">Reset</a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover" id="usersTable" width="100%" cellspacing="0">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Full Name</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Joined Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+            <tr>
+              <td>{{ user.username }}</td>
+              <td>{{ user.full_name }}</td>
+              <td>{{ user.email }}</td>
+              <td>
+                {% if user.is_active %}
+                <span class="badge bg-success">Active</span>
+                {% else %}
+                <span class="badge bg-danger">Inactive</span>
+                {% endif %}
+              </td>
+              <td>{{ user.date_joined|date:"M d, Y" }}</td>
+              <td>
+                <div class="btn-group" role="group">
+                  <a href="{% url 'super_admin:user_detail' user.id %}" class="btn btn-sm btn-info" title="View User">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                  <a href="{% url 'super_admin:user_update' user.id %}" class="btn btn-sm btn-primary" title="Edit User">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  {% if user.id != request.user.id %}
+                  <a href="{% url 'super_admin:user_delete' user.id %}" class="btn btn-sm btn-danger" title="Delete User">
+                    <i class="bi bi-trash"></i>
+                  </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center">No super admin users found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Pagination -->
+      {% if users.has_other_pages %}
+      <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+          {% if users.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ users.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <a class="page-link" href="#">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+          {% endif %}
+          
+          {% for i in users.paginator.page_range %}
+            {% if users.number == i %}
+              <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+            {% elif i > users.number|add:'-3' and i < users.number|add:'3' %}
+              <li class="page-item"><a class="page-link" href="?page={{ i }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ i }}</a></li>
+            {% endif %}
+          {% endfor %}
+          
+          {% if users.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ users.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <a class="page-link" href="#">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .avatar-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DataTable if available
+    if (typeof $.fn.DataTable !== 'undefined') {
+      $('#usersTable').DataTable({
+        "order": [[4, "desc"]],
+        "pageLength": 10
+      });
+    }
+  });
+</script>
+{% endblock %} 

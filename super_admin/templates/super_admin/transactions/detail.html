@@ -1,0 +1,144 @@
+{% extends 'super_admin/base.html' %}
+{% load static %}
+
+{% block title %}Transaction Details - {{ transaction.invoice_number }} - {{ block.super }}{% endblock %}
+
+{% block page_title %}Transaction: {{ transaction.invoice_number }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'super_admin:transaction_list' %}">Transactions</a></li>
+<li class="breadcrumb-item active">{{ transaction.invoice_number }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Transaction Details Card -->
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h6 class="m-0 font-weight-bold">Transaction Details</h6>
+      <div>
+        {% if transaction.receipt_url %}
+        <a href="{{ transaction.receipt_url }}" target="_blank" class="btn btn-sm btn-info">
+          <i class="bi bi-receipt me-1"></i> View Receipt
+        </a>
+        {% endif %}
+        <button class="btn btn-sm btn-primary" onclick="window.print()">
+          <i class="bi bi-printer me-1"></i> Print
+        </button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <h5 class="border-bottom pb-2">Transaction Information</h5>
+          <table class="table table-bordered">
+            <tr>
+              <th style="width: 150px;">Invoice Number</th>
+              <td>{{ transaction.invoice_number }}</td>
+            </tr>
+            <tr>
+              <th>Transaction ID</th>
+              <td>{{ transaction.transaction_id }}</td>
+            </tr>
+            <tr>
+              <th>Amount</th>
+              <td>{{ transaction.amount }} {{ transaction.currency }}</td>
+            </tr>
+            <tr>
+              <th>Status</th>
+              <td>
+                {% if transaction.status == 'completed' %}
+                <span class="badge bg-success">Completed</span>
+                {% elif transaction.status == 'pending' %}
+                <span class="badge bg-warning text-dark">Pending</span>
+                {% elif transaction.status == 'failed' %}
+                <span class="badge bg-danger">Failed</span>
+                {% elif transaction.status == 'refunded' %}
+                <span class="badge bg-info">Refunded</span>
+                {% else %}
+                <span class="badge bg-secondary">{{ transaction.status|title }}</span>
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <th>Payment Method</th>
+              <td>{{ transaction.payment_method|title }}</td>
+            </tr>
+            <tr>
+              <th>Payment Date</th>
+              <td>{{ transaction.payment_date|date:"F j, Y H:i" }}</td>
+            </tr>
+            <tr>
+              <th>Created At</th>
+              <td>{{ transaction.created_at|date:"F j, Y H:i" }}</td>
+            </tr>
+          </table>
+        </div>
+        <div class="col-md-6">
+          <h5 class="border-bottom pb-2">School & Subscription</h5>
+          <table class="table table-bordered">
+            <tr>
+              <th style="width: 150px;">School</th>
+              <td>
+                <a href="{% url 'super_admin:school_detail' transaction.subscription.school.id %}">
+                  {{ transaction.subscription.school.name }}
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <th>Plan</th>
+              <td>
+                <a href="{% url 'super_admin:plan_detail' transaction.subscription.plan.id %}">
+                  {{ transaction.subscription.plan.name }}
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <th>Subscription Status</th>
+              <td>
+                {% if transaction.subscription.status == 'active' %}
+                <span class="badge bg-success">Active</span>
+                {% elif transaction.subscription.status == 'trial' %}
+                <span class="badge bg-warning text-dark">Trial</span>
+                {% elif transaction.subscription.status == 'expired' %}
+                <span class="badge bg-danger">Expired</span>
+                {% elif transaction.subscription.status == 'cancelled' %}
+                <span class="badge bg-secondary">Cancelled</span>
+                {% else %}
+                <span class="badge bg-info">{{ transaction.subscription.status|title }}</span>
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <th>Subscription Dates</th>
+              <td>{{ transaction.subscription.start_date|date:"M d, Y" }} to {{ transaction.subscription.end_date|date:"M d, Y" }}</td>
+            </tr>
+            <tr>
+              <th>Billing Cycle</th>
+              <td>{{ transaction.subscription.plan.get_billing_cycle_display }}</td>
+            </tr>
+            <tr>
+              <th>Auto Renew</th>
+              <td>
+                {% if transaction.subscription.auto_renew %}
+                <span class="badge bg-success">Enabled</span>
+                {% else %}
+                <span class="badge bg-secondary">Disabled</span>
+                {% endif %}
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      
+      <div class="mt-4">
+        <div class="d-flex justify-content-end">
+          <a href="{% url 'super_admin:transaction_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to List
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 

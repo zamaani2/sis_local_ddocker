@@ -1,0 +1,663 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Score Sheet - {{ school.name }}</title>
+    <style>
+      @page {
+        {% if selected_subject %}
+        size: A4 portrait;
+        {% else %}
+        size: A4 landscape;
+        {% endif %}
+        margin: 0.5cm;
+        border: 5px solid #000;
+      }
+
+      body {
+        font-family: "Arial", sans-serif;
+        margin: 0;
+        padding: 10px;
+        color: #333;
+        line-height: 1.4;
+        font-size: 11px;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 15px;
+        border: 3px solid #000;
+        padding: 10px;
+        width: calc(100% - 6px);
+        background-color: #f8f9fa;
+        box-sizing: border-box;
+      }
+
+      .header-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        margin-bottom: 5px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .school-logo {
+        max-width: 80px;
+        max-height: 80px;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        flex-shrink: 0;
+      }
+
+      .header-text {
+        text-align: center;
+        flex: 1;
+      }
+
+      .logo-left {
+        order: 1;
+      }
+
+      .logo-right {
+        order: 3;
+      }
+
+      .header-text {
+        order: 2;
+      }
+
+      .school-name {
+        font-size: 28px;
+        font-weight: bold;
+        color: #007bff;
+        margin-bottom: 3px;
+      }
+
+      .report-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 3px;
+      }
+
+      .report-subtitle {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 2px;
+      }
+
+      .report-meta {
+        font-size: 12px;
+        color: #888;
+      }
+
+      .score-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 17px;
+        table-layout: fixed;
+        border: 3px solid #000;
+      }
+
+      .score-table th,
+      .score-table td {
+        padding: 6px 4px;
+        text-align: center;
+        border: 2px solid #000;
+        word-wrap: break-word;
+        overflow: hidden;
+      }
+
+      /* Column width specifications for landscape layout (All Subjects) */
+      {% if not selected_subject %}
+      .score-table th:nth-child(1),
+      .score-table td:nth-child(1) {
+
+        width: 10%; /* Student ID */
+        text-align: left;
+
+      }
+
+      .score-table th:nth-child(2),
+      .score-table td:nth-child(2) {
+
+        width: 15%; /* Student Name */
+        text-align: left;
+
+      }
+
+      /* Subject columns - dynamic width based on number of subjects */
+      .score-table th:nth-child(n + 3):not(:nth-last-child(-n + 2)),
+      .score-table td:nth-child(n + 3):not(:nth-last-child(-n + 2)) {
+        width: 6%; /* Individual subject columns */
+      }
+
+      /* Last two columns (Average Score and Position) */
+      .score-table th:nth-last-child(2),
+      .score-table td:nth-last-child(2) {
+        width: 8%; /* Average Score */
+      }
+
+      .score-table th:nth-last-child(1),
+      .score-table td:nth-last-child(1) {
+        width: 6%; /* Position */
+      }
+      {% else %}
+      /* Column width specifications for portrait layout (Single Subject) */
+
+      {% if is_form_level %}
+      /* Form-level single subject (with Class column) */
+      .score-table th:nth-child(1),
+      .score-table td:nth-child(1) {
+        width: 12%; /* Student ID */
+        text-align: left;
+
+      }
+
+      .score-table th:nth-child(2),
+      .score-table td:nth-child(2) {
+
+        width: 25%; /* Student Name */
+        text-align: left;
+
+      }
+
+      .score-table th:nth-child(3),
+      .score-table td:nth-child(3) {
+
+        width: 10%; /* Class */
+        text-align: center;
+
+      }
+
+      .score-table th:nth-child(4),
+      .score-table td:nth-child(4) {
+
+        width: 7%; /* Class Score */
+
+      }
+
+      .score-table th:nth-child(5),
+      .score-table td:nth-child(5) {
+
+        width: 7%; /* Exam Score */
+
+      }
+
+      .score-table th:nth-child(6),
+      .score-table td:nth-child(6) {
+
+        width: 7%; /* Total Score */
+
+      }
+
+      .score-table th:nth-child(7),
+      .score-table td:nth-child(7) {
+
+        width: 5%; /* Grade */
+
+      }
+
+      .score-table th:nth-child(8),
+      .score-table td:nth-child(8) {
+
+        width: 15%; /* Remarks */
+      }
+
+      .score-table th:nth-child(9),
+      .score-table td:nth-child(9) {
+        width: 5%; /* Position */
+      }
+      {% else %}
+      /* Class-level single subject (without Class column) */
+      .score-table th:nth-child(1),
+      .score-table td:nth-child(1) {
+        width: 6%; /* Student ID */
+        text-align: left;
+      }
+
+      .score-table th:nth-child(2),
+      .score-table td:nth-child(2) {
+        width: 25%; /* Student Name */
+        text-align: left;
+      }
+
+      .score-table th:nth-child(3),
+      .score-table td:nth-child(3) {
+        width: 8%; /* Class Score */
+      }
+
+      .score-table th:nth-child(4),
+      .score-table td:nth-child(4) {
+        width: 8%; /* Exam Score */
+      }
+
+      .score-table th:nth-child(5),
+      .score-table td:nth-child(5) {
+        width: 8%; /* Total Score */
+      }
+
+      .score-table th:nth-child(6),
+      .score-table td:nth-child(6) {
+        width: 6%; /* Grade */
+      }
+
+      .score-table th:nth-child(7),
+      .score-table td:nth-child(7) {
+        width: 12%; /* Remarks */
+      }
+
+      .score-table th:nth-child(8),
+      .score-table td:nth-child(8) {
+        width: 4%; /* Position */
+      }
+      {% endif %}
+
+      {% endif %}
+
+      .score-table th {
+        background: #007bff;
+        color: white;
+        font-weight: bold;
+        font-size: 16px;
+      }
+
+      .score-table tbody tr:nth-child(even) {
+        background: #f8f9fa;
+      }
+
+      .student-name {
+        text-align: left;
+        font-weight: bold;
+        font-size: 16px;
+      }
+
+      .position-cell {
+        font-weight: bold;
+        color: #007bff;
+      }
+
+      .score-cell {
+        font-weight: bold;
+      }
+
+      .grade-cell {
+        font-weight: bold;
+        padding: 3px 5px;
+        border-radius: 3px;
+        font-size: 16px;
+      }
+
+      .grade-A {
+        background: #d4edda;
+        color: #155724;
+      }
+      .grade-B {
+        background: #cce5ff;
+        color: #004085;
+      }
+      .grade-C {
+        background: #fff3cd;
+        color: #856404;
+      }
+      .grade-D {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .grade-F {
+        background: #f5c6cb;
+        color: #721c24;
+      }
+      .grade-N/A {
+        background: #e2e3e5;
+        color: #6c757d;
+      }
+
+      .summary-section {
+        margin-top: 15px;
+        page-break-inside: avoid;
+        border: 3px solid #000;
+        padding: 15px;
+        background-color: #f8f9fa;
+      }
+
+      .summary-title {
+        font-size: 15px;
+        font-weight: bold;
+        color: #007bff;
+        margin-bottom: 8px;
+        border-bottom: 2px solid #000;
+        padding-bottom: 3px;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .summary-card {
+        border: 2px solid #000;
+        padding: 8px;
+        border-radius: 3px;
+        background-color: #ffffff;
+      }
+
+      .summary-card h6 {
+        margin: 0 0 5px 0;
+        color: #007bff;
+        font-weight: bold;
+        font-size: 15px;
+      }
+
+      .footer {
+        margin-top: 15px;
+        text-align: center;
+        font-size: 8px;
+        color: #666;
+        border-top: 1px solid #ddd;
+        padding-top: 8px;
+      }
+
+      /* Print-specific styles */
+      @media print {
+        @page {
+          {% if selected_subject %}
+          size: A4 portrait;
+          {% else %}
+          size: A4 landscape;
+          {% endif %}
+          margin: 0.5cm;
+          border: 5px solid #000;
+        }
+
+        body {
+          margin: 15;
+          padding: 5px;
+        }
+
+        .score-table {
+          font-size: 15px;
+          border: 3px solid #000;
+        }
+
+        .score-table th,
+        .score-table td {
+          padding: 0px 2px;
+          border: 2px solid #000;
+        }
+
+        .header-content {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 15px;
+          width: 100%;
+          box-sizing: border-box;
+        }
+
+        .school-logo {
+          max-width: 80px;
+          max-height: 80px;
+          flex-shrink: 0;
+        }
+
+        .header-text {
+          text-align: center;
+          flex: 1;
+        }
+
+        .logo-left {
+          order: 1;
+        }
+
+        .logo-right {
+          order: 3;
+        }
+
+        .header-text {
+          order: 2;
+        }
+
+        .school-name {
+          font-size: 28px;
+        }
+
+        .report-title {
+          font-size: 18px;
+        }
+
+        .report-subtitle {
+          font-size: 14px;
+        }
+
+        .report-meta {
+          font-size: 12px;
+        }
+
+        .summary-title {
+          font-size: 15px;
+        }
+
+        .summary-card h6 {
+          font-size: 15px;
+        }
+      }
+
+      /* Print button styles */
+      .print-controls {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        background: white;
+        padding: 10px;
+        border: 2px solid #007bff;
+        border-radius: 5px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      }
+
+      .print-controls button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        margin: 0 5px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .print-controls button:hover {
+        background: #0056b3;
+      }
+
+      @media print {
+        .print-controls {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Print Controls -->
+    <div class="print-controls">
+      <button onclick="window.print()">
+        <i class="fas fa-print"></i> Print
+      </button>
+      <button onclick="window.close()">
+        <i class="fas fa-times"></i> Close
+      </button>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-content">
+        {% if school.logo %}
+        <!-- Left Logo -->
+        <img
+          src="{{ request.scheme }}://{{ request.get_host }}{{ school.logo.url }}"
+          alt="{{ school.name }}"
+          class="school-logo logo-left"
+          onerror="this.style.display='none';"
+        />
+        {% endif %}
+
+        <div class="header-text">
+          <div class="school-name">{{ school.name }}</div>
+          <div class="report-title">SCORE SHEET</div>
+          <div class="report-subtitle">
+
+            {% if is_form_level %} Form: {{ selected_form.name }} | Subject:
+            {{selected_subject.subject_name|default:"All Subjects" }} | Term:
+            {{current_term.get_term_number_display }} {% else %} Class: {{
+            selected_class.name }} | Subject:
+            {{selected_subject.subject_name|default:"All Subjects" }} | Term:
+            {{current_term.get_term_number_display }} {% endif %}
+
+          </div>
+          <div class="report-meta">
+            Academic Year: {{ current_term.academic_year.name }} | Generated on:
+            {% now "F d, Y \a\t g:i A" %}
+          </div>
+        </div>
+
+        {% if school.logo %}
+        <!-- Right Logo -->
+        <img
+          src="{{ request.scheme }}://{{ request.get_host }}{{ school.logo.url }}"
+          alt="{{ school.name }}"
+          class="school-logo logo-right"
+          onerror="this.style.display='none';"
+        />
+        {% endif %}
+      </div>
+    </div>
+
+    {% if score_data %}
+    <!-- Score Sheet Table -->
+    <table class="score-table">
+      <thead>
+        <tr>
+
+          <th>Student ID</th>
+          <th>Student Name</th>
+          {% if is_form_level %}
+          <th>Class</th>
+          {% endif %} {% if selected_subject %}
+          <!-- Single Subject View -->
+
+          <th>Class Score</th>
+          <th>Exam Score</th>
+          <th>Total Score</th>
+          <th>Grade</th>
+          <th>Remarks</th>
+
+          <th>Pos</th>
+
+          {% else %}
+          <!-- All Subjects View -->
+          {% for subject_name in score_data.0.subjects.keys %}
+          <th>{{ subject_name|truncatechars:15 }}</th>
+          {% endfor %}
+          <th>Average</th>
+          <th>Pos</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for student_data in score_data %}
+        <tr>
+
+          <td>{{ student_data.student.admission_number }}</td>
+          <td class="student-name">{{ student_data.student.full_name }}</td>
+          {% if is_form_level %}
+          <td>{{ student_data.student_class.name }}</td>
+          {% endif %} {% if selected_subject %}
+          <!-- Single Subject View -->
+
+          {% with subject_data=student_data.subjects|get_item:selected_subject.subject_name%}
+          <td class="score-cell">
+            {{ subject_data.class_score|floatformat:2 }}
+          </td>
+          <td class="score-cell">
+            {{ subject_data.exam_score|floatformat:2 }}
+          </td>
+          <td class="score-cell">{{ subject_data.score|floatformat:2 }}</td>
+          <td class="grade-cell grade-{{ subject_data.grade }}">
+            {{ subject_data.grade }}
+          </td>
+          <td>{{ student_data.remarks }}</td>
+
+          <td class="position-cell">{{ student_data.position }}</td>
+
+          {% endwith %} {% else %}
+          <!-- All Subjects View -->
+          {% for subject_name, subject_data in student_data.subjects.items %}
+          <td class="score-cell">{{ subject_data.score|floatformat:2 }}</td>
+          {% endfor %}
+          <td class="score-cell">
+            {{ student_data.average_score|floatformat:2 }}
+          </td>
+          <td class="position-cell">{{ student_data.position }}</td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Summary Section -->
+    <div class="summary-section">
+      <div class="summary-title">Summary Statistics</div>
+      <div class="summary-grid">
+        <div class="summary-card">
+
+          <h6>
+            {% if is_form_level %}Form{% else %}Class{% endif %} Statistics
+          </h6>
+          <p><strong>Total Students:</strong> {{ score_data|length }}</p>
+          <p>
+            <strong
+              >{% if is_form_level %}Form{% else %}Class{% endif %}
+              Average:</strong
+            >
+            {% if score_data %} {% if selected_subject %} {{ score_data|avg_score:selected_subject.subject_name|floatformat:2 }}
+            {% else %} {{ score_data|avg_total_score|floatformat:2 }} {% endif%} {% else %} 0.00 {% endif %}
+
+          </p>
+        </div>
+
+        <div class="summary-card">
+          <h6>Top Performers</h6>
+          {% for student_data in score_data|slice:":3" %}
+          <p>
+            {{ student_data.position }}. {{ student_data.student.full_name }} -
+            {% if selected_subject %} {% with subject_data=student_data.subjects|get_item:selected_subject.subject_name %} {{ subject_data.score|floatformat:2 }} {% endwith %} {% else %}
+            {{ student_data.average_score|floatformat:2 }} {% endif %}
+          </p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #666">
+      <h3>No Score Data Available</h3>
+      <p>No score data found for the selected class and subject combination.</p>
+    </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>
+        This report was generated by {{ school.name }} School Management System
+      </p>
+      <p>DEVELOPED BY CISSEY-TECH</p>
+    </div>
+  </body>
+</html>

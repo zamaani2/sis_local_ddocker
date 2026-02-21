@@ -1,0 +1,672 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% load static %}
+{% block title %}Academic Years - Admin Panel{% endblock %}
+{% block page_title %}Academic Years - Admin Panel{% endblock %}
+
+{% block extra_css %}
+
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %} 
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              Academic Years Management
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if current_academic_year %}
+              Current academic year and term management
+            {% else %}
+              Manage academic years and terms for the school
+            {% endif %}
+          </p>
+        </div>
+        <div class="btn-group">
+          <a href="{% url 'current_settings_dashboard' %}" class="btn btn-success">
+            <i class="bi bi-lightning"></i> Quick Set Current
+          </a>
+          <a href="{% url 'template_list' %}" class="btn btn-info">
+            <i class="fas fa-templates"></i> Templates
+          </a>
+          <a href="{% url 'academic_year_archive_list' %}" class="btn btn-warning">
+            <i class="fas fa-archive"></i> Archived Years
+          </a>
+          <div class="btn-group">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createAcademicYearModal">
+              <i class="fas fa-plus"></i> Add New Academic Year
+            </button>
+            <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="visually-hidden">Toggle Dropdown</span>
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="{% url 'template_create_from_academic_year' %}">
+                <i class="fas fa-copy"></i> Create from Template
+              </a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if form.non_field_errors %}
+  <div class="alert alert-danger">
+      {% for error in form.non_field_errors %}
+      {{ error }}
+      {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Advanced Filters -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="true" aria-controls="filtersCollapse">
+              <i class="fas fa-filter"></i> Advanced Filters
+            </button>
+          </h5>
+        </div>
+        <div class="collapse show" id="filtersCollapse">
+          <div class="card-body">
+            <form method="get" id="filterForm">
+              <div class="row">
+                <div class="col-md-6">
+                  <label for="search" class="form-label">Search</label>
+                  <input type="text" class="form-control" id="search" name="search" 
+                         value="{{ search_query }}" 
+                         placeholder="Search by name...">
+                </div>
+                <div class="col-md-4">
+                  <label for="status" class="form-label">Status Filter</label>
+                  <select name="status" class="form-select" id="status">
+                    <option value="" {% if status_filter == '' %}selected{% endif %}>All Years</option>
+                    <option value="current" {% if status_filter == 'current' %}selected{% endif %}>Current Year Only</option>
+                    <option value="past" {% if status_filter == 'past' %}selected{% endif %}>Past Years</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">&nbsp;</label>
+                  <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                      <i class="fas fa-search"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="row mt-3">
+                <div class="col-md-2">
+                  <label class="form-label">&nbsp;</label>
+                  {% if search_query or status_filter %}
+                  <div class="d-grid">
+                    <a href="{% url 'academic_year_list' %}" class="btn btn-outline-secondary">
+                      <i class="fas fa-times"></i> Clear Filters
+                    </a>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Academic Years List -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              <i class="fas fa-calendar-alt"></i> Academic Years
+            </h5>
+            <div class="btn-group btn-group-sm">
+              <button type="button" class="btn btn-outline-secondary" onclick="refreshTable()">
+                <i class="fas fa-sync-alt"></i> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+            {% if page_obj %}
+            <div class="table-responsive">
+                <table class="table table-hover" id="academicYearsTable">
+                    <thead>
+                        <tr>
+                            <th width="200">Name</th>
+                            <th width="250">Duration</th>
+                            <th width="120">Status</th>
+                            <th width="100">Terms</th>
+                            <th width="200">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for year in page_obj %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'academic_year_detail' year.pk %}" class="text-decoration-none">
+                                    <strong>{{ year.name }}</strong>
+                                </a>
+                            </td>
+                            <td>
+                                <span class="text-muted">
+                                    {{ year.start_date|date:"M d, Y" }} - {{ year.end_date|date:"M d, Y" }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if year.is_current %}
+                                <span class="badge bg-success">Current</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ year.terms_count }}</span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-info" data-bs-toggle="modal"
+                                        data-bs-target="#viewAcademicYearModal" data-id="{{ year.pk }}"
+                                        data-name="{{ year.name }}" data-start="{{ year.start_date|date:'Y-m-d' }}"
+                                        data-end="{{ year.end_date|date:'Y-m-d' }}"
+                                        data-is-current="{{ year.is_current }}"
+                                        data-terms-count="{{ year.terms_count }}" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary"
+                                        data-bs-toggle="modal" data-bs-target="#editAcademicYearModal"
+                                        data-id="{{ year.pk }}" data-name="{{ year.name }}"
+                                        data-start="{{ year.start_date|date:'Y-m-d' }}"
+                                        data-end="{{ year.end_date|date:'Y-m-d' }}"
+                                        data-is-current="{{ year.is_current }}" title="Edit Academic Year">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    {% if not year.is_current %}
+                                    <button type="button" class="btn btn-outline-success set-current-btn"
+                                        data-id="{{ year.pk }}" data-name="{{ year.name }}" title="Set as Current">
+                                        <i class="fas fa-check-circle"></i>
+                                    </button>
+                                    {% endif %}
+                                    
+                                    <!-- Archive/Delete Dropdown -->
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-outline-warning dropdown-toggle" 
+                                                data-bs-toggle="dropdown" aria-expanded="false" title="Archive or Delete">
+                                            <i class="fas fa-archive"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'archive_academic_year' year.pk %}">
+                                                    <i class="fas fa-archive text-warning"></i> Archive (Safe)
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <button type="button" class="dropdown-item text-danger" 
+                                                        data-bs-toggle="modal" data-bs-target="#deleteAcademicYearModal" 
+                                                        data-id="{{ year.pk }}" data-name="{{ year.name }}" 
+                                                        title="Delete Academic Year">
+                                                    <i class="fas fa-trash text-danger"></i> Delete (Permanent)
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Academic Years pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Last</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-calendar-alt fa-3x mb-3"></i>
+                <h5>No Academic Years Found</h5>
+                <p>{% if search_query or status_filter %}No academic years found matching the current filters.{% else %}Please create a new academic year to get started.{% endif %}</p>
+                {% if search_query or status_filter %}
+                <a href="{% url 'academic_year_list' %}" class="btn btn-primary">
+                  Clear Filters
+                </a>
+                {% else %}
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createAcademicYearModal">
+                  <i class="fas fa-plus"></i> Add New Academic Year
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Academic Year Modal -->
+<div class="modal fade" id="createAcademicYearModal" tabindex="-1" aria-labelledby="createAcademicYearModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'academic_year_create' %}" id="createAcademicYearForm">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createAcademicYearModalLabel">
+                        <i class="fas fa-calendar-plus"></i> Create New Academic Year
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="id_name" class="form-label">
+                            <i class="fas fa-tag"></i> Name*
+                        </label>
+                        <input type="text" class="form-control" id="id_name" name="name" 
+                               placeholder="Enter academic year name (e.g., 2024/2025)" required>
+                        <small class="form-text text-muted">
+                            Enter a descriptive name for this academic year.
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_start_date" class="form-label">
+                            <i class="fas fa-calendar-day"></i> Start Date*
+                        </label>
+                        <input type="date" class="form-control" id="id_start_date" name="start_date" required>
+                        <small class="form-text text-muted">
+                            Select the start date for this academic year.
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_end_date" class="form-label">
+                            <i class="fas fa-calendar-check"></i> End Date*
+                        </label>
+                        <input type="date" class="form-control" id="id_end_date" name="end_date" required>
+                        <small class="form-text text-muted">
+                            Select the end date for this academic year.
+                        </small>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="id_is_current" name="is_current">
+                        <label class="form-check-label" for="id_is_current">
+                            <i class="fas fa-star"></i> Set as current academic year
+                        </label>
+                        <small class="form-text text-muted d-block">
+                            Check this to make this the active academic year.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Create Academic Year
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Academic Year Modal -->
+<div class="modal fade" id="viewAcademicYearModal" tabindex="-1" aria-labelledby="viewAcademicYearModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewAcademicYearModalLabel">
+                    <i class="fas fa-calendar-alt"></i> Academic Year Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    View detailed information about this academic year.
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">
+                                <i class="fas fa-tag"></i> Name:
+                            </dt>
+                            <dd class="col-sm-8" id="view-name"></dd>
+
+                            <dt class="col-sm-4">
+                                <i class="fas fa-calendar-day"></i> Start Date:
+                            </dt>
+                            <dd class="col-sm-8" id="view-start-date"></dd>
+
+                            <dt class="col-sm-4">
+                                <i class="fas fa-calendar-check"></i> End Date:
+                            </dt>
+                            <dd class="col-sm-8" id="view-end-date"></dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">
+                                <i class="fas fa-star"></i> Status:
+                            </dt>
+                            <dd class="col-sm-8" id="view-status"></dd>
+
+                            <dt class="col-sm-4">
+                                <i class="fas fa-list"></i> Terms Count:
+                            </dt>
+                            <dd class="col-sm-8" id="view-terms-count"></dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="{% url 'academic_year_detail' 0 %}" id="view-detail-link" class="btn btn-primary">
+                    <i class="fas fa-external-link-alt"></i> View Full Details
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Academic Year Modal -->
+<div class="modal fade" id="editAcademicYearModal" tabindex="-1" aria-labelledby="editAcademicYearModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" id="editAcademicYearForm">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editAcademicYearModalLabel">
+                        <i class="fas fa-edit"></i> Edit Academic Year
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">
+                            <i class="fas fa-tag"></i> Name*
+                        </label>
+                        <input type="text" class="form-control" id="edit_name" name="name" 
+                               placeholder="Enter academic year name" required>
+                        <small class="form-text text-muted">
+                            Enter a descriptive name for this academic year.
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_start_date" class="form-label">
+                            <i class="fas fa-calendar-day"></i> Start Date*
+                        </label>
+                        <input type="date" class="form-control" id="edit_start_date" name="start_date" required>
+                        <small class="form-text text-muted">
+                            Select the start date for this academic year.
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_end_date" class="form-label">
+                            <i class="fas fa-calendar-check"></i> End Date*
+                        </label>
+                        <input type="date" class="form-control" id="edit_end_date" name="end_date" required>
+                        <small class="form-text text-muted">
+                            Select the end date for this academic year.
+                        </small>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="edit_is_current" name="is_current">
+                        <label class="form-check-label" for="edit_is_current">
+                            <i class="fas fa-star"></i> Set as current academic year
+                        </label>
+                        <small class="form-text text-muted d-block">
+                            Check this to make this the active academic year.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Academic Year Modal -->
+<div class="modal fade" id="deleteAcademicYearModal" tabindex="-1" aria-labelledby="deleteAcademicYearModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" id="deleteAcademicYearForm">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteAcademicYearModalLabel">
+                        <i class="fas fa-exclamation-triangle"></i> Confirm Delete
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Warning:</strong> This action cannot be undone.
+                    </div>
+                    <p>Are you sure you want to delete the academic year <strong id="delete-year-name"></strong>?</p>
+                    <p class="text-danger">
+                        <i class="fas fa-info-circle"></i>
+                        All associated data will be permanently removed.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Delete Academic Year
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Set Current Academic Year Form (Hidden) -->
+<form id="setCurrentForm" method="post" style="display: none;">
+    {% csrf_token %}
+</form>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Create Academic Year Modal
+        const createModal = document.getElementById('createAcademicYearModal');
+        if (createModal) {
+            createModal.addEventListener('show.bs.modal', function (event) {
+                // Set default dates
+                const today = new Date();
+                const defaultStart = new Date(today.getFullYear(), 8, 1); // Sept 1
+                const defaultEnd = new Date(today.getFullYear() + 1, 6, 31); // July 31 next year
+
+                document.getElementById('id_start_date').value = defaultStart.toISOString().split('T')[0];
+                document.getElementById('id_end_date').value = defaultEnd.toISOString().split('T')[0];
+                
+                // Automatically set the name based on the academic years
+                const startYear = defaultStart.getFullYear();
+                const endYear = defaultEnd.getFullYear();
+                document.getElementById('id_name').value = `${startYear}/${endYear}`;
+                
+                // Add event listeners to update the name when dates change
+                document.getElementById('id_start_date').addEventListener('change', updateAcademicYearName);
+                document.getElementById('id_end_date').addEventListener('change', updateAcademicYearName);
+                
+                function updateAcademicYearName() {
+                    const startDate = new Date(document.getElementById('id_start_date').value);
+                    const endDate = new Date(document.getElementById('id_end_date').value);
+                    
+                    if (startDate && endDate) {
+                        const startYear = startDate.getFullYear();
+                        const endYear = endDate.getFullYear();
+                        document.getElementById('id_name').value = `${startYear}/${endYear}`;
+                    }
+                }
+            });
+        }
+
+        // View Academic Year Modal
+        const viewModal = document.getElementById('viewAcademicYearModal');
+        if (viewModal) {
+            viewModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const id = button.getAttribute('data-id');
+                const name = button.getAttribute('data-name');
+                const startDate = new Date(button.getAttribute('data-start')).toLocaleDateString();
+                const endDate = new Date(button.getAttribute('data-end')).toLocaleDateString();
+                const isCurrent = button.getAttribute('data-is-current') === 'True';
+                const termsCount = button.getAttribute('data-terms-count');
+
+                // Update the modal content
+                document.getElementById('view-name').textContent = name;
+                document.getElementById('view-start-date').textContent = startDate;
+                document.getElementById('view-end-date').textContent = endDate;
+                document.getElementById('view-status').innerHTML = isCurrent ?
+                    '<span class="badge bg-success">Current</span>' :
+                    '<span class="badge bg-secondary">Inactive</span>';
+                document.getElementById('view-terms-count').innerHTML =
+                    `<span class="badge bg-info">${termsCount}</span>`;
+
+                // Update view details link
+                document.getElementById('view-detail-link').href = `{% url 'academic_year_detail' 0 %}`.replace('0', id);
+            });
+        }
+
+        // Edit Academic Year Modal
+        const editModal = document.getElementById('editAcademicYearModal');
+        if (editModal) {
+            editModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const id = button.getAttribute('data-id');
+                const name = button.getAttribute('data-name');
+                const startDate = button.getAttribute('data-start');
+                const endDate = button.getAttribute('data-end');
+                const isCurrent = button.getAttribute('data-is-current') === 'True';
+
+                // Update form fields
+                document.getElementById('edit_name').value = name;
+                document.getElementById('edit_start_date').value = startDate;
+                document.getElementById('edit_end_date').value = endDate;
+                document.getElementById('edit_is_current').checked = isCurrent;
+
+                // Update form action
+                document.getElementById('editAcademicYearForm').action =
+                    `{% url 'academic_year_edit' 0 %}`.replace('0', id);
+            });
+        }
+
+        // Delete Academic Year Modal
+        const deleteModal = document.getElementById('deleteAcademicYearModal');
+        if (deleteModal) {
+            deleteModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const id = button.getAttribute('data-id');
+                const name = button.getAttribute('data-name');
+
+                // Update modal content
+                document.getElementById('delete-year-name').textContent = name;
+
+                // Update form action
+                document.getElementById('deleteAcademicYearForm').action =
+                    `{% url 'academic_year_delete' 0 %}`.replace('0', id);
+            });
+        }
+
+        // Set Current Academic Year buttons
+        const setCurrentButtons = document.querySelectorAll('.set-current-btn');
+        setCurrentButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const id = this.getAttribute('data-id');
+                const name = this.getAttribute('data-name');
+
+                Swal.fire({
+                    title: 'Confirm Change',
+                    text: `Set "${name}" as the current academic year?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, set as current',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const form = document.getElementById('setCurrentForm');
+                        form.action = `{% url 'set_current_academic_year' 0 %}`.replace('0', id);
+                        form.submit();
+                    }
+                });
+            });
+        });
+
+        // Refresh table function
+        window.refreshTable = function() {
+            const refreshBtn = event.target.closest("button");
+            const originalHTML = refreshBtn.innerHTML;
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+            refreshBtn.disabled = true;
+
+            // Simulate refresh (in a real implementation, you'd make an AJAX call)
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        };
+    });
+</script>
+{% endblock %}
+{% endblock %}

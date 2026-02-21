@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Terminal Report Card - {{ student.full_name }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .report-card {
+            background-color: #fff;
+            padding: 0;
+            margin-bottom: 30px;
+        }
+        .report-header {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+            text-align: center;
+        }
+        .school-logo img {
+            max-height: 80px;
+        }
+        .school-info h2 {
+            color: #343a40;
+            margin-bottom: 5px;
+            font-size: 18px;
+        }
+        .school-motto {
+            font-style: italic;
+            color: #6c757d;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+        .student-info {
+            background-color: #f1f8ff;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .row {
+            clear: both;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        .col-4 {
+            float: left;
+            width: 33%;
+        }
+        .col-6 {
+            float: left;
+            width: 50%;
+        }
+        .col-8 {
+            float: left;
+            width: 66%;
+        }
+        .col-12 {
+            width: 100%;
+        }
+        .student-photo img {
+            max-width: 100px;
+            border: 3px solid #fff;
+        }
+        .performance-summary {
+            background-color: #fff;
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            padding: 8px;
+            text-align: left;
+            font-weight: bold;
+        }
+        td {
+            padding: 8px;
+        }
+        .grade-summary {
+            background-color: #f8f9fa;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        .remarks-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .promotion-status {
+            background-color: #e9f7ef;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .signature-area {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px dashed #dee2e6;
+        }
+        .signature-img {
+            max-height: 50px;
+            margin-bottom: 10px;
+        }
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 100px;
+            color: rgba(0,0,0,0.03);
+            z-index: 0;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .mb-2 {
+            margin-bottom: 10px;
+        }
+        .mt-3 {
+            margin-top: 15px;
+        }
+        .p-2 {
+            padding: 10px;
+        }
+        .bg-light {
+            background-color: #f8f9fa;
+        }
+        .border {
+            border: 1px solid #dee2e6;
+        }
+        .font-weight-bold {
+            font-weight: bold;
+        }
+        .text-success {
+            color: #28a745;
+        }
+        .text-danger {
+            color: #dc3545;
+        }
+        .text-warning {
+            color: #ffc107;
+        }
+        .text-primary {
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="report-card">
+        <!-- Report Header with School Information -->
+        <div class="report-header">
+            <div class="row">
+                <div class="col-12 text-center">
+                    {% if school_info.logo %}
+                    <div class="school-logo">
+                        <img src="{{ school_info.logo.url }}" alt="School Logo">
+                    </div>
+                    {% endif %}
+                    <div class="school-info">
+                        <h2>{{ school_info.name }}</h2>
+                        <p class="school-motto">{{ school_info.motto }}</p>
+                        <p>{{ school_info.address }}, {{ school_info.city }}, {{ school_info.country }}</p>
+                        <p>Tel: {{ school_info.phone }}, Email: {{ school_info.email }}</p>
+                        <h3>TERMINAL REPORT CARD</h3>
+                        <p>{{ academic_year.name }} - {{ term.get_term_number_display }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Student Information Section -->
+        <div class="student-info">
+            <div class="row">
+                <div class="col-8">
+                    <table>
+                        <tr>
+                            <th>Student Name</th>
+                            <td>{{ student.full_name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Admission Number</th>
+                            <td>{{ student.admission_number }}</td>
+                        </tr>
+                        <tr>
+                            <th>Class</th>
+                            <td>{{ report_card.class_assigned.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Gender</th>
+                            <td>{{ student.get_gender_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date of Birth</th>
+                            <td>{{ student.date_of_birth }}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-4 text-center">
+                    <div class="student-photo">
+                        {% if student.profile_picture %}
+                        <img src="{{ student.profile_picture.url }}" alt="Student Photo">
+                        {% else %}
+                        <div style="width: 100px; height: 120px; background-color: #eee; display: flex; align-items: center; justify-content: center;">
+                            <span>No Photo</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Performance Summary Section -->
+        <div class="performance-summary">
+            <h4 class="mb-2">ACADEMIC PERFORMANCE SUMMARY</h4>
+            
+            <!-- Term Performance -->
+            <div class="term-comparison">
+                <h5>Term-by-Term Performance</h5>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Term</th>
+                            <th>Average Score</th>
+                            <th>Position</th>
+                            <th>Grade</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for term_data in term_performance %}
+                        <tr {% if term_data.term.id == term.id %}style="font-weight: bold; background-color: #e3f2fd;"{% endif %}>
+                            <td>{{ term_data.term.get_term_number_display }}</td>
+                            <td>
+                                {% if term_data.average_score %}
+                                {{ term_data.average_score|floatformat:2 }}%
+                                {% else %}
+                                N/A
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if term_data.position %}
+                                {{ term_data.position }} of {{ class_size }}
+                                {% else %}
+                                N/A
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if term_data.average_score %}
+                                {% for grade in grades %}
+                                {% if term_data.average_score >= grade.min_score %} {{ grade.grade }}
+                                {% break %}
+                                {% endif %}
+                                {% endfor %}
+                                {% else %}
+                                N/A
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Subject Scores for Current Term -->
+            <div class="subject-scores">
+                <h5>Subject Performance for {{ term.get_term_number_display }}</h5>
+                {% if report_card.subject_scores.all %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Teacher</th>
+                            <th>Score</th>
+                            <th>Grade</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for subject_score in report_card.subject_scores.all %}
+                        <tr>
+                            <td>{{ subject_score.subject_name }}</td>
+                            <td>{{ subject_score.teacher_name }}</td>
+                            <td>{{ subject_score.total_score|floatformat:2 }}%</td>
+                            <td>
+                                {% for grade in grades %}
+                                {% if subject_score.total_score >= grade.min_score %}
+                                {{ grade.grade }}
+                                {% break %}
+                                {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td>{{ subject_score.remarks }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr style="font-weight: bold; background-color: #e3f2fd;">
+                            <td colspan="2">Term Average</td>
+                            <td>{{ report_card.total_score|floatformat:2 }}%</td>
+                            <td>
+                                {% for grade in grades %}
+                                {% if report_card.total_score >= grade.min_score %}
+                                {{ grade.grade }}
+                                {% break %}
+                                {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td>Position: {{ report_card.position }} of {{ class_size }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                {% else %}
+                <p class="text-warning">No subject scores available for this term.</p>
+                {% endif %}
+            </div>
+            
+            <!-- Final Average for Academic Year -->
+            <div class="final-average">
+                <h5>Academic Year Summary</h5>
+                <table>
+                    <tr>
+                        <th>Overall Average</th>
+                        <td>{{ year_performance.overall_average|floatformat:2 }}%</td>
+                        <th>Overall Grade</th>
+                        <td>
+                            {% for grade in grades %}
+                            {% if year_performance.overall_average >= grade.min_score %}
+                            {{ grade.grade }}
+                            {% break %}
+                            {% endif %}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Overall Position</th>
+                        <td>{{ year_performance.overall_position }} of {{ class_size }}</td>
+                        <th>Promotion Status</th>
+                        <td>
+                            {% if report_card.is_promoted %}
+                            <span class="text-success">Promoted to {{ report_card.promoted_to }}</span>
+                            {% else %}
+                            <span class="text-danger">{{ report_card.promoted_to }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Remarks Section -->
+        <div class="remarks-section">
+            <h4>TEACHER REMARKS AND COMMENTS</h4>
+            
+            <!-- Class Teacher Comments -->
+            <div class="mb-2">
+                <h5>Class Teacher's Comments</h5>
+                <p>{{ report_card.teacher_remarks|default:"No comments provided." }}</p>
+            </div>
+            
+            <!-- Head Teacher Comments -->
+            <div class="mb-2">
+                <h5>Head Teacher's Comments</h5>
+                <p>{{ report_card.head_teacher_remarks|default:"No comments provided." }}</p>
+            </div>
+        </div>
+        
+        <!-- Grading Key -->
+        <div class="grade-summary">
+            <h4>GRADING SYSTEM</h4>
+            <table class="grading-key">
+                <thead>
+                    <tr>
+                        <th>Grade</th>
+                        <th>Score Range</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for grade in grades %}
+                    <tr>
+                        <td>{{ grade.grade }}</td>
+                        <td>{{ grade.min_score }}% - {{ grade.max_score }}%</td>
+                        <td>{{ grade.description }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Signature Area -->
+        <div class="signature-area">
+            <div class="row">
+                {% for signature in authority_signatures %}
+                <div class="col-4 text-center">
+                    {% if signature.signature %}
+                    <img src="{{ signature.signature.url }}" class="signature-img" alt="{{ signature.name }} Signature">
+                    {% endif %}
+                    <p class="mb-0 font-weight-bold">{{ signature.name }}</p>
+                    <p class="mb-0">{{ signature.position }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% if report_card.is_approved %}
+            <div class="text-center mt-3">
+                <p style="font-weight: bold; color: green;">APPROVED</p>
+                <p>Date Approved: {{ report_card.date_approved }}</p>
+            </div>
+            {% endif %}
+            
+            <div class="text-center mt-3">
+                <p>This report was generated on {{ report_card.date_generated }} by {{ report_card.generated_by.get_full_name }}</p>
+            </div>
+        </div>
+        
+        <!-- School Stamp or Official Seal -->
+        <div class="text-center mt-3">
+            {% if school_info.stamp %}
+            <img src="{{ school_info.stamp.url }}" style="max-width: 100px; opacity: 0.7;" alt="School Stamp">
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html> 

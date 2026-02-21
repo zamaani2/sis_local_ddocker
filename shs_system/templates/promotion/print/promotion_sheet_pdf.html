@@ -1,0 +1,392 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Promotion Sheet - {{ school.name }}</title>
+    <style>
+      @page {
+        size: A4 landscape;
+        margin: 0.5cm;
+        border: 5px solid #000;
+      }
+
+      body {
+        font-family: "Arial", sans-serif;
+        margin: 0;
+        padding: 10px;
+        color: #333;
+        line-height: 1.4;
+        font-size: 11px;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 15px;
+        border: 3px solid #000;
+        padding: 10px;
+        width: calc(100% - 6px);
+        background-color: #f8f9fa;
+        box-sizing: border-box;
+      }
+
+      .header-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        margin-bottom: 5px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .school-logo {
+        max-width: 80px;
+        max-height: 80px;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        flex-shrink: 0;
+      }
+
+      .header-text {
+        text-align: center;
+        flex: 1;
+      }
+
+      .logo-left {
+        order: 1;
+      }
+
+      .logo-right {
+        order: 3;
+      }
+
+      .header-text {
+        order: 2;
+      }
+
+      .school-name {
+        font-size: 28px;
+        font-weight: bold;
+        color: #28a745;
+        margin-bottom: 3px;
+      }
+
+      .report-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 3px;
+      }
+
+      .report-subtitle {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 2px;
+      }
+
+      .report-meta {
+        font-size: 12px;
+        color: #888;
+      }
+
+      .promotion-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 17px;
+        table-layout: fixed;
+        border: 3px solid #000;
+      }
+
+      .promotion-table th,
+      .promotion-table td {
+        padding: 6px 4px;
+        text-align: center;
+        border: 2px solid #000;
+        word-wrap: break-word;
+        overflow: hidden;
+      }
+
+      /* Column width specifications for landscape layout */
+      .promotion-table th:nth-child(1),
+      .promotion-table td:nth-child(1) {
+        width: 10%; /* Student Name */
+      }
+
+      .promotion-table th:nth-child(2),
+      .promotion-table td:nth-child(2) {
+        width: 20%; /* Student ID */
+      }
+
+      .promotion-table th:nth-child(3),
+      .promotion-table td:nth-child(3) {
+        width: 8%; /* Class (if form level) or Form */
+      }
+
+      .promotion-table th:nth-child(4),
+      .promotion-table td:nth-child(4) {
+        width: 8%; /* Form or 1st Term */
+      }
+
+      .promotion-table th:nth-child(5),
+      .promotion-table td:nth-child(5) {
+        width: 8%; /* 1st Term or 2nd Term */
+      }
+
+      .promotion-table th:nth-child(6),
+      .promotion-table td:nth-child(6) {
+        width: 8%; /* 2nd Term or 3rd Term */
+      }
+
+      .promotion-table th:nth-child(7),
+      .promotion-table td:nth-child(7) {
+        width: 8%; /* 3rd Term or Overall Average */
+      }
+
+      .promotion-table th:nth-child(8),
+      .promotion-table td:nth-child(8) {
+        width: 8%; /* Overall Average or Position */
+      }
+
+      .promotion-table th:nth-child(9),
+      .promotion-table td:nth-child(9) {
+        width: 6%; /* Position or Status */
+      }
+
+      .promotion-table th:nth-child(10),
+      .promotion-table td:nth-child(10) {
+        width: 8%; /* Status */
+      }
+
+      .promotion-table th {
+        background: #28a745;
+        color: white;
+        font-weight: bold;
+        font-size: 16px;
+      }
+
+      .promotion-table tbody tr:nth-child(even) {
+        background: #f8f9fa;
+      }
+
+      .student-name {
+        text-align: left;
+        font-weight: bold;
+        font-size: 16px;
+      }
+
+      .position-cell {
+        font-weight: bold;
+        color: #28a745;
+      }
+
+      .score-cell {
+        font-weight: bold;
+      }
+
+      .status-cell {
+        font-weight: bold;
+        padding: 3px 5px;
+        border-radius: 3px;
+        font-size: 16px;
+      }
+
+      .status-PROMOTED {
+        background: #d4edda;
+        color: #155724;
+      }
+      .status-RETAINED {
+        background: #f8d7da;
+        color: #721c24;
+      }
+
+      .summary-section {
+        margin-top: 15px;
+        page-break-inside: avoid;
+        border: 3px solid #000;
+        padding: 15px;
+        background-color: #f8f9fa;
+      }
+
+      .summary-title {
+        font-size: 15px;
+        font-weight: bold;
+        color: #28a745;
+        margin-bottom: 8px;
+        border-bottom: 2px solid #000;
+        padding-bottom: 3px;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .summary-card {
+        border: 2px solid #000;
+        padding: 8px;
+        border-radius: 3px;
+        background-color: #ffffff;
+      }
+
+      .summary-card h6 {
+        margin: 0 0 5px 0;
+        color: #28a745;
+        font-weight: bold;
+        font-size: 15px;
+      }
+
+      .footer {
+        margin-top: 15px;
+        text-align: center;
+        font-size: 8px;
+        color: #666;
+        border-top: 1px solid #ddd;
+        padding-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header -->
+    <div class="header">
+      <div class="header-content">
+        {% if school.logo %}
+        <!-- Left Logo -->
+        <img
+          src="{{ request.scheme }}://{{ request.get_host }}{{ school.logo.url }}"
+          alt="{{ school.name }}"
+          class="school-logo logo-left"
+          onerror="this.style.display='none';"
+        />
+        {% endif %}
+
+        <div class="header-text">
+          <div class="school-name">{{ school.name }}</div>
+          <div class="report-title">PROMOTION SHEET</div>
+          <div class="report-subtitle">
+            {% if selected_form %} Form: {{ selected_form.name }} | Academic
+            Year: {{ current_academic_year.name }} {% else %} Class: {{
+            selected_class.name }} | Academic Year: {{
+            current_academic_year.name }} {% endif %}
+          </div>
+          <div class="report-meta">
+            Academic Year: {{ current_term.academic_year.name }} | Generated on:
+            {% now "F d, Y \a\t g:i A" %}
+          </div>
+        </div>
+
+        {% if school.logo %}
+        <!-- Right Logo -->
+        <img
+          src="{{ request.scheme }}://{{ request.get_host }}{{ school.logo.url }}"
+          alt="{{ school.name }}"
+          class="school-logo logo-right"
+          onerror="this.style.display='none';"
+        />
+        {% endif %}
+      </div>
+    </div>
+
+    {% if promotion_data %}
+    <!-- Promotion Sheet Table -->
+    <table class="promotion-table">
+      <thead>
+        <tr>
+          <th>Student ID</th>
+          <th>Student Name</th>
+          <th>1st Term</th>
+          <th>2nd Term</th>
+          <th>3rd Term</th>
+          <th>Overall Average</th>
+          <th>Position</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for student_data in promotion_data %}
+        <tr>
+          <td class="text-left">{{ student_data.student.admission_number }}</td>
+          <td class="student-name text-left">
+            {{ student_data.student.full_name }}
+          </td>
+          <td class="score-cell">
+            {{ student_data.term_averages.term_1|floatformat:2 }}
+          </td>
+          <td class="score-cell">
+            {{ student_data.term_averages.term_2|floatformat:2 }}
+          </td>
+          <td class="score-cell">
+            {{ student_data.term_averages.term_3|floatformat:2 }}
+          </td>
+          <td class="score-cell">
+            {{ student_data.overall_average|floatformat:2 }}
+          </td>
+          <td class="position-cell">{{ student_data.position }}</td>
+          <td class="status-cell status-{{ student_data.status }}">
+            {{ student_data.status }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Summary Section -->
+    <div class="summary-section">
+      <div class="summary-title">Summary Statistics</div>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <h6>
+            {% if selected_form %}Form{% else %}Class{% endif %} Statistics
+          </h6>
+          <p>
+            <strong>Total Students:</strong> {{promotion_stats.total_students|default:promotion_data|length }}
+          </p>
+          <p>
+            <strong>Promoted:</strong> {{promotion_stats.promoted_count|default:"0" }}
+          </p>
+          <p>
+            <strong>Retained:</strong> {{promotion_stats.retained_count|default:"0" }}
+          </p>
+          <p>
+            <strong
+              >{% if selected_form %}Form{% else %}Class{% endif %}
+              Average:</strong
+            >
+            {{ promotion_stats.class_average|default:"0.00"|floatformat:2 }}
+          </p>
+        </div>
+
+        <div class="summary-card">
+          <h6>Top Performers</h6>
+          {% for student_data in promotion_data|slice:":3" %}
+          <p>
+            {{ student_data.position }}. {{ student_data.student.full_name }} -
+            {{ student_data.overall_average|floatformat:2 }} ({{student_data.status }})
+          </p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #666">
+      <h3>No Promotion Data Available</h3>
+      <p>
+        No promotion data found for the selected {% if selected_form %}form{%
+        else %}class{% endif %} and term combination.
+      </p>
+    </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>
+        This report was generated by {{ school.name }} School Management System
+      </p>
+      <p>DEVELOPED BY CISSEY-TECH</p>
+    </div>
+  </body>
+</html>

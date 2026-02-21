@@ -1,0 +1,2027 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Enhanced Score Entry {% endblock %}
+{% block page_title %}Enhanced Score Entry {% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="{% static 'vendor/datatables/1.13.7/css/jquery.dataTables.min.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'vendor/datatables-buttons/2.4.2/css/buttons.dataTables.min.css' %}">
+<link rel="stylesheet" href="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.min.css' %}">
+<style>
+    /* Legacy-style CSS similar to enter_scores.html */
+    .badge-grade {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-weight: bold;
+        font-size: 1rem;
+    }
+
+    .grade-a {
+        background-color: #198754;
+        color: white;
+    }
+
+    .grade-b {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+    .grade-c {
+        background-color: #6f42c1;
+        color: white;
+    }
+
+    .grade-d {
+        background-color: #fd7e14;
+        color: white;
+    }
+
+    .grade-e {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .grade-f {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .remarks-badge {
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-weight: 500;
+        display: inline-block;
+        min-width: 120px;
+        text-align: center;
+    }
+
+    .remarks-excellent {
+        background-color: #198754;
+        color: white;
+    }
+
+    .remarks-vgood {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+    .remarks-good {
+        background-color: #6f42c1;
+        color: white;
+    }
+
+    .remarks-average {
+        background-color: #fd7e14;
+        color: white;
+    }
+
+    .remarks-poor {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .remarks-fail {
+        background-color: #212529;
+        color: white;
+    }
+
+    .score-input {
+        background-color: #f8f9fa;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 0.375rem 0.75rem;
+        width: 100%;
+    }
+
+    .score-input:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        outline: 0;
+    }
+
+    .score-input:read-only {
+        background-color: #e9ecef;
+    }
+
+    .table-scores th {
+        background-color: #212529;
+        color: white;
+        padding: 12px 8px;
+    }
+
+    .table-scores tbody tr:nth-of-type(odd) {
+        background-color: rgba(240, 11, 11, 0.03);
+    }
+
+    .table-scores tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.075);
+    }
+
+    .position-badge {
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-weight: bold;
+    }
+
+    .position-1 {
+        background-color: gold;
+        color: #212529;
+    }
+
+    .position-2 {
+        background-color: silver;
+        color: #212529;
+    }
+
+    .position-3 {
+        background-color: #cd7f32;
+        color: white;
+    }
+
+    .position-other {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    /* Enhanced validation styles */
+    .active-row {
+        background-color: rgba(209, 236, 250, 0.5) !important;
+    }
+    
+    .modified-row {
+        background-color: rgba(255, 243, 205, 0.5) !important;
+    }
+    
+    .is-invalid {
+        border-color: #dc3545 !important;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(.375em + .1875rem) center;
+        background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+    }
+    
+    .invalid-feedback {
+        display: block;
+        color: #dc3545;
+        font-size: 0.875em;
+        margin-top: 0.25rem;
+    }
+
+    .class-stats {
+        background: linear-gradient(to right, #0077b6, #0096c7);
+        border-radius: 8px;
+        padding: 15px;
+        color: white;
+        margin-bottom: 20px;
+    }
+    
+    .stats-item {
+        text-align: center;
+        padding: 10px;
+        border-radius: 6px;
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .stats-value {
+        font-size: 24px;
+        font-weight: bold;
+    }
+    
+    .stats-label {
+        font-size: 12px;
+        opacity: 0.8;
+    }
+
+    .batch-tools-btn {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        z-index: 1000;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+    
+    @keyframes highlight-save {
+        0% { background-color: rgba(25, 135, 84, 0.1); }
+        50% { background-color: rgba(25, 135, 84, 0.3); }
+        100% { background-color: transparent; }
+    }
+    
+    .saved-row {
+        animation: highlight-save 1.5s ease;
+    }
+
+    .tools-toolbar {
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        padding: 8px;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .tools-toolbar .form-check {
+        margin-bottom: 0;
+    }
+    
+    kbd {
+        background-color: #212529;
+        color: #fff;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-size: 0.85em;
+    }
+
+    /* Collapsible section styles */
+    .card-header[data-bs-toggle="collapse"] {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+    
+    .card-header[data-bs-toggle="collapse"]:hover {
+        background-color: #0d6efd !important;
+    }
+    
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    
+    .transition-icon {
+        transition: transform 0.3s ease;
+    }
+    
+    .card-header[data-bs-toggle="collapse"][aria-expanded="true"] .transition-icon {
+        transform: rotate(180deg);
+    }
+    
+    .collapse {
+        transition: height 0.3s ease;
+    }
+
+    /* Component breakdown for enhanced scoring */
+    .component-breakdown {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .component-item {
+        background: white;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 0.75rem;
+        text-align: center;
+        transition: all 0.2s ease;
+    }
+
+    .component-item:hover {
+        border-color: #0d6efd;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .component-label {
+        font-size: 0.625rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+
+    .component-weight {
+        font-size: 0.75rem;
+        color: #0d6efd;
+        font-weight: 600;
+    }
+
+    /* Quick access button */
+    .tools-quick-access {
+        position: fixed;
+        bottom: 90px; /* Position above the batch tools button */
+        right: 30px;
+        z-index: 999;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+
+
+
+
+    .border-start {
+        border-left: 1px solid #dee2e6;
+    }
+
+    .upload-progress {
+        margin-top: 1rem;
+    }
+
+    .upload-status {
+        margin-top: 0.5rem;
+    }
+
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .component-breakdown {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .table-scores {
+            font-size: 0.875rem;
+        }
+        
+        .table-scores thead th,
+        .table-scores tbody td {
+            padding: 0.5rem;
+        }
+    }
+
+
+    /* Loading States */
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        z-index: 10;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #dee2e6;
+        border-top: 4px solid #0d6efd;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Toast Notifications */
+    .toast-modern {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #0d6efd;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        max-width: 400px;
+    }
+
+    .toast-success { border-left-color: #198754; }
+    .toast-warning { border-left-color: #fd7e14; }
+    .toast-error { border-left-color: #dc3545; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Term and Academic Year Reminder -->
+<div class="alert alert-info mb-4">
+    <div class="d-flex align-items-center">
+        <i class="bi bi-calendar-check me-2 fs-4"></i>
+        <div>
+            <strong>Current Academic Year:</strong> {{ current_academic_year.name }}
+            <span class="mx-2">|</span>
+            <strong>Current Term:</strong> {{ current_term.term_number }}
+            </div>
+        </div>
+    </div>
+
+    {% if not current_academic_year or not current_term %}
+    <div class="alert alert-warning d-flex align-items-center" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <div>No active academic year or term is set. Please contact the administrator.</div>
+    </div>
+    {% else %}
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body bg-light">
+                    <form method="get" id="assignmentForm">
+                <div class="row g-3">
+                    <div class="col-md-6 col-lg-4">
+                        <label for="assignment" class="form-label fw-bold">Select Class and Subject</label>
+                        <select name="assignment_id" id="assignment" class="form-select" onchange="this.form.submit()">
+                            <option value="">-- Select Class & Subject --</option>
+                                    {% for assignment in assignments %}
+                            <option value="{{ assignment.id }}" {% if request.GET.assignment_id == assignment.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ assignment.class_assigned }} - {{ assignment.subject }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+        </div>
+    </div>
+
+
+    <!-- Import/Export Tools Section - Now collapsible -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-primary bg-gradient text-white d-flex justify-content-between align-items-center cursor-pointer" 
+                     role="button" data-bs-toggle="collapse" data-bs-target="#importExportTools" aria-expanded="false" aria-controls="importExportTools">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-tools me-2"></i>Import/Export Tools
+                <small class="ms-2 text-white-50">(click to expand/collapse)</small>
+                    </h5>
+                    <span class="badge bg-light text-dark">
+                        {% if selected_assignment %}
+                        Selected: {{ selected_assignment.class_assigned }} - {{ selected_assignment.subject }}
+                        {% else %}
+                        No class selected - batch mode available
+                        {% endif %}
+                    </span>
+            <i class="bi bi-chevron-down transition-icon"></i>
+                </div>
+                <div class="collapse" id="importExportTools">
+            <div class="card-body">
+                        <!-- Scoring Configuration Information -->
+                        {% if scoring_config %}
+                        <div class="alert alert-info mb-4">
+                            <div class="d-flex align-items-start">
+                        <i class="bi bi-info-circle-fill me-2 mt-1"></i>
+                                <div>
+                                    <h6 class="mb-2">Current Scoring Configuration</h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <div class="fw-bold text-primary">{{ scoring_config.class_score_percentage }}%</div>
+                                                <small class="text-muted">Class Score Weight</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <div class="fw-bold text-primary">{{ scoring_config.exam_score_percentage }}%</div>
+                                                <small class="text-muted">Exam Score Weight</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <div class="fw-bold text-success">{{ scoring_config.individual_max_mark }}</div>
+                                                <small class="text-muted">Individual Max Mark</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <div class="fw-bold text-success">{{ scoring_config.class_test_max_mark }}</div>
+                                                <small class="text-muted">Class Test Max Mark</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted mt-2 d-block">
+                                <i class="bi bi-gear me-1"></i>
+                                        Import/Export files will use these configuration values for validation and calculation.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="d-flex flex-column h-100 p-3">
+                                    <h6 class="mb-3 fw-bold text-primary">Export Scores</h6>
+                                    
+                                    {% if selected_assignment %}
+                                    <!-- When a class is selected -->
+                                    <p class="text-muted">Current mode: <strong>Single class export</strong></p>
+                                    <p>With a class selected, you can export scores for just this class.</p>
+                                    <div class="d-flex gap-2">
+                                        <a href="{% url 'export_enhanced_scores' %}?assignment_id={{ request.GET.assignment_id }}" class="btn btn-primary" target="_blank">
+                                            <i class="bi bi-file-earmark-excel me-2"></i>
+                                            Export This Class
+                                        </a>
+                                    </div>
+                                    {% else %}
+                                    <!-- When no class is selected -->
+                                    <p class="text-muted">Current mode: <strong>Batch export</strong></p>
+                                    <p>With no class selected, you can export scores for multiple classes at once.</p>
+                                    <button id="exportScores" class="btn btn-primary" onclick="showBatchExportDialog()">
+                                        <i class="bi bi-file-earmark-excel me-2"></i>
+                                        Export Multiple Classes
+                                    </button>
+                                    {% endif %}
+                            <div id="exportInstructions" class="mt-3"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 border-start">
+                                <div class="d-flex flex-column h-100 p-3">
+                                    <h6 class="mb-3 fw-bold text-success">Import Scores</h6>
+                                    
+                                    {% if selected_assignment %}
+                                    <!-- When a class is selected -->
+                                    <p class="text-muted">Current mode: <strong>Single class import</strong></p>
+                                    <p>With a class selected, you can import scores for just this class.</p>
+                                    {% else %}
+                                    <!-- When no class is selected -->
+                                    <p class="text-muted">Current mode: <strong>Batch import</strong></p>
+                                    <p>With no class selected, you can import scores for multiple classes at once.</p>
+                                    {% endif %}
+                                    
+                                    <div class="mt-auto">
+                                        <button id="importScores" class="btn btn-success">
+                                    <i class="bi bi-upload me-2"></i>
+                                            {% if selected_assignment %}
+                                            Import For This Class
+                                            {% else %}
+                                            Import Multiple Classes
+                                            {% endif %}
+                                        </button>
+                                        <form id="uploadForm" class="mt-3" style="display: none;">
+                                            {% csrf_token %}
+                                            <input type="file" id="scoreFile" name="scoreFile" accept=".xlsx,.xls"
+                                                class="form-control">
+                                            <div class="mt-2">
+                                                <button type="submit" class="btn btn-success btn-sm">
+                                            <i class="bi bi-cloud-upload me-1"></i>Upload
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="uploadProgress" class="mt-3" style="display: none;">
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"></div>
+                            </div>
+                        </div>
+                        <div id="uploadStatus" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+
+    {% if selected_assignment %}
+    <!-- Class Statistics Card - Only shown when a class is selected -->
+    {% if class_stats %}
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-primary bg-gradient text-white">
+            <h5 class="card-title mb-0">Class Performance</h5>
+                    </div>
+        <div class="card-body p-0">
+            <div class="class-stats">
+                <div class="row g-3">
+                    <div class="col-md">
+                        <div class="stats-item">
+                            <div class="stats-value">{{ class_stats.highest_score|floatformat:2 }}</div>
+                            <div class="stats-label">HIGHEST SCORE</div>
+                    </div>
+                    </div>
+                    <div class="col-md">
+                        <div class="stats-item">
+                            <div class="stats-value">{{ class_stats.lowest_score|floatformat:2 }}</div>
+                            <div class="stats-label">LOWEST SCORE</div>
+                    </div>
+                    </div>
+                    <div class="col-md">
+                        <div class="stats-item">
+                            <div class="stats-value">{{ class_stats.average_score|floatformat:2 }}</div>
+                            <div class="stats-label">CLASS AVERAGE</div>
+                </div>
+                    </div>
+                    <div class="col-md">
+                        <div class="stats-item">
+                            <div class="stats-value">{{ class_stats.graded_students }}/{{ class_stats.total_students }}</div>
+                            <div class="stats-label">STUDENTS GRADED</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if students_in_class %}
+    <!-- Score Entry Table - Only shown when a class with students is selected -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Enhanced Score Entry</h5>
+            <small class="text-white-50">
+                        {{ selected_assignment.class_assigned }} - {{ selected_assignment.subject }}
+                    </small>
+                </div>
+        <div class="card-body">
+            <!-- Tools Toolbar -->
+            <div class="tools-toolbar">
+                <div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="enableAutoSave">
+                        <label class="form-check-label" for="enableAutoSave">Auto-save changes</label>
+                    </div>
+                </div>
+                <div>
+                    <span class="badge bg-secondary">Tip: Use <kbd>Enter</kbd> to move down, <kbd>Tab</kbd> to move right</span>
+                </div>
+            </div>
+                    <form method="post" id="enhancedScoreForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="assignment_id" value="{{ request.GET.assignment_id }}">
+                        
+                        <div class="table-responsive">
+                    <table id="scoresTable" class="table table-bordered table-scores">
+                                <thead>
+                                    <tr>
+                                <th>Student Name</th>
+                                <th>Student ID</th>
+                                <th>Individual Score ({{ scoring_config.individual_max_mark }})</th>
+                                <th>Class Test Score ({{ scoring_config.class_test_max_mark }})</th>
+                                <th>Project Score ({{ scoring_config.project_max_mark }})</th>
+                                <th>Group Work Score ({{ scoring_config.group_work_max_mark }})</th>
+                                <th>Class Score ({{ scoring_config.class_score_percentage }}%)</th>
+                                <th>Exam Score ({{ scoring_config.exam_score_percentage }}%)</th>
+                                <th>Total</th>
+                                <th>Grade</th>
+                                <th>Remarks</th>
+                                <th>Position</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for student_class in students_in_class %}
+                            <tr data-student-id="{{ student_class.student.id }}">
+                                <td>{{ student_class.student.full_name }}</td>
+                                <td>{{ student_class.student.admission_number }}</td>
+                                <td>
+                                    <input type="number" class="score-input individual-score"
+                                        name="individual_score_{{ student_class.student.id }}" step="0.01" min="0" max="{{ scoring_config.individual_max_mark }}"
+                                        value="{{ student_class.student.individual_score|default:'' }}">
+                                        </td>
+                                <td>
+                                    <input type="number" class="score-input class-test-score"
+                                        name="class_test_score_{{ student_class.student.id }}" step="0.01" min="0" max="{{ scoring_config.class_test_max_mark }}"
+                                        value="{{ student_class.student.class_test_score|default:'' }}">
+                                        </td>
+                                <td>
+                                    <input type="number" class="score-input project-score"
+                                        name="project_score_{{ student_class.student.id }}" step="0.01" min="0" max="{{ scoring_config.project_max_mark }}"
+                                        value="{{ student_class.student.project_score|default:'' }}">
+                                        </td>
+                                <td>
+                                    <input type="number" class="score-input group-work-score"
+                                        name="group_work_score_{{ student_class.student.id }}" step="0.01" min="0" max="{{ scoring_config.group_work_max_mark }}"
+                                        value="{{ student_class.student.group_work_score|default:'' }}">
+                                        </td>
+                                <td>
+                                    <input type="text" class="score-input class-score fw-bold" readonly
+                                        value="{{ student_class.student.class_score|default:'--' }}">
+                                    <input type="hidden" class="class-score-input" 
+                                           name="class_score_{{ student_class.student.id }}" 
+                                           value="{{ student_class.student.class_score|default:'' }}">
+                                        </td>
+                                <td>
+                                    <input type="number" class="score-input exam-score"
+                                        name="exam_score_{{ student_class.student.id }}" step="0.01" min="0" max="100"
+                                        value="{{ student_class.student.exam_score|default:'' }}">
+                                </td>
+                                <td>
+                                    <input type="text" class="score-input total-score fw-bold" readonly
+                                        value="{{ student_class.student.total_score|default:'--' }}">
+                                    <input type="hidden" class="total-score-input" 
+                                                       name="total_score_{{ student_class.student.id }}" 
+                                                       value="{{ student_class.student.total_score|default:'' }}">
+                                        </td>
+                                        <td class="text-center">
+                                                {% if student_class.student.grade %}
+                                    <div class="badge-grade grade-{{ student_class.student.grade|lower }}">
+                                                    {{ student_class.student.grade }}
+                                                </div>
+                                                {% else %}
+                                    <span>--</span>
+                                                {% endif %}
+                                    <input type="hidden" class="grade" name="grade_{{ student_class.student.id }}"
+                                                   value="{{ student_class.student.grade|default:'' }}">
+                                        </td>
+                                        <td class="text-center">
+                                                {% if student_class.student.remarks %}
+                                    <span
+                                        class="remarks-badge remarks-{{ student_class.student.remarks|lower|cut:" " }}">
+                                                    {{ student_class.student.remarks }}
+                                                </span>
+                                                {% else %}
+                                    <span>--</span>
+                                                {% endif %}
+                                    <input type="hidden" class="remarks" name="remarks_{{ student_class.student.id }}"
+                                                   value="{{ student_class.student.remarks|default:'' }}">
+                                        </td>
+                                        <td class="text-center">
+                                                {% if student_class.student.position %}
+                                    <div
+                                        class="position-badge position-{% if student_class.student.position <= 3 %}{{ student_class.student.position }}{% else %}other{% endif %}">
+                                                    {{ student_class.student.position }}
+                                                </div>
+                                                {% else %}
+                                    <span>--</span>
+                                                {% endif %}
+                                    <input type="hidden" class="position" name="position_{{ student_class.student.id }}"
+                                                   value="{{ student_class.student.position|default:'' }}">
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i>Save Scores
+                                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Form
+                                    </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+    <!-- Floating Batch Operations Button -->
+    <button id="batchProcess" class="btn btn-primary batch-tools-btn" data-bs-toggle="tooltip" 
+        data-bs-placement="left" title="Batch Operations">
+        <i class="bi bi-lightning-fill"></i>
+    </button>
+    
+    <!-- Quick Access Button for Import/Export -->
+    <button id="toolsQuickAccess" class="btn btn-info tools-quick-access" data-bs-toggle="tooltip" 
+        data-bs-placement="left" title="Import/Export Tools">
+        <i class="bi bi-file-earmark-excel"></i>
+    </button>
+    
+    {% elif selected_assignment %}
+    <div class="alert alert-info d-flex align-items-center">
+        <i class="bi bi-info-circle-fill me-2"></i>No students found in the selected class.
+    </div>
+    {% else %}
+    <!-- No class selected message -->
+    <div class="alert alert-info d-flex align-items-center">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        <div>
+            <strong>No class selected.</strong> Please select a class and subject to enter scores, or use the batch export/import options above.
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+    {% endif %}
+
+<!-- Toast Container for Notifications -->
+<div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
+<!-- Batch Operations Modal -->
+<div class="modal fade" id="batchProcessModal" tabindex="-1" aria-labelledby="batchProcessModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="batchProcessModalLabel">Batch Operations</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="list-group">
+                    <button type="button" class="list-group-item list-group-item-action" onclick="applyBatchOperation('fillZeros')">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Fill Empty Scores with Zeros</h6>
+                            <small class="text-primary">Apply</small>
+                        </div>
+                        <p class="mb-1 small text-muted">Sets all empty scores to 0 for all component scores.</p>
+                    </button>
+                    <button type="button" class="list-group-item list-group-item-action" onclick="applyBatchOperation('clearAll')">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Clear All Scores</h6>
+                            <small class="text-danger">Apply</small>
+                        </div>
+                        <p class="mb-1 small text-muted">Remove all entered scores for this class and subject.</p>
+                    </button>
+                    <button type="button" class="list-group-item list-group-item-action" onclick="applyBatchOperation('calculateMissing')">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Calculate Missing Values</h6>
+                            <small class="text-primary">Apply</small>
+                        </div>
+                        <p class="mb-1 small text-muted">Auto-calculate grades and remarks for all students with scores.</p>
+                    </button>
+                    </div>
+                        </div>
+                        </div>
+                        </div>
+                    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vendor/jquery/3.6.0/jquery-3.6.0.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'vendor/datatables/1.13.7/js/jquery.dataTables.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'vendor/datatables-buttons/2.4.2/js/dataTables.buttons.min.js' %}"></script>
+<script src="{% static 'vendor/bootstrap/5.1.3/js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.all.min.js' %}"></script>
+<!-- Enhanced scoring JavaScript files -->
+<script src="{% static 'admin/enhanced_score_calculator.js' %}?v=1"></script>
+<script>
+    // Remove any existing alerts on page load
+    $('.ajax-alert').remove();
+    
+    // Set global scoring configuration variables for JavaScript
+    {% if scoring_config %}
+    window.classScorePercentage = {{ scoring_config.class_score_percentage }};
+    window.examScorePercentage = {{ scoring_config.exam_score_percentage }};
+    window.maxClassScore = {{ scoring_config.max_class_score }};
+    window.individualMaxMark = {{ scoring_config.individual_max_mark }};
+    window.classTestMaxMark = {{ scoring_config.class_test_max_mark }};
+    window.projectMaxMark = {{ scoring_config.project_max_mark }};
+    window.groupWorkMaxMark = {{ scoring_config.group_work_max_mark }};
+    {% else %}
+    window.classScorePercentage = 30;
+    window.examScorePercentage = 70;
+    window.maxClassScore = 60;
+    window.individualMaxMark = 15;
+    window.classTestMaxMark = 15;
+    window.projectMaxMark = 15;
+    window.groupWorkMaxMark = 15;
+    {% endif %}
+
+    // Function to get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== "") {
+            const cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === name + "=") {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Scoring configuration from backend
+    const scoringConfig = {
+        examScorePercentage: {{ scoring_config.exam_score_percentage|default:70 }},
+        classScorePercentage: {{ scoring_config.class_score_percentage|default:30 }},
+        maxClassScore: {{ scoring_config.max_class_score|default:30 }},
+        individualMaxMark: {{ scoring_config.individual_max_mark|default:15 }},
+        classTestMaxMark: {{ scoring_config.class_test_max_mark|default:15 }},
+        projectMaxMark: {{ scoring_config.project_max_mark|default:15 }},
+        groupWorkMaxMark: {{ scoring_config.group_work_max_mark|default:15 }}
+    };
+
+    // Enhanced scoring validation and calculation
+    $(document).ready(function() {
+        
+        // Prevent any unwanted form submissions
+        $('form').on('submit', function(e) {
+            console.log('Form submission detected, preventing default');
+            e.preventDefault();
+            return false;
+        });
+        
+        // Prevent Enter key from submitting forms
+        $(document).on('keypress', 'input', function(e) {
+            if (e.which === 13) { // Enter key
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Auto-save setting
+        let autoSaveEnabled = false;
+        
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(function(tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Debug function to check table structure
+        window.debugTable = function() {
+            console.log('=== TABLE STRUCTURE DEBUG ===');
+            $('tbody tr:first').find('td').each(function(index) {
+                console.log(`Column ${index + 1} (index ${index}):`, $(this).html().substring(0, 50));
+            });
+        };
+        
+        // Call debug function on page load
+        setTimeout(debugTable, 1000);
+
+    // Real-time calculation for class score components
+    $(document).on('input', '.individual-score, .class-test-score, .project-score, .group-work-score', function() {
+            const row = $(this).closest('tr');
+        calculateClassScore(row);
+        calculateTotalScore(row);
+        updateGradeAndRemarks(row);
+        
+            // Highlight changed row
+            row.addClass('modified-row');
+            setTimeout(() => row.removeClass('modified-row'), 2000);
+    });
+
+    // Real-time calculation for exam score
+    $(document).on('input', '.exam-score', function() {
+            console.log('Exam score input detected:', $(this).val());
+            const row = $(this).closest('tr');
+        
+            // Prevent any form submission or page refresh
+            event.stopPropagation();
+            
+        calculateTotalScore(row);
+        updateGradeAndRemarks(row);
+        
+            // Highlight changed row
+            row.addClass('modified-row');
+            setTimeout(() => row.removeClass('modified-row'), 2000);
+            
+            console.log('Calculation completed for row');
+        });
+        
+        // Ensure exam score fields remain editable
+        $(document).on('focus', '.exam-score', function() {
+            $(this).prop('readonly', false);
+        });
+        
+        // Prevent exam score from becoming readonly
+        $(document).on('click', '.exam-score', function() {
+            $(this).prop('readonly', false);
+            $(this).focus();
+        });
+
+        // Enhanced score validation with proper limits
+        $(document).on('blur', '.score-input:not([readonly])', function() {
+        const value = parseFloat($(this).val());
+        const max = parseFloat($(this).attr('max'));
+        const min = parseFloat($(this).attr('min'));
+        
+            // Clear previous validation states
+            $(this).removeClass('is-invalid is-valid');
+            
+            if ($(this).val() !== '' && !isNaN(value)) {
+            if (value > max || value < min) {
+                $(this).addClass('is-invalid');
+                showToast(`Score must be between ${min} and ${max}`, 'warning');
+            } else {
+                    $(this).removeClass('is-invalid');
+            }
+            } else if ($(this).val() !== '' && isNaN(value)) {
+            $(this).addClass('is-invalid');
+            showToast('Please enter a valid number', 'error');
+        }
+    });
+
+    // Calculate class score from components
+    function calculateClassScore(row) {
+        const individual = parseFloat(row.find('.individual-score').val()) || 0;
+        const classTest = parseFloat(row.find('.class-test-score').val()) || 0;
+        const project = parseFloat(row.find('.project-score').val()) || 0;
+        const groupWork = parseFloat(row.find('.group-work-score').val()) || 0;
+        
+        // Calculate total actual score achieved by student
+        const totalActualScore = individual + classTest + project + groupWork;
+        
+        // Calculate total maximum possible score
+        const totalMaxPossibleScore = scoringConfig.individualMaxMark + scoringConfig.classTestMaxMark + 
+                                    scoringConfig.projectMaxMark + scoringConfig.groupWorkMaxMark;
+        
+        // If total max possible score is 0, return 0 to avoid division by zero
+        if (totalMaxPossibleScore === 0) {
+            const roundedScore = 0;
+                row.find('.calculated-class-score').val(roundedScore.toFixed(2));
+            row.find('.calculated-class-score-input').val(roundedScore);
+            return roundedScore;
+        }
+        
+        // Calculate the scaled class score
+        // Formula: (total_actual_score / total_max_possible_score) × class_score_percentage
+        const scaledScore = (totalActualScore / totalMaxPossibleScore) * scoringConfig.classScorePercentage;
+        
+        // Update display and hidden input
+        const roundedScore = Math.round(scaledScore * 100) / 100;
+            row.find('.calculated-class-score').val(roundedScore.toFixed(2));
+        row.find('.calculated-class-score-input').val(roundedScore);
+        
+        return roundedScore;
+    }
+
+
+        // Calculate total score
+        function calculateTotalScore(row) {
+            const classScore = parseFloat(row.find('.calculated-class-score-input').val()) || 0;
+        const examScore = parseFloat(row.find('.exam-score').val()) || 0;
+        
+            if (classScore > 0 || examScore > 0) {
+            // Calculate scaled exam score
+            const examScoreScaled = (examScore / 100) * scoringConfig.examScorePercentage;
+
+    // Calculate total score
+            const totalScore = classScore + examScoreScaled;
+            
+            const roundedTotal = Math.round(totalScore * 100) / 100;
+                row.find('.total-score').val(roundedTotal.toFixed(2));
+            row.find('.total-score-input').val(roundedTotal);
+            
+            return roundedTotal;
+        } else {
+                row.find('.total-score').val('--');
+            row.find('.total-score-input').val('');
+            return 0;
+        }
+    }
+
+    // Update grade and remarks based on total score
+    function updateGradeAndRemarks(row) {
+        const totalScore = parseFloat(row.find('.total-score-input').val());
+            
+            // Debug: Log the total score
+            console.log('Updating grade for total score:', totalScore);
+        
+        if (!isNaN(totalScore) && totalScore > 0) {
+                // Basic grading system
+            let grade, remarks, gradeClass, remarksClass;
+            
+            if (totalScore >= 80) {
+                grade = 'A';
+                remarks = 'Excellent';
+                gradeClass = 'grade-a';
+                remarksClass = 'remarks-excellent';
+            } else if (totalScore >= 70) {
+                grade = 'B';
+                remarks = 'Very Good';
+                gradeClass = 'grade-b';
+                remarksClass = 'remarks-vgood';
+            } else if (totalScore >= 60) {
+                grade = 'C';
+                remarks = 'Good';
+                gradeClass = 'grade-c';
+                remarksClass = 'remarks-good';
+            } else if (totalScore >= 50) {
+                grade = 'D';
+                remarks = 'Average';
+                gradeClass = 'grade-d';
+                remarksClass = 'remarks-average';
+            } else if (totalScore >= 40) {
+                grade = 'E';
+                remarks = 'Poor';
+                gradeClass = 'grade-e';
+                remarksClass = 'remarks-poor';
+            } else {
+                grade = 'F';
+                remarks = 'Fail';
+                gradeClass = 'grade-f';
+                remarksClass = 'remarks-fail';
+            }
+            
+                // Update grade display (column 10)
+                const gradeCell = row.find('td').eq(9); // 0-based index, so column 10 is index 9
+                console.log('Updating grade cell:', gradeCell.length, 'with grade:', grade);
+                gradeCell.html(`
+                    <div class="badge-grade ${gradeClass}">
+                    ${grade}
+                </div>
+            `);
+                row.find('.grade').val(grade);
+                
+                // Update remarks display (column 11)
+                const remarksCell = row.find('td').eq(10); // 0-based index, so column 11 is index 10
+                console.log('Updating remarks cell:', remarksCell.length, 'with remarks:', remarks);
+                remarksCell.html(`
+                <span class="remarks-badge ${remarksClass}">
+                    ${remarks}
+                </span>
+            `);
+                row.find('.remarks').val(remarks);
+        } else {
+            // Clear grade and remarks
+                row.find('td').eq(9).html('<span>--</span>'); // Grade column
+                row.find('.grade').val('');
+                row.find('td').eq(10).html('<span>--</span>'); // Remarks column
+                row.find('.remarks').val('');
+            }
+            
+            // Calculate positions after all scores are updated
+            calculatePositions();
+        }
+        
+        // Calculate and update positions for all students
+        function calculatePositions() {
+            // Get all rows with total scores
+            const rows = [];
+            $('tbody tr').each(function() {
+                const row = $(this);
+                const totalScore = parseFloat(row.find('.total-score-input').val());
+                if (!isNaN(totalScore) && totalScore > 0) {
+                    rows.push({
+                        row: row,
+                        score: totalScore
+                    });
+                }
+            });
+            
+            // Sort by score (highest first)
+            rows.sort((a, b) => b.score - a.score);
+            
+            // Assign positions
+            rows.forEach((item, index) => {
+                const position = index + 1;
+                const positionCell = item.row.find('td').eq(11); // 0-based index, so column 12 is index 11
+                
+                let positionClass;
+                if (position === 1) {
+                    positionClass = 'position-1';
+                } else if (position === 2) {
+                    positionClass = 'position-2';
+                } else if (position === 3) {
+                    positionClass = 'position-3';
+                } else {
+                    positionClass = 'position-other';
+                }
+                
+                positionCell.html(`
+                    <div class="position-badge ${positionClass}">
+                        ${position}
+                    </div>
+                `);
+                item.row.find('.position').val(position);
+            });
+            
+            // Clear positions for students without scores
+            $('tbody tr').each(function() {
+                const row = $(this);
+                const totalScore = parseFloat(row.find('.total-score-input').val());
+                if (isNaN(totalScore) || totalScore <= 0) {
+                    row.find('td').eq(11).html('<span>--</span>'); // Position column
+                    row.find('.position').val('');
+                }
+            });
+        }
+
+        // Auto-save functionality
+        $('#enableAutoSave').change(function() {
+            autoSaveEnabled = $(this).is(':checked');
+        });
+        
+        let autoSaveTimeout;
+        $(document).on('input', '.score-input:not([readonly])', function() {
+            // Disable auto-save for now to prevent conflicts
+            console.log('Input detected on:', $(this).attr('class'));
+            return;
+            
+            if (!autoSaveEnabled) return;
+            
+            const row = $(this).closest('tr');
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(() => {
+                row.addClass('saved-row');
+                setTimeout(() => row.removeClass('saved-row'), 1500);
+            }, 2000);
+        });
+
+        // Manual form submission handler
+        $(document).on('click', 'button[type="submit"]', function(e) {
+        e.preventDefault();
+            console.log('Manual save button clicked');
+        
+        Swal.fire({
+            title: 'Save All Scores?',
+            text: 'This will save scores for all students in this class.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, save all',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                    const form = $('#enhancedScoreForm')[0];
+                const formData = new FormData(form);
+                
+                // Show loading
+                Swal.fire({
+                    title: 'Saving...',
+                    text: 'Please wait while we save all scores.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                $.ajax({
+                        url: window.location.href,
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        Swal.fire({
+                            title: 'Success!',
+                            text: 'All scores have been saved successfully.',
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        
+                        // Add animation to all rows
+                            $('tbody tr').addClass('saved-row');
+                            setTimeout(() => $('tbody tr').removeClass('saved-row'), 1500);
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'There was an error saving the scores: ' + xhr.responseText,
+                            icon: 'error'
+                        });
+                    }
+                });
+            }
+        });
+    });
+
+        // Reset form function
+        window.resetForm = function() {
+        Swal.fire({
+                title: 'Confirm Reset',
+                text: 'Are you sure you want to reset all entered scores?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, reset all',
+                confirmButtonColor: '#dc3545',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                    $('.individual-score, .class-test-score, .project-score, .group-work-score, .exam-score').val('');
+                    $('.calculated-class-score, .total-score').val('--');
+                    $('.calculated-class-score-input, .total-score-input, .grade, .remarks, .position').val('');
+                    
+                    // Clear grade, remarks, and position columns using correct selectors
+                    $('tbody tr').each(function() {
+                        const row = $(this);
+                        row.find('td').eq(9).html('<span>--</span>'); // Grade column
+                        row.find('td').eq(10).html('<span>--</span>'); // Remarks column
+                        row.find('td').eq(11).html('<span>--</span>'); // Position column
+                    });
+                
+                Swal.fire({
+                    icon: 'success',
+                        title: 'Form has been reset',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+        });
+    };
+
+
+    // Toast notification system
+    function showToast(message, type = 'info') {
+        const toastHtml = `
+                <div class="toast-modern toast-${type}" role="alert">
+                <div class="d-flex align-items-center">
+                    <div class="me-2">
+                            ${type === 'success' ? '<i class="bi bi-check-circle text-success"></i>' :
+                              type === 'error' ? '<i class="bi bi-exclamation-circle text-danger"></i>' :
+                              type === 'warning' ? '<i class="bi bi-exclamation-triangle text-warning"></i>' :
+                              '<i class="bi bi-info-circle text-info"></i>'}
+                    </div>
+                    <div class="flex-grow-1">${message}</div>
+                    <button type="button" class="btn-close btn-sm ms-2" onclick="$(this).closest('.toast-modern').remove()"></button>
+                </div>
+            </div>
+        `;
+        
+        $('#toastContainer').append(toastHtml);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            $('#toastContainer .toast-modern:first').remove();
+        }, 5000);
+    }
+
+        // Batch operations button
+        $('#batchProcess').on('click', function() {
+            $('#batchProcessModal').modal('show');
+    });
+
+    // Import/Export Tools functionality
+    $('#toolsQuickAccess').on('click', function() {
+        // Toggle the import/export tools section
+        const importExportTools = document.getElementById('importExportTools');
+        if (importExportTools) {
+            const bsCollapse = new bootstrap.Collapse(importExportTools, {
+                toggle: true
+            });
+        }
+    });
+
+    // Export functionality now handled by onclick attributes and direct functions
+
+    // Function to handle single class export
+    function handleSingleExport(assignmentId) {
+        // Show loading state with SweetAlert
+        Swal.fire({
+            title: "Preparing Export",
+            html: "Creating Excel file...",
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+
+                // Use a more reliable approach for file download
+                setTimeout(() => {
+                    // Create a hidden form for download
+                    const form = document.createElement('form');
+                    form.method = 'GET';
+                    form.action = `{% url 'export_enhanced_scores' %}`;
+                    form.target = '_blank';
+                    
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'assignment_id';
+                    input.value = assignmentId;
+                    
+                    form.appendChild(input);
+                    document.body.appendChild(form);
+                    form.submit();
+                    document.body.removeChild(form);
+                    
+                    // Close the loading dialog after a short delay
+                    setTimeout(() => {
+                        Swal.close();
+                    }, 1000);
+                }, 500);
+            }
+        });
+    }
+
+    // Function to show multi-export dialog
+    function showMultiExportDialog() {
+        // Show loading state while fetching data
+        Swal.fire({
+            title: "Loading Classes",
+            html: "Fetching your class assignments...",
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+        });
+
+        // Fetch the teacher's assignments
+        fetch("/api/teacher-assignments/", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+                "X-CSRFToken": getCookie("csrftoken"),
+            },
+        })
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error("Network response was not ok");
+                }
+                return response.json();
+            })
+            .then((data) => {
+                Swal.close();
+
+                // Check if the API returned an error
+                if (!data.success) {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error Loading Classes",
+                        text: data.error || "Could not load your class assignments. Please try again or contact support if the problem persists.",
+                    });
+                    return;
+                }
+
+                if (!data.assignments || data.assignments.length === 0) {
+                    Swal.fire({
+                        icon: "info",
+                        title: "No Classes Found",
+                        text: "You don't have any classes assigned to you for the current academic year.",
+                    });
+                    return;
+                }
+
+                // Group assignments by class
+                const classesByForm = {};
+                data.assignments.forEach((assignment) => {
+                    const className = assignment.class_name;
+                    if (!classesByForm[className]) {
+                        classesByForm[className] = [];
+                    }
+                    classesByForm[className].push(assignment);
+                });
+
+                // Create HTML for the multi-select dialog
+                let html = `<div class="text-start">
+                    <p>Select the classes you want to export:</p>
+                    <div style="max-height: 300px; overflow-y: auto;">`;
+
+                // Add classes grouped by class name
+                Object.keys(classesByForm).forEach((className) => {
+                    html += `<h6 class="mt-3">${className}</h6>`;
+                    classesByForm[className].forEach((assignment) => {
+                        html += `
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="${assignment.id}" id="assignment_${assignment.id}">
+                                <label class="form-check-label" for="assignment_${assignment.id}">
+                                    ${assignment.class_name} - ${assignment.subject}
+                                </label>
+                            </div>`;
+                    });
+                });
+
+                html += `</div></div>`;
+
+                // Show the multi-select dialog
+                Swal.fire({
+                    title: "Export Multiple Classes",
+                    html: html,
+                    showCancelButton: true,
+                    confirmButtonText: "Export Selected",
+                    cancelButtonText: "Cancel",
+                    preConfirm: () => {
+                        const selectedIds = [];
+                        document.querySelectorAll(".form-check-input:checked").forEach((checkbox) => {
+                            selectedIds.push(checkbox.value);
+                        });
+
+                        if (selectedIds.length === 0) {
+                            Swal.showValidationMessage("Please select at least one class");
+                            return false;
+                        }
+
+                        return selectedIds;
+                    },
+                }).then((result) => {
+                    if (result.isConfirmed && result.value) {
+                        // Show loading state
+                        Swal.fire({
+                            title: "Preparing Multi-Class Export",
+                            html: "Creating Excel file with multiple sheets...",
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+
+                                // Use a more reliable approach for file download
+                                setTimeout(() => {
+                                    // Create a hidden form for download
+                                    const form = document.createElement('form');
+                                    form.method = 'GET';
+                                    form.action = `{% url 'export_enhanced_scores_batch' %}`;
+                                    form.target = '_blank';
+                                    
+                                    const input = document.createElement('input');
+                                    input.type = 'hidden';
+                                    input.name = 'assignment_ids';
+                                    input.value = result.value.join(",");
+                                    
+                                    form.appendChild(input);
+                                    document.body.appendChild(form);
+                                    form.submit();
+                                    document.body.removeChild(form);
+                                    
+                                    // Close the loading dialog after a short delay
+                                    setTimeout(() => {
+                                        Swal.close();
+                                    }, 1000);
+                                }, 500);
+                            }
+                        });
+                    }
+                });
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+                Swal.fire({
+                    icon: "error",
+                    title: "Error Loading Classes",
+                    text: "Could not load your class assignments. Please try again or contact support if the problem persists.",
+                });
+            });
+    }
+
+    // Import functionality
+    $('#importScores').on('click', function() {
+        $('#uploadForm').toggle();
+        if ($('#uploadForm').is(':visible')) {
+            $('#scoreFile').focus();
+        }
+    });
+
+    // File upload handling
+    $('#uploadForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const fileInput = $('#scoreFile')[0];
+        if (!fileInput.files.length) {
+            showToast('Please select a file to upload', 'warning');
+            return;
+        }
+
+        // Validate file type
+        const fileName = fileInput.files[0].name;
+        if (!fileName.match(/\.(xlsx|xls)$/i)) {
+            showToast('Please select a valid Excel file (.xlsx or .xls)', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('scoreFile', fileInput.files[0]);
+        formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+        
+        // Determine import URL based on whether assignment is selected
+        let importUrl;
+        if ($('#assignment').val()) {
+            // Single class import
+            importUrl = "{% url 'import_enhanced_scores' %}";
+            formData.append('assignment_id', $('#assignment').val());
+        } else {
+            // Batch import
+            importUrl = "{% url 'import_enhanced_scores_batch' %}";
+        }
+
+        // Show progress
+        $('#uploadProgress').show();
+        $('#uploadStatus').html('<div class="alert alert-info">Uploading file...</div>');
+
+        $.ajax({
+            url: importUrl,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            xhr: function() {
+                const xhr = new window.XMLHttpRequest();
+                xhr.upload.addEventListener('progress', function(evt) {
+                    if (evt.lengthComputable) {
+                        const percentComplete = evt.loaded / evt.total * 100;
+                        $('.progress-bar').css('width', percentComplete + '%');
+                    }
+                }, false);
+                return xhr;
+            },
+            success: function(response) {
+                $('#uploadProgress').hide();
+                if (response.success) {
+                    $('#uploadStatus').html('<div class="alert alert-success">' + response.message + '</div>');
+                    showToast('Scores imported successfully!', 'success');
+                    // Reload page to show updated scores
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    $('#uploadStatus').html('<div class="alert alert-danger">' + response.error + '</div>');
+                    showToast('Import failed: ' + response.error, 'error');
+                }
+            },
+            error: function() {
+                $('#uploadProgress').hide();
+                $('#uploadStatus').html('<div class="alert alert-danger">Upload failed. Please try again.</div>');
+                showToast('Upload failed. Please try again.', 'error');
+            }
+        });
+    });
+
+        // Batch operations implementation
+        window.applyBatchOperation = function(operation) {
+            // Close the modal
+            const batchModal = bootstrap.Modal.getInstance(document.getElementById('batchProcessModal'));
+            batchModal.hide();
+            
+            // Perform operation
+            switch (operation) {
+                case 'fillZeros':
+        Swal.fire({
+                        title: 'Confirm Action',
+                        text: 'Are you sure you want to fill all empty scores with zeros?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, fill with zeros',
+                        cancelButtonText: 'Cancel'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            const emptyInputs = document.querySelectorAll('.individual-score:not(:disabled):not([readonly]), .class-test-score:not(:disabled):not([readonly]), .project-score:not(:disabled):not([readonly]), .group-work-score:not(:disabled):not([readonly]), .exam-score:not(:disabled):not([readonly])');
+                            emptyInputs.forEach(input => {
+                                if (input.value === '') {
+                                    input.value = '0';
+                                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                                }
+                            });
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Empty scores filled with zeros',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        }
+                    });
+                    break;
+                    
+                case 'clearAll':
+                    Swal.fire({
+                        title: 'Confirm Reset',
+                        text: 'Are you sure you want to clear all scores? This action cannot be undone.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, clear all',
+                        confirmButtonColor: '#dc3545',
+                        cancelButtonText: 'Cancel'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            resetForm();
+                        }
+                    });
+                    break;
+                    
+                case 'calculateMissing':
+                    // Find all rows with at least one score entered
+                    const rows = document.querySelectorAll('tbody tr');
+                    let updatedCount = 0;
+                    
+                    rows.forEach(row => {
+                        const individualScore = row.querySelector('.individual-score');
+                        const examScore = row.querySelector('.exam-score');
+                        
+                        if ((individualScore.value || examScore.value) && 
+                            (row.querySelector('.total-score').value === '--' || !row.querySelector('.grade').value)) {
+                            // Trigger recalculation
+                            individualScore.dispatchEvent(new Event('input', { bubbles: true }));
+                            updatedCount++;
+                        }
+                    });
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: `Updated ${updatedCount} student records`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    break;
+            }
+        };
+
+    // Initialize the import/export tools collapse
+    const importExportTools = document.getElementById('importExportTools');
+    const toolsHeader = document.querySelector('[data-bs-target="#importExportTools"]');
+    
+    if (importExportTools && toolsHeader) {
+        // Create a Bootstrap collapse instance for the import/export tools
+        const collapse = new bootstrap.Collapse(importExportTools, {
+            toggle: false // Don't toggle on initialization
+        });
+        
+            // Add click event to the header
+            toolsHeader.addEventListener('click', function(e) {
+                e.preventDefault();
+                collapse.toggle();
+            });
+            
+            // Listen for Bootstrap collapse events
+        importExportTools.addEventListener('show.bs.collapse', function() {
+                toolsHeader.setAttribute('aria-expanded', 'true');
+        });
+        
+        importExportTools.addEventListener('hide.bs.collapse', function() {
+                toolsHeader.setAttribute('aria-expanded', 'false');
+        });
+    }
+
+    // Keyboard shortcuts
+    $(document).on('keydown', function(e) {
+        // Ctrl+S to save
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            $('#enhancedScoreForm').submit();
+        }
+        
+        // Ctrl+R to reset (with confirmation)
+        if (e.ctrlKey && e.key === 'r') {
+            e.preventDefault();
+                resetForm();
+        }
+    });
+    
+    // Calculate initial values for existing scores
+        $('tbody tr').each(function() {
+        const row = $(this);
+        if (row.find('.individual-score').val() || row.find('.class-test-score').val() || 
+            row.find('.project-score').val() || row.find('.group-work-score').val()) {
+            calculateClassScore(row);
+        }
+        if (row.find('.individual-score').val() || row.find('.class-test-score').val() || 
+            row.find('.project-score').val() || row.find('.group-work-score').val() ||
+            row.find('.exam-score').val()) {
+            calculateTotalScore(row);
+            updateGradeAndRemarks(row);
+        }
+    });
+
+    // Simple Export/Import functionality
+    function showBatchExportDialog() {
+        // Show loading state while fetching data
+        Swal.fire({
+            title: "Loading Classes",
+            html: "Fetching your class assignments...",
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+        });
+
+        // Fetch teacher assignments
+        fetch("/api/teacher-assignments/", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+                "X-CSRFToken": getCookie("csrftoken"),
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            Swal.close();
+
+            if (!data.success || !data.assignments || data.assignments.length === 0) {
+                Swal.fire({
+                    icon: "info",
+                    title: "No Classes Found",
+                    text: "You don't have any classes assigned to you for the current academic year.",
+                });
+                return;
+            }
+
+            // Group assignments by class
+            const classesByForm = {};
+            data.assignments.forEach((assignment) => {
+                const className = assignment.class_name;
+                if (!classesByForm[className]) {
+                    classesByForm[className] = [];
+                }
+                classesByForm[className].push(assignment);
+            });
+
+            // Create HTML for the multi-select dialog
+            let html = `<form id="batchExportForm" method="get" action="{% url 'export_enhanced_scores_batch' %}" target="_blank">
+                <div class="text-start">
+                    <p>Select the classes you want to export:</p>
+                    <div style="max-height: 300px; overflow-y: auto;">`;
+
+            // Add classes grouped by class name
+            Object.keys(classesByForm).forEach((className) => {
+                html += `<h6 class="mt-3">${className}</h6>`;
+                classesByForm[className].forEach((assignment) => {
+                    html += `
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="assignment_ids" value="${assignment.id}" id="assignment_${assignment.id}">
+                            <label class="form-check-label" for="assignment_${assignment.id}">
+                                ${assignment.class_name} - ${assignment.subject}
+                            </label>
+                        </div>`;
+                });
+            });
+
+            html += `</div></div></form>`;
+
+            // Show the multi-select dialog
+            Swal.fire({
+                title: "Export Multiple Classes",
+                html: html,
+                showCancelButton: true,
+                confirmButtonText: "Export Selected",
+                cancelButtonText: "Cancel",
+                preConfirm: () => {
+                    const selectedIds = [];
+                    document.querySelectorAll("#batchExportForm input[name='assignment_ids']:checked").forEach((checkbox) => {
+                        selectedIds.push(checkbox.value);
+                    });
+
+                    if (selectedIds.length === 0) {
+                        Swal.showValidationMessage("Please select at least one class");
+                        return false;
+                    }
+
+                    return selectedIds;
+                },
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    // Create a simple download by setting the form action and submitting it
+                    const form = document.getElementById('batchExportForm');
+                    // Add assignment_ids as a comma-separated parameter
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'assignment_ids';
+                    hiddenInput.value = result.value.join(',');
+                    form.appendChild(hiddenInput);
+                    
+                    // Submit the form to trigger download
+                    form.submit();
+                    
+                    // Show success message
+                    setTimeout(() => {
+                        Swal.fire({
+                            icon: "success",
+                            title: "Export Started",
+                            text: "Your file should begin downloading shortly.",
+                            timer: 3000,
+                            timerProgressBar: true,
+                        });
+                    }, 500);
+                }
+            });
+        })
+        .catch((error) => {
+            console.error("Error fetching assignments:", error);
+            Swal.fire({
+                icon: "error",
+                title: "Error Loading Classes",
+                text: "Could not load your class assignments. Please try again.",
+            });
+        });
+    }
+
+    // Simple Import functionality
+    $('#importScores').on('click', function() {
+        const assignmentId = new URLSearchParams(window.location.search).get('assignment_id');
+        
+        if (assignmentId) {
+            // Single class import
+            Swal.fire({
+                title: 'Import Enhanced Scores',
+                html: `
+                    <div class="text-start">
+                        <p>Upload an Excel file with enhanced scores for this class.</p>
+                        <p class="text-muted small">The file should include individual score components (Individual, Class Test, Project, Group Work, Exam).</p>
+                        <input type="file" id="importFile" class="form-control" accept=".xlsx,.xls">
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Upload',
+                preConfirm: () => {
+                    const file = document.getElementById('importFile').files[0];
+                    if (!file) {
+                        Swal.showValidationMessage('Please select a file');
+                        return false;
+                    }
+                    return file;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    uploadFile(result.value, assignmentId, false);
+                }
+            });
+        } else {
+            // Batch import
+            Swal.fire({
+                title: 'Import Multiple Classes',
+                html: `
+                    <div class="text-start">
+                        <p>Upload an Excel file with enhanced scores for multiple classes.</p>
+                        <p class="text-muted small">The file should have separate sheets for each class.</p>
+                        <input type="file" id="importFile" class="form-control" accept=".xlsx,.xls">
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Upload',
+                preConfirm: () => {
+                    const file = document.getElementById('importFile').files[0];
+                    if (!file) {
+                        Swal.showValidationMessage('Please select a file');
+                        return false;
+                    }
+                    return file;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    uploadFile(result.value, null, true);
+                }
+            });
+        }
+    });
+
+    function uploadFile(file, assignmentId, isBatch) {
+        const formData = new FormData();
+        formData.append('scoreFile', file);
+        formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+        
+        if (assignmentId) {
+            formData.append('assignment_id', assignmentId);
+        }
+
+        const url = isBatch ? 
+            "{% url 'import_enhanced_scores_batch' %}" : 
+            "{% url 'import_enhanced_scores' %}";
+
+        // Show progress
+        Swal.fire({
+            title: 'Uploading...',
+            html: `
+                <div class="progress">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                </div>
+                <div class="mt-2">Processing file...</div>
+            `,
+            allowOutsideClick: false,
+            showConfirmButton: false,
+        });
+
+        // Use XMLHttpRequest for progress tracking
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+                const percentComplete = (e.loaded / e.total) * 100;
+                const progressBar = document.querySelector('.progress-bar');
+                if (progressBar) {
+                    progressBar.style.width = percentComplete + '%';
+                }
+            }
+        });
+
+        xhr.addEventListener('load', () => {
+            try {
+                const response = JSON.parse(xhr.responseText);
+                
+                if (response.success) {
+                    let message = `Successfully imported ${response.imported_count} student records`;
+                    
+                    if (response.total_rows) {
+                        message += ` out of ${response.total_rows} total rows`;
+                    }
+                    
+                    if (response.processed_sheets && response.processed_sheets.length) {
+                        message += `\n\nProcessed sheets:\n${response.processed_sheets.join('\n')}`;
+                    }
+                    
+                    if (response.errors && response.errors.length > 0) {
+                        message += `\n\nWarnings:\n${response.errors.slice(0, 5).join('\n')}`;
+                        if (response.errors.length > 5) {
+                            message += `\n...and ${response.errors.length - 5} more`;
+                        }
+                    }
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Import Successful',
+                        text: message,
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    let errorMessage = response.error || 'Import failed';
+                    
+                    if (response.errors && response.errors.length > 0) {
+                        errorMessage += '\n\nDetails:\n' + response.errors.slice(0, 5).join('\n');
+                        if (response.errors.length > 5) {
+                            errorMessage += `\n...and ${response.errors.length - 5} more errors`;
+                        }
+                    }
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Import Failed',
+                        text: errorMessage
+                    });
+                }
+            } catch (e) {
+                console.error('Error parsing response:', e);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Could not process server response. Please try again.'
+                });
+            }
+        });
+
+        xhr.addEventListener('error', () => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Upload Failed',
+                text: 'A network error occurred. Please try again.'
+            });
+        });
+
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.send(formData);
+    }
+
+    // Make functions available globally
+    window.showBatchExportDialog = showBatchExportDialog;
+});
+</script>
+{% endblock %}

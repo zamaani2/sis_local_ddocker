@@ -1,0 +1,543 @@
+{% extends 'base.html' %} {% load static %} {% block title %}Manage Scoring Configuration{% endblock %} {% block page_title %}Scoring Configuration{% endblock %} {% block extra_css %}
+
+<style>
+  .config-card {
+    border-left: 4px solid #0d6efd;
+    transition: all 0.3s ease;
+  }
+
+  .config-card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .percentage-display {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #0d6efd;
+  }
+
+  .weight-input {
+    max-width: 120px;
+  }
+
+  .validation-error {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+  }
+
+  .validation-success {
+    color: #198754;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+  }
+
+  .info-box {
+    background-color: #e7f3ff;
+    border: 1px solid #b3d9ff;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .preview-box {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %}
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              Scoring Configuration
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if current_academic_year %}
+              Current academic year and term management
+            {% else %}
+              Configure how scores are weighted and calculated for {{
+            user_school.name }}
+            {% endif %}
+          </p>
+        </div>
+        <div class="btn-group">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            onclick="resetForm()"
+          >
+            <i class="bi bi-arrow-counterclockwise"></i> Reset
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Information Box -->
+  <div class="info-box">
+    <div class="d-flex align-items-start">
+      <i class="bi bi-info-circle-fill text-primary me-2 mt-1"></i>
+      <div>
+        <h6 class="mb-1">How Scoring Works</h6>
+        <p class="mb-0 small">
+          Configure the percentage weights for exam scores vs class scores. The
+          total must equal 100%. Exam scores are always out of 100 marks and
+          automatically scaled to match the Exam Score Percentage. Class scores
+          are calculated from individual components with configurable maximum
+          marks.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <form method="post" id="scoringConfigForm">
+    {% csrf_token %}
+
+    <!-- Main Score Weighting -->
+    <div class="card config-card mb-4">
+      <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-percent me-2"></i>Main Score Weighting
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="exam_score_percentage" class="form-label fw-bold">
+                Exam Score Percentage
+              </label>
+              <div class="input-group">
+                <input
+                  type="number"
+                  class="form-control weight-input"
+                  id="exam_score_percentage"
+                  name="exam_score_percentage"
+                  value="{{ current_config.exam_score_percentage|default:70 }}"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  required
+                />
+                <span class="input-group-text">%</span>
+              </div>
+              <div class="form-text">Weight for final examination scores</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="class_score_percentage" class="form-label fw-bold">
+                Class Score Percentage
+              </label>
+              <div class="input-group">
+                <input
+                  type="number"
+                  class="form-control weight-input"
+                  id="class_score_percentage"
+                  name="class_score_percentage"
+                  value="{{ current_config.class_score_percentage|default:30 }}"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  required
+                />
+                <span class="input-group-text">%</span>
+              </div>
+              <div class="form-text">
+                Weight for continuous assessment scores
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Validation and Preview -->
+        <div class="row">
+          <div class="col-12">
+            <div
+              id="weightValidation"
+              class="validation-error"
+              style="display: none"
+            >
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              Percentages must sum to 100%
+            </div>
+            <div
+              id="weightSuccess"
+              class="validation-success"
+              style="display: none"
+            >
+              <i class="bi bi-check-circle-fill me-1"></i>
+              Valid configuration
+            </div>
+
+            <div class="preview-box">
+              <h6 class="mb-2">Configuration Preview</h6>
+              <div class="row">
+                <div class="col-md-6">
+                  <div
+                    class="d-flex justify-content-between align-items-center"
+                  >
+                    <span>Exam Score:</span>
+                    <span class="fw-bold" id="examPreview">70%</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div
+                    class="d-flex justify-content-between align-items-center"
+                  >
+                    <span>Class Score:</span>
+                    <span class="fw-bold" id="classPreview">30%</span>
+                  </div>
+                </div>
+              </div>
+              <hr class="my-2" />
+              <div class="text-center">
+                <span class="percentage-display" id="totalPreview">100%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Maximum Scores -->
+    <div class="card config-card mb-4">
+      <div class="card-header bg-success text-white">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-graph-up me-2"></i>Score Configuration
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="exam_info" class="form-label fw-bold">
+                Exam Score Information
+              </label>
+              <div class="form-control-plaintext">
+                <div class="text-success fw-bold">Always out of 100 marks</div>
+                <small class="text-muted">
+                  Exam scores are automatically scaled to match the Exam Score
+                  Percentage
+                </small>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="max_class_score" class="form-label fw-bold">
+                Maximum Class Score
+              </label>
+              <input
+                type="number"
+                class="form-control weight-input"
+                id="max_class_score"
+                name="max_class_score"
+                value="{{ current_config.max_class_score|default:30 }}"
+                min="0"
+                step="0.01"
+                required
+              />
+              <div class="form-text">
+                Highest possible class score a student can achieve
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Class Score Components -->
+    <div class="card config-card mb-4">
+      <div class="card-header bg-info text-white">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-puzzle-fill me-2"></i>Class Score Components
+        </h5>
+      </div>
+      <div class="card-body">
+        <p class="text-muted mb-3">
+          Configure the maximum marks for each component. Student scores will be
+          scaled to match the Class Score Percentage. Example: If max marks
+          total 60 and Class Score Percentage is 40%, a student scoring 50/60
+          will get 33.33%.
+        </p>
+
+        <div class="row">
+          <div class="col-md-6 col-lg-3">
+            <div class="mb-3">
+              <label for="individual_max_mark" class="form-label fw-bold">
+                Individual Assignments
+              </label>
+              <div class="input-group">
+                <input
+                  type="number"
+                  class="form-control weight-input component-weight"
+                  id="individual_max_mark"
+                  name="individual_max_mark"
+                  value="{{ current_config.individual_max_mark|default:15 }}"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+                <span class="input-group-text">marks</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-3">
+            <div class="mb-3">
+              <label for="class_test_max_mark" class="form-label fw-bold">
+                Class Tests
+              </label>
+              <div class="input-group">
+                <input
+                  type="number"
+                  class="form-control weight-input component-weight"
+                  id="class_test_max_mark"
+                  name="class_test_max_mark"
+                  value="{{ current_config.class_test_max_mark|default:15 }}"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+                <span class="input-group-text">marks</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-3">
+            <div class="mb-3">
+              <label for="project_max_mark" class="form-label fw-bold">
+                Projects
+              </label>
+              <div class="input-group">
+                <input
+                  type="number"
+                  class="form-control weight-input component-weight"
+                  id="project_max_mark"
+                  name="project_max_mark"
+                  value="{{ current_config.project_max_mark|default:15 }}"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+                <span class="input-group-text">marks</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-3">
+            <div class="mb-3">
+              <label for="group_work_max_mark" class="form-label fw-bold">
+                Group Work
+              </label>
+              <div class="input-group">
+                <input
+                  type="number"
+                  class="form-control weight-input component-weight"
+                  id="group_work_max_mark"
+                  name="group_work_max_mark"
+                  value="{{ current_config.group_work_max_mark|default:15 }}"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+                <span class="input-group-text">marks</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Component Validation -->
+        <div class="row">
+          <div class="col-12">
+            <div
+              id="componentValidation"
+              class="validation-error"
+              style="display: none"
+            >
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              Component max marks cannot all be zero
+            </div>
+            <div
+              id="componentSuccess"
+              class="validation-success"
+              style="display: none"
+            >
+              <i class="bi bi-check-circle-fill me-1"></i>
+              Valid component configuration
+            </div>
+
+            <div class="preview-box">
+              <h6 class="mb-2">Component Max Marks Preview</h6>
+              <div class="row">
+                <div class="col-md-6 col-lg-3">
+                  <div class="d-flex justify-content-between">
+                    <span>Individual:</span>
+                    <span class="fw-bold" id="individualPreview">15 marks</span>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                  <div class="d-flex justify-content-between">
+                    <span>Tests:</span>
+                    <span class="fw-bold" id="testPreview">15 marks</span>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                  <div class="d-flex justify-content-between">
+                    <span>Projects:</span>
+                    <span class="fw-bold" id="projectPreview">15 marks</span>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                  <div class="d-flex justify-content-between">
+                    <span>Group Work:</span>
+                    <span class="fw-bold" id="groupPreview">15 marks</span>
+                  </div>
+                </div>
+              </div>
+              <hr class="my-2" />
+              <div class="text-center">
+                <div class="small text-muted mb-1">Total Max Marks:</div>
+                <span class="percentage-display" id="componentTotalPreview"
+                  >60 marks</span
+                >
+                <div class="small text-muted mt-1">
+                  Student scores will be scaled to match Class Score Percentage
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="card config-card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="mb-1">Save Configuration</h6>
+            <p class="text-muted mb-0 small">
+              This will update the scoring system for all future assessments
+            </p>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary" id="saveBtn">
+              <i class="bi bi-save me-1"></i>Save Configuration
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const examInput = document.getElementById("exam_score_percentage");
+    const classInput = document.getElementById("class_score_percentage");
+    const componentInputs = document.querySelectorAll(".component-weight");
+
+    // Main weight validation
+    function validateMainWeights() {
+      const exam = parseFloat(examInput.value) || 0;
+      const classScore = parseFloat(classInput.value) || 0;
+      const total = exam + classScore;
+
+      const validation = document.getElementById("weightValidation");
+      const success = document.getElementById("weightSuccess");
+      const saveBtn = document.getElementById("saveBtn");
+
+      document.getElementById("examPreview").textContent = exam + "%";
+      document.getElementById("classPreview").textContent = classScore + "%";
+      document.getElementById("totalPreview").textContent = total + "%";
+
+      if (Math.abs(total - 100) > 0.01) {
+        validation.style.display = "block";
+        success.style.display = "none";
+        saveBtn.disabled = true;
+      } else {
+        validation.style.display = "none";
+        success.style.display = "block";
+        saveBtn.disabled = false;
+      }
+    }
+
+    // Component weight validation
+    function validateComponentWeights() {
+      let total = 0;
+      componentInputs.forEach((input) => {
+        total += parseFloat(input.value) || 0;
+      });
+
+      const validation = document.getElementById("componentValidation");
+      const success = document.getElementById("componentSuccess");
+      const saveBtn = document.getElementById("saveBtn");
+
+      // Update previews
+      document.getElementById("individualPreview").textContent =
+        (parseFloat(componentInputs[0].value) || 0) + " marks";
+      document.getElementById("testPreview").textContent =
+        (parseFloat(componentInputs[1].value) || 0) + " marks";
+      document.getElementById("projectPreview").textContent =
+        (parseFloat(componentInputs[2].value) || 0) + " marks";
+      document.getElementById("groupPreview").textContent =
+        (parseFloat(componentInputs[3].value) || 0) + " marks";
+      document.getElementById("componentTotalPreview").textContent =
+        total + " marks";
+
+      // Check if all components are zero (which would cause division by zero)
+      if (total === 0) {
+        validation.style.display = "block";
+        success.style.display = "none";
+        saveBtn.disabled = true;
+      } else {
+        validation.style.display = "none";
+        success.style.display = "block";
+        // Only enable save if main weights are also valid
+        if (
+          document.getElementById("weightValidation").style.display !== "block"
+        ) {
+          saveBtn.disabled = false;
+        }
+      }
+    }
+
+    // Event listeners
+    examInput.addEventListener("input", validateMainWeights);
+    classInput.addEventListener("input", validateMainWeights);
+    componentInputs.forEach((input) => {
+      input.addEventListener("input", validateComponentWeights);
+    });
+
+    // Initial validation
+    validateMainWeights();
+    validateComponentWeights();
+
+    // Reset form function
+    window.resetForm = function () {
+      if (
+        confirm(
+          "Are you sure you want to reset the form? All changes will be lost."
+        )
+      ) {
+        document.getElementById("scoringConfigForm").reset();
+        validateMainWeights();
+        validateComponentWeights();
+      }
+    };
+  });
+</script>
+{% endblock %}

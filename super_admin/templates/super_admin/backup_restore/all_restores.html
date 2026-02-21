@@ -1,0 +1,143 @@
+{% extends "super_admin/base.html" %} {% load static %} {% load super_admin_tags
+%} {% block title %}All Restores{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 mb-0">All Restores</h1>
+          <p class="text-muted">
+            View all restore operations across all schools
+          </p>
+        </div>
+        <div>
+          <a
+            href="{% url 'super_admin:backup_restore_dashboard' %}"
+            class="btn btn-outline-secondary"
+          >
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Restores Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-history"></i> Restore Operations
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if restores %}
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>School</th>
+                  <th>Backup File</th>
+                  <th>Created By</th>
+                  <th>Started At</th>
+                  <th>Status</th>
+                  <th>Records Restored</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for restore in restores %}
+                <tr>
+                  <td>
+                    <strong>{{ restore.school.name }}</strong><br />
+                    <small class="text-muted"
+                      >{{ restore.school.short_name }}</small
+                    >
+                  </td>
+                  <td>{{ restore.backup_file_path|basename }}</td>
+                  <td>{{ restore.created_by.get_full_name }}</td>
+                  <td>{{ restore.created_at|date:"M d, Y H:i" }}</td>
+                  <td>
+                    <span
+                      class="badge bg-{% if restore.status == 'completed' %}success{% elif restore.status == 'failed' %}danger{% elif restore.status == 'in_progress' %}warning{% else %}info{% endif %}"
+                    >
+                      {{ restore.get_status_display }}
+                    </span>
+                  </td>
+                  <td>
+                    {% if restore.restored_records_count %} {{
+                    restore.restored_records_count }} {% else %} - {% endif %}
+                  </td>
+                  <td>
+                    <a
+                      href="{% url 'super_admin:restore_status' restore.id %}"
+                      class="btn btn-sm btn-outline-primary"
+                    >
+                      <i class="fas fa-eye"></i> View Details
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          {% if page_obj.has_other_pages %}
+          <nav aria-label="Restores pagination">
+            <ul class="pagination justify-content-center">
+              {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page=1">&laquo; First</a>
+              </li>
+              <li class="page-item">
+                <a
+                  class="page-link"
+                  href="?page={{ page_obj.previous_page_number }}"
+                  >Previous</a
+                >
+              </li>
+              {% endif %}
+
+              <li class="page-item active">
+                <span class="page-link">
+                  Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages
+                  }}
+                </span>
+              </li>
+
+              {% if page_obj.has_next %}
+              <li class="page-item">
+                <a
+                  class="page-link"
+                  href="?page={{ page_obj.next_page_number }}"
+                  >Next</a
+                >
+              </li>
+              <li class="page-item">
+                <a
+                  class="page-link"
+                  href="?page={{ page_obj.paginator.num_pages }}"
+                  >Last &raquo;</a
+                >
+              </li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %} {% else %}
+          <div class="text-center py-5">
+            <i class="fas fa-history fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No restores found</h5>
+            <p class="text-muted">
+              No restore operations have been performed yet.
+            </p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

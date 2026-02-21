@@ -1,0 +1,508 @@
+{% extends 'base.html' %} {% load static %} {% block title %}Bulk Generate
+Results{% endblock %} {% block page_title %}Bulk Generate Results {% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item">
+  <a href="{% url 'admin_dashboard' %}">Dashboard</a>
+</li>
+{% endblock %} {% block extra_css %}
+<style>
+
+
+  .form-select,
+  .form-control {
+    background-color: #fff !important;
+    color: #212529 !important;
+    border-color: #ced4da !important;
+  }
+
+  .form-select:focus,
+  .form-control:focus {
+    background-color: #fff !important;
+    color: #212529 !important;
+    border-color: #86b7fe !important;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+  }
+
+  .btn {
+    color: #fff !important;
+  }
+
+  .btn-outline-secondary {
+    color: #6c757d !important;
+    border-color: #6c757d !important;
+  }
+
+  .btn-outline-secondary:hover {
+    color: #fff !important;
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+  }
+
+  .text-muted {
+    color: #6c757d !important;
+  }
+
+  .small {
+    color: #6c757d !important;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %}
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              Report Card Generation Results
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if current_academic_year %}
+              Current academic year and term management
+            {% else %}
+              Bulk generation results for {{ class_name }}
+            {% endif %}
+          </p>
+        </div>
+        <div class="btn-group">
+          <a
+            href="{% url 'report_card_list' %}"
+            class="btn btn-outline-secondary"
+          >
+            <i class="bi bi-arrow-left"></i> Back to Report Cards
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div
+          class="card-header {% if error_count == total_students %}bg-danger{% elif error_count > 0 %}bg-warning{% else %}bg-success{% endif %} text-white"
+        >
+          <h3 class="card-title">Generation Summary</h3>
+          <div class="float-end">
+            <span class="badge bg-light text-dark"
+              >Processing Time: {{ processing_time|default:"N/A" }}</span
+            >
+          </div>
+        </div>
+        <div class="card-body">
+          {% if generated_count > 0 %}
+          <div class="alert alert-success">
+            <h4><i class="bi bi-check-circle"></i> Success!</h4>
+            <p>
+              Successfully generated or updated {{ generated_count }} report
+              cards for {{ class_name }}
+            </p>
+          </div>
+          {% endif %} {% if error_count > 0 %}
+          <div class="alert alert-warning">
+            <h4><i class="bi bi-exclamation-triangle"></i> Warning</h4>
+            <p>
+              {{ error_count }} report cards could not be generated due to
+              errors.
+            </p>
+            <p class="small text-muted">
+              This may be due to missing assessment data for some students.
+            </p>
+
+            {% if error_details %}
+            <div class="mt-3">
+              <button
+                class="btn btn-outline-warning"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#errorDetails"
+                aria-expanded="false"
+                aria-controls="errorDetails"
+              >
+                Show Error Details
+              </button>
+              <div class="collapse mt-2" id="errorDetails">
+                <div class="card card-body bg-light">
+                  <h5 class="text-danger">Error Details:</h5>
+                  <ul class="list-group">
+                    {% for error in error_details %}
+                    <li class="list-group-item list-group-item-warning">
+                      <strong>{{ error.student_name }}</strong> ({{error.admission_number }}): {{ error.error_message }}
+                    </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+          {% endif %} {% if generated_count == 0 and error_count == 0 %}
+          <div class="alert alert-info">
+            <h4><i class="bi bi-info-circle"></i> No Reports Generated</h4>
+            <p>
+              No report cards were generated. This might be because all students
+              already have report cards for this term.
+            </p>
+          </div>
+          {% endif %}
+
+          <div class="row mt-4">
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header bg-primary text-white">
+                  <h5 class="m-0">Generation Summary</h5>
+                </div>
+                <div class="card-body">
+                  <ul class="list-group list-group-flush">
+                    <li
+                      class="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <span><i class="bi bi-people"></i> Class:</span>
+                      <span class="badge bg-primary">{{ class_name }}</span>
+                    </li>
+                    <li
+                      class="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <span><i class="bi bi-calendar"></i> Term:</span>
+                      <span class="badge bg-info">{{ term_name }}</span>
+                    </li>
+                    <li
+                      class="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <span><i class="bi bi-building"></i> Academic Year:</span>
+                      <span class="badge bg-secondary"
+                        >{{ academic_year }}</span
+                      >
+                    </li>
+                    <li
+                      class="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <span
+                        ><i class="bi bi-person-check"></i> Total
+                        Students:</span
+                      >
+                      <span class="badge bg-dark">{{ total_students }}</span>
+                    </li>
+                    <li
+                      class="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <span
+                        ><i class="bi bi-check-circle"></i> Reports
+                        Generated:</span
+                      >
+                      <span class="badge bg-success"
+                        >{{ generated_count }}</span
+                      >
+                    </li>
+                    <li
+                      class="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <span
+                        ><i class="bi bi-x-circle"></i> Generation Errors:</span
+                      >
+                      <span class="badge bg-danger">{{ error_count }}</span>
+                    </li>
+                    <li
+                      class="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <span><i class="bi bi-clock"></i> Date Generated:</span>
+                      <span>{{ generation_date }}</span>
+                    </li>
+                    <li
+                      class="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <span
+                        ><i class="bi bi-lightning"></i> Processing Mode:</span
+                      >
+                      <span
+                        class="badge {% if processing_mode == 'parallel' %}bg-success{% else %}bg-secondary{% endif %}"
+                      >
+                        {{ processing_mode|default:"Standard"|title }}
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header bg-info text-white">
+                  <h5 class="m-0">Performance Statistics</h5>
+                </div>
+                <div class="card-body">
+                  {% if stats %}
+                  <div class="mb-3">
+                    <canvas
+                      id="classPerformanceChart"
+                      width="400"
+                      height="200"
+                    ></canvas>
+                  </div>
+                  <ul class="list-group list-group-flush">
+                    <li
+                      class="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <span>Class Average Score:</span>
+                      <span class="badge bg-primary"
+                        >{{ stats.class_average|floatformat:1 }}%</span
+                      >
+                    </li>
+                    <li
+                      class="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <span>Highest Performer:</span>
+                      <span
+                        >{{ stats.highest_performer }} ({{stats.highest_score|floatformat:1 }}%)</span
+                      >
+                    </li>
+                    <li
+                      class="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <span>Pass Rate:</span>
+                      <span
+                        class="badge {% if stats.pass_rate >= 75 %}bg-success{% elif stats.pass_rate >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                      >
+                        {{ stats.pass_rate|floatformat:1 }}%
+                      </span>
+                    </li>
+                  </ul>
+                  {% else %}
+                  <div class="alert alert-info">
+                    No performance statistics available. This might be because
+                    no report cards were generated.
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {% if performance_requirements %}
+          <div class="card mt-4">
+            <div class="card-header bg-secondary text-white">
+              <h5 class="m-0">Promotion Requirements Used</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <ul class="list-group">
+                    <li
+                      class="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <span>Minimum Average Score:</span>
+                      <span class="badge bg-primary"
+                        >{{performance_requirements.min_average_score_for_promotion}}%</span
+                      >
+                    </li>
+                    <li
+                      class="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <span>Maximum Failed Subjects:</span>
+                      <span class="badge bg-primary"
+                        >{{ performance_requirements.max_failed_subjects }}</span
+                      >
+                    </li>
+                  </ul>
+                </div>
+                <div class="col-md-6">
+                  <ul class="list-group">
+                    <li
+                      class="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <span>Calculation Method:</span>
+                      <span class="badge bg-info"
+                        >{{
+                        performance_requirements.get_calculation_method_display
+                        }}</span
+                      >
+                    </li>
+                    {% if performance_requirements.calculation_method == 'weighted' %}
+                    <li class="list-group-item">
+                      <div><strong>Term Weights:</strong></div>
+                      <div class="progress mt-2" style="height: 25px">
+                        <div
+                          class="progress-bar bg-primary"
+                          role="progressbar"
+                          style="width: {{ performance_requirements.first_term_weight }}%"
+                          aria-valuenow="{{ performance_requirements.first_term_weight }}"
+                          aria-valuemin="0"
+                          aria-valuemax="100"
+                        >
+                          Term 1: {{ performance_requirements.first_term_weight}}%
+                        </div>
+                        <div
+                          class="progress-bar bg-success"
+                          role="progressbar"
+                          style="width: {{ performance_requirements.second_term_weight }}%"
+                          aria-valuenow="{{ performance_requirements.second_term_weight }}"
+                          aria-valuemin="0"
+                          aria-valuemax="100"
+                        >
+                          Term 2: {{ performance_requirements.second_term_weight}}%
+                        </div>
+                        <div
+                          class="progress-bar bg-warning"
+                          role="progressbar"
+                          style="width: {{ performance_requirements.third_term_weight }}%"
+                          aria-valuenow="{{ performance_requirements.third_term_weight }}"
+                          aria-valuemin="0"
+                          aria-valuemax="100"
+                        >
+                          Term 3: {{performance_requirements.third_term_weight}}%
+                        </div>
+                      </div>
+                    </li>
+                    {% endif %}
+                  </ul>
+                </div>
+              </div>
+              <p class="mt-2 small text-muted">
+                The promotion status of each student has been automatically
+                determined based on these requirements.
+              </p>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="mt-4">
+            <div class="btn-group">
+              <a href="{% url 'report_card_list' %}" class="btn btn-primary">
+                <i class="bi bi-list"></i> View Report Cards
+              </a>
+              <a
+                href="{% url 'bulk_generate_report_cards' %}"
+                class="btn btn-secondary"
+              >
+                <i class="bi bi-arrow-clockwise"></i> Generate Another Batch
+              </a>
+
+              {% if error_count > 0 %}
+              <a
+                href="{% url 'bulk_generate_report_cards' %}?class_id={{ class_id }}&term_id={{ term_id }}&recalculate=true"
+                class="btn btn-warning"
+                id="retryFailedBtn"
+              >
+                <i class="bi bi-arrow-clockwise"></i> Retry Failed Cards
+              </a>
+              {% endif %} {% if generated_count > 0 %}
+              <a
+                href="{% url 'batch_print_report_cards' %}?class_id={{ class_id }}&term_id={{ term_id }}"
+                class="btn btn-success"
+                target="_blank"
+              >
+                <i class="bi bi-printer"></i> Print All Generated Cards
+              </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="{% static 'vendor/chartjs/4.4.0/dist/chart.umd.min.js' %}"></script>
+<script>
+  $(document).ready(function () {
+    // Add loading indicator and sweet alert for retry button
+    $("#retryFailedBtn").on("click", function (e) {
+      // Prevent default action
+      e.preventDefault();
+
+      // Get the URL
+      const url = $(this).attr("href");
+
+      // Show confirmation using SweetAlert
+      Swal.fire({
+        title: "Retry Failed Cards?",
+        text: "This will attempt to regenerate the failed report cards. This may take a moment.",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#ffc107",
+        confirmButtonText: "Yes, retry!",
+        cancelButtonText: "Cancel",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Show loading state
+          Swal.fire({
+            title: "Processing...",
+            text: "Regenerating report cards. Please wait.",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            willOpen: () => {
+              Swal.showLoading();
+            },
+          });
+
+          // Redirect to the URL
+          window.location.href = url;
+        }
+      });
+    });
+
+    // Initialize performance chart if stats are available
+    {% if stats %}
+    const ctx = document.getElementById('classPerformanceChart').getContext('2d');
+    const classPerformanceChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: ['Excellent (80-100%)', 'Good (70-79%)', 'Average (60-69%)', 'Fair (50-59%)', 'Poor (Below 50%)'],
+        datasets: [{
+          label: 'Student Performance',
+          data: [
+            {{ stats.excellent_count|default:0 }},
+            {{ stats.good_count|default:0 }},
+            {{ stats.average_count|default:0 }},
+            {{ stats.fair_count|default:0 }},
+            {{ stats.poor_count|default:0 }}
+          ],
+          backgroundColor: [
+            'rgba(52, 152, 219, 0.8)',
+            'rgba(46, 204, 113, 0.8)',
+            'rgba(241, 196, 15, 0.8)',
+            'rgba(230, 126, 34, 0.8)',
+            'rgba(231, 76, 60, 0.8)'
+          ],
+          borderColor: [
+            'rgba(52, 152, 219, 1)',
+            'rgba(46, 204, 113, 1)',
+            'rgba(241, 196, 15, 1)',
+            'rgba(230, 126, 34, 1)',
+            'rgba(231, 76, 60, 1)'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'right',
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.raw || 0;
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = Math.round((value / total) * 100);
+                return `${label}: ${value} students (${percentage}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+    {% endif %}
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,179 @@
+{% load custom_filters %} {% if score_data %}
+<!-- Score Sheet Header -->
+<div class="row mb-3">
+  <div class="col-12">
+    <div class="card card-info">
+      <div class="card-header">
+        <h3 class="card-title">
+          {% if school.logo %}
+          <img
+            src="{{ school.logo.url }}"
+            alt="{{ school.name }}"
+            style="height: 30px; margin-right: 10px"
+          />
+          {% endif %} {{ school.name }} - Mock Exam Score Sheet
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4">
+            <strong>Class:</strong> {{ selected_class.name }}
+          </div>
+          <div class="col-md-4">
+            <strong>Subject:</strong> {{ selected_subject.subject_name|default:"All Subjects" }}
+          </div>
+          <div class="col-md-4">
+            <strong>Mock Exam:</strong> {{ selected_mock_exam.name }}
+          </div>
+        </div>
+        <div class="row mt-2">
+          <div class="col-md-6">
+            <strong>Exam Date:</strong> {{ selected_mock_exam.exam_date|date:'F d, Y' }}
+          </div>
+          <div class="col-md-6">
+            <strong>Generated:</strong> {% now "F d, Y \a\t g:i A" %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Score Sheet Table -->
+<div class="table-responsive">
+  <table class="score-table table table-bordered table-striped">
+    <thead>
+      <tr>
+        <th>Student Name</th>
+        <th>Student ID</th>
+
+        {% if selected_subject %}
+        <!-- Single Subject View -->
+        <th>Position</th>
+        <th>Raw Score</th>
+        <th>Total Score</th>
+        <th>Grade</th>
+        <th>Remarks</th>
+        {% else %}
+        <!-- All Subjects View -->
+        {% for subject_name in score_data.0.subjects.keys %}
+        <th>{{ subject_name }}</th>
+        {% endfor %}
+        <th>Average Score</th>
+        <th>Position</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for student_data in score_data %}
+      <tr>
+        <td class="student-name">{{ student_data.student.full_name }}</td>
+        <td>{{ student_data.student.admission_number }}</td>
+
+        {% if selected_subject %}
+        <!-- Single Subject View -->
+        <td class="position-cell">{{ student_data.position }}</td>
+        {% with subject_data=student_data.subjects|get_item:selected_subject.subject_name %}
+        <td class="score-cell">{{ subject_data.raw_score|floatformat:2 }}</td>
+        <td class="score-cell">{{ subject_data.score|floatformat:2 }}</td>
+        <td class="grade-cell grade-{{ subject_data.grade }}">
+          {{ subject_data.grade }}
+        </td>
+        <td>{{ student_data.remarks }}</td>
+        {% endwith %} {% else %}
+        <!-- All Subjects View -->
+        {% for subject_name, subject_data in student_data.subjects.items %}
+        <td class="score-cell">{{ subject_data.score|floatformat:2 }}</td>
+        {% endfor %}
+        <td class="score-cell">
+          {{ student_data.average_score|floatformat:2 }}
+        </td>
+        <td class="position-cell">{{ student_data.position }}</td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Summary Statistics -->
+<div class="row mt-4">
+  <div class="col-md-6">
+    <div class="card card-primary">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-chart-bar"></i> Class Statistics
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-6">
+            <div class="info-box">
+              <span class="info-box-icon bg-info"
+                ><i class="fas fa-users"></i
+              ></span>
+              <div class="info-box-content">
+                <span class="info-box-text">Total Students</span>
+                <span class="info-box-number">{{ score_data|length }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="info-box">
+              <span class="info-box-icon bg-success"
+                ><i class="fas fa-chart-line"></i
+              ></span>
+              <div class="info-box-content">
+                <span class="info-box-text">Class Average</span>
+                <span class="info-box-number">
+                  {% if score_data %} {% if selected_subject %} {{ score_data|avg_score:selected_subject.subject_name|floatformat:2 }} {% else %} {{ score_data|avg_total_score|floatformat:2 }}
+                  {% endif %} {% else %} 0.00 {% endif %}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card card-success">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-trophy"></i> Top Performers</h3>
+      </div>
+      <div class="card-body">
+        {% for student_data in score_data|slice:":3" %}
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div>
+            <span class="badge badge-primary">{{ student_data.position }}</span>
+            <span class="ml-2">{{ student_data.student.full_name }}</span>
+          </div>
+          <span class="badge badge-success">
+            {% if selected_subject %} {% with subject_data=student_data.subjects|get_item:selected_subject.subject_name%}
+            {{ subject_data.score|floatformat:2 }} {% endwith %} {% else %}
+            {{student_data.average_score|floatformat:2 }} {% endif %}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<div class="no-data-message">
+  <i class="fas fa-info-circle fa-3x mb-3"></i>
+  <h5>No Mock Exam Score Data Available</h5>
+  <p>
+    No mock exam score data found for the selected class and subject
+    combination.
+  </p>
+  <p class="text-muted">Please ensure that:</p>
+  <ul class="text-muted">
+    <li>The class has students enrolled</li>
+    <li>Mock exam scores have been entered for the selected mock exam</li>
+    <li>The subject is assigned to the selected class</li>
+  </ul>
+</div>
+{% endif %}

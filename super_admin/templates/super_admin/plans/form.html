@@ -1,0 +1,289 @@
+{% extends 'super_admin/base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}{{ title }} - {{ block.super }}{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'super_admin:plan_list' %}">Plans</a></li>
+<li class="breadcrumb-item active">{{ title }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="card mb-4">
+    <div class="card-header">
+      <h6 class="m-0 font-weight-bold">{{ title }}</h6>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        
+        <div class="row mb-4">
+          <div class="col-md-12">
+            <h5 class="border-bottom pb-2">Plan Information</h5>
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="{{ form.name.id_for_label }}" class="form-label">Name*</label>
+            {% render_field form.name class="form-control" %}
+            {% if form.name.errors %}
+              <div class="text-danger">{{ form.name.errors }}</div>
+            {% endif %}
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="{{ form.price.id_for_label }}" class="form-label">Price ($)*</label>
+            {% render_field form.price class="form-control" type="number" step="0.01" %}
+            {% if form.price.errors %}
+              <div class="text-danger">{{ form.price.errors }}</div>
+            {% endif %}
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="{{ form.billing_cycle.id_for_label }}" class="form-label">Billing Cycle*</label>
+            {% render_field form.billing_cycle class="form-select" %}
+            {% if form.billing_cycle.errors %}
+              <div class="text-danger">{{ form.billing_cycle.errors }}</div>
+            {% endif %}
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <div class="form-check mt-4">
+              {% render_field form.is_active class="form-check-input" %}
+              <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                Active Plan
+              </label>
+              {% if form.is_active.errors %}
+                <div class="text-danger">{{ form.is_active.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+          
+          <div class="col-md-12 mb-3">
+            <label for="{{ form.description.id_for_label }}" class="form-label">Description*</label>
+            {% render_field form.description class="form-control" rows="3" %}
+            {% if form.description.errors %}
+              <div class="text-danger">{{ form.description.errors }}</div>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="row mb-4">
+          <div class="col-md-12">
+            <h5 class="border-bottom pb-2">Plan Limits</h5>
+          </div>
+          
+          <div class="col-md-4 mb-3">
+            <label for="{{ form.max_students.id_for_label }}" class="form-label">Max Students*</label>
+            {% render_field form.max_students class="form-control" type="number" %}
+            {% if form.max_students.errors %}
+              <div class="text-danger">{{ form.max_students.errors }}</div>
+            {% endif %}
+          </div>
+          
+          <div class="col-md-4 mb-3">
+            <label for="{{ form.max_teachers.id_for_label }}" class="form-label">Max Teachers*</label>
+            {% render_field form.max_teachers class="form-control" type="number" %}
+            {% if form.max_teachers.errors %}
+              <div class="text-danger">{{ form.max_teachers.errors }}</div>
+            {% endif %}
+          </div>
+          
+          <div class="col-md-4 mb-3">
+            <label for="{{ form.max_storage_gb.id_for_label }}" class="form-label">Max Storage (GB)*</label>
+            {% render_field form.max_storage_gb class="form-control" type="number" %}
+            {% if form.max_storage_gb.errors %}
+              <div class="text-danger">{{ form.max_storage_gb.errors }}</div>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="row mb-4">
+          <div class="col-md-12">
+            <h5 class="border-bottom pb-2">Features</h5>
+          </div>
+          
+          <!-- Hidden features field that will be updated by JavaScript -->
+          <div class="col-md-12 mb-3" style="display: none;">
+            {% render_field form.features class="form-control" id="features-json-input" %}
+            {% if form.features.errors %}
+              <div class="text-danger">{{ form.features.errors }}</div>
+            {% endif %}
+          </div>
+          
+          <!-- Features UI with checkboxes -->
+          <div class="col-md-12">
+            <div class="row" id="features-container">
+              <div class="col-md-4 mb-2">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input feature-checkbox" id="feature-student-management" data-feature="student_management">
+                  <label class="form-check-label" for="feature-student-management">Student Management</label>
+                </div>
+              </div>
+              <div class="col-md-4 mb-2">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input feature-checkbox" id="feature-teacher-management" data-feature="teacher_management">
+                  <label class="form-check-label" for="feature-teacher-management">Teacher Management</label>
+                </div>
+              </div>
+              <div class="col-md-4 mb-2">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input feature-checkbox" id="feature-parent-portal" data-feature="parent_portal">
+                  <label class="form-check-label" for="feature-parent-portal">Parent Portal</label>
+                </div>
+              </div>
+              <div class="col-md-4 mb-2">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input feature-checkbox" id="feature-advanced-reporting" data-feature="advanced_reporting">
+                  <label class="form-check-label" for="feature-advanced-reporting">Advanced Reporting</label>
+                </div>
+              </div>
+              <div class="col-md-4 mb-2">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input feature-checkbox" id="feature-sms-notifications" data-feature="sms_notifications">
+                  <label class="form-check-label" for="feature-sms-notifications">SMS Notifications</label>
+                </div>
+              </div>
+              <div class="col-md-4 mb-2">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input feature-checkbox" id="feature-custom-branding" data-feature="custom_branding">
+                  <label class="form-check-label" for="feature-custom-branding">Custom Branding</label>
+                </div>
+              </div>
+              <div class="col-md-4 mb-2">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input feature-checkbox" id="feature-online-payments" data-feature="online_payments">
+                  <label class="form-check-label" for="feature-online-payments">Online Payments</label>
+                </div>
+              </div>
+              <div class="col-md-4 mb-2">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input feature-checkbox" id="feature-attendance-tracking" data-feature="attendance_tracking">
+                  <label class="form-check-label" for="feature-attendance-tracking">Attendance Tracking</label>
+                </div>
+              </div>
+              <div class="col-md-4 mb-2">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input feature-checkbox" id="feature-exam-management" data-feature="exam_management">
+                  <label class="form-check-label" for="feature-exam-management">Exam Management</label>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Add custom feature button -->
+            <div class="mt-3">
+              <div class="input-group mb-3">
+                <input type="text" id="new-feature-name" class="form-control" placeholder="Enter custom feature name">
+                <button class="btn btn-outline-secondary" type="button" id="add-custom-feature">Add Custom Feature</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="d-flex justify-content-between">
+          <a href="{% url 'super_admin:plan_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to List
+          </a>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i> Save Plan
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const featuresJsonInput = document.getElementById('features-json-input');
+    const featureCheckboxes = document.querySelectorAll('.feature-checkbox');
+    const featuresContainer = document.getElementById('features-container');
+    const addCustomFeatureBtn = document.getElementById('add-custom-feature');
+    const newFeatureNameInput = document.getElementById('new-feature-name');
+    
+    // Function to update the hidden JSON field
+    function updateFeaturesJson() {
+      const features = {};
+      document.querySelectorAll('.feature-checkbox').forEach(checkbox => {
+        features[checkbox.dataset.feature] = checkbox.checked;
+      });
+      featuresJsonInput.value = JSON.stringify(features);
+    }
+    
+    // Initialize checkboxes from existing JSON
+    if (featuresJsonInput.value) {
+      try {
+        const features = JSON.parse(featuresJsonInput.value);
+        for (const [feature, enabled] of Object.entries(features)) {
+          const checkbox = document.querySelector(`.feature-checkbox[data-feature="${feature}"]`);
+          if (checkbox) {
+            checkbox.checked = enabled;
+          } else {
+            // Create a checkbox for custom features that aren't in our predefined list
+            addCustomFeatureCheckbox(feature, enabled);
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing features JSON:', e);
+      }
+    }
+    
+    // Add event listeners to all checkboxes
+    featureCheckboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', updateFeaturesJson);
+    });
+    
+    // Function to add a custom feature checkbox
+    function addCustomFeatureCheckbox(featureName, checked = true) {
+      const featureId = 'feature-' + featureName.toLowerCase().replace(/\s+/g, '-');
+      const featureKey = featureName.toLowerCase().replace(/\s+/g, '_');
+      
+      const colDiv = document.createElement('div');
+      colDiv.className = 'col-md-4 mb-2';
+      
+      const formCheckDiv = document.createElement('div');
+      formCheckDiv.className = 'form-check';
+      
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'form-check-input feature-checkbox';
+      checkbox.id = featureId;
+      checkbox.dataset.feature = featureKey;
+      checkbox.checked = checked;
+      checkbox.addEventListener('change', updateFeaturesJson);
+      
+      const label = document.createElement('label');
+      label.className = 'form-check-label';
+      label.htmlFor = featureId;
+      label.textContent = featureName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      
+      formCheckDiv.appendChild(checkbox);
+      formCheckDiv.appendChild(label);
+      colDiv.appendChild(formCheckDiv);
+      featuresContainer.appendChild(colDiv);
+      
+      return checkbox;
+    }
+    
+    // Add custom feature button event listener
+    addCustomFeatureBtn.addEventListener('click', function() {
+      const featureName = newFeatureNameInput.value.trim();
+      if (featureName) {
+        const checkbox = addCustomFeatureCheckbox(featureName);
+        updateFeaturesJson();
+        newFeatureNameInput.value = '';
+      }
+    });
+    
+    // Initialize the JSON field with default values if empty
+    if (!featuresJsonInput.value) {
+      updateFeaturesJson();
+    }
+  });
+</script>
+{% endblock %} 

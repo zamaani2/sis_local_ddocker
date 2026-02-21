@@ -1,0 +1,508 @@
+{% extends "base.html" %}
+{% load static %}
+{% load score_filters %}
+
+{% block title %}Academic Score Management Dashboard{% endblock %}
+{% block page_title %}Academic Score Management Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .score-card {
+        transition: all 0.2s;
+    }
+    .score-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    }
+    .summary-card {
+        border-left: 4px solid;
+    }
+</style>
+<!-- Chart.js for data visualization (local) -->
+<script src="{% static 'vendor/chartjs/4.4.0/dist/chart.umd.min.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        {% if current_academic_year %}
+                          {{ current_academic_year.name }}
+                          {% if current_term %} - {{ current_term.name }}
+                          {% endif %}
+                        {% else %}
+                          Academic Score Management
+                        {% endif %}
+                    </h2>
+                    <p class="text-muted mb-0">
+                        {% if current_academic_year %}
+                          Current academic year and term management
+                        {% else %}
+                          Comprehensive score management and analysis dashboard
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'export_scores' %}" class="btn btn-outline-success">
+                        <i class="bi bi-download"></i> Export Scores
+                    </a>
+                    <a href="{% url 'import_scores' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-upload"></i> Import Scores
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ class_count }}</h4>
+                            <p class="mb-0">Classes</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-chalkboard fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ subject_count }}</h4>
+                            <p class="mb-0">Subjects</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-book fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ assessment_count }}</h4>
+                            <p class="mb-0">Assessment Records</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-clipboard-data fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ student_count }}</h4>
+                            <p class="mb-0">Students</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-people fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-funnel"></i> Filter Options
+                    </h5>
+                </div>
+                <div class="card-body">
+            <form action="{% url 'score_management_dashboard' %}" method="GET" class="filter-form">
+                <div class="row">
+                    <!-- Academic Year Filter -->
+                    <div class="col-md-3">
+                        <label for="academic_year_id" class="form-label">Academic Year</label>
+                        <select class="form-select" id="academic_year_id" name="academic_year_id">
+                            {% for academic_year in academic_years %}
+                            <option value="{{ academic_year.id }}" {% if selected_academic_year and academic_year.id == selected_academic_year.id %}selected{% endif %}>
+                                {{ academic_year.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Term Filter -->
+                    <div class="col-md-3">
+                        <label for="term_id" class="form-label">Term</label>
+                        <select class="form-select" id="term_id" name="term_id">
+                            {% for term in terms %}
+                            <option value="{{ term.id }}" {% if selected_term and term.id == selected_term.id %}selected{% endif %}>
+                                {{ term.get_term_number_display }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Form/Grade Filter -->
+                    <div class="col-md-3">
+                        <label for="form_id" class="form-label">Form/Grade</label>
+                        <select class="form-select" id="form_id" name="form_id">
+                            <option value="">All Forms</option>
+                            {% for form in forms %}
+                            <option value="{{ form.id }}" {% if selected_form and form.id == selected_form.id %}selected{% endif %}>
+                                {{ form.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Class Filter -->
+                    <div class="col-md-3">
+                        <label for="class_id" class="form-label">Class</label>
+                        <select class="form-select" id="class_id" name="class_id" {% if not selected_form %}disabled{% endif %}>
+                            <option value="">All Classes</option>
+                            {% for class in classes %}
+                            <option value="{{ class.id }}" {% if selected_class and class.id == selected_class.id %}selected{% endif %}>
+                                {{ class.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-12 text-end">
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> Apply Filters
+                            </button>
+                            <a href="{% url 'score_management_dashboard' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-clockwise"></i> Reset
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Overview -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up"></i> Performance Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height: 300px;">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pie-chart"></i> Subject Performance
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height: 300px;">
+                        <canvas id="subjectChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card h-100 score-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">Class Scores</h5>
+                        <i class="bi bi-clipboard-check fa-2x text-primary"></i>
+                    </div>
+                    <p class="text-muted mb-3">Enter, edit, and view scores by class</p>
+                    <a href="{% url 'class_scores' %}" class="btn btn-primary">
+                        <i class="bi bi-arrow-right"></i> Go
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card h-100 score-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">Subject Performance</h5>
+                        <i class="bi bi-graph-up fa-2x text-success"></i>
+                    </div>
+                    <p class="text-muted mb-3">Analyze performance by subject</p>
+                    <a href="{% url 'subject_performance' %}" class="btn btn-success">
+                        <i class="bi bi-arrow-right"></i> Go
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card h-100 score-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">Compare Scores</h5>
+                        <i class="bi bi-graph-up fa-2x text-info"></i>
+                    </div>
+                    <p class="text-muted mb-3">Compare term or subject performance</p>
+                    <a href="{% url 'compare_scores' %}" class="btn btn-info">
+                        <i class="bi bi-arrow-right"></i> Go
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card h-100 score-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">Progress Tracking</h5>
+                        <i class="bi bi-person-check fa-2x text-warning"></i>
+                    </div>
+                    <p class="text-muted mb-3">Track student progress over time</p>
+                    <a href="{% url 'progress_tracking' %}" class="btn btn-warning">
+                        <i class="bi bi-arrow-right"></i> Go
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Score Activity -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clock-history"></i> Recent Score Entries
+                        </h5>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuLink">
+                                <li><h6 class="dropdown-header">Options:</h6></li>
+                                <li><a class="dropdown-item" href="{% url 'class_scores' %}">View All Scores</a></li>
+                                <li><a class="dropdown-item" href="{% url 'export_scores' %}">Export Scores</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'import_scores' %}">Import Scores</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                        <tr>
+                            <th>Student</th>
+                            <th>Subject</th>
+                            <th>Class</th>
+                            <th>Term</th>
+                            <th class="text-center">Class Score</th>
+                            <th class="text-center">Exam Score</th>
+                            <th class="text-center">Total</th>
+                            <th>Entered On</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for assessment in recent_assessments %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'student_score_detail' assessment.student.id %}" class="text-decoration-none">
+                                    {{ assessment.student.full_name }}
+                                </a>
+                            </td>
+                            <td>{{ assessment.class_subject.subject.subject_name }}</td>
+                            <td>{{ assessment.class_subject.class_obj.name }}</td>
+                            <td>{{ assessment.term.get_term_number_display }}</td>
+                            <td class="text-center">{{ assessment.class_score|default:"--" }}</td>
+                            <td class="text-center">{{ assessment.exam_score|default:"--" }}</td>
+                            <td class="text-center">
+                                <span class="badge {% if assessment.total_score >= 70 %}bg-success{% elif assessment.total_score >= 60 %}bg-primary{% elif assessment.total_score >= 50 %}bg-info{% elif assessment.total_score >= 40 %}bg-warning{% else %}bg-danger{% endif %} text-white">
+                                    {{ assessment.total_score|floatformat:1 }}
+                                </span>
+                            </td>
+                            <td>{{ assessment.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'edit_score' assessment.id %}" class="btn btn-outline-primary" title="Edit Score">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                <i class="bi bi-clipboard-data text-muted mb-3" style="font-size: 3rem"></i>
+                                <p>No recent score entries found.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Enable/disable class selector based on form selection
+        $('#form_id').change(function() {
+            if ($(this).val()) {
+                $('#class_id').prop('disabled', false);
+                // Here you could also make an AJAX call to load classes for the selected form
+            } else {
+                $('#class_id').prop('disabled', true);
+                $('#class_id').val('');
+            }
+        });
+    });
+
+    // Performance Distribution Chart
+    document.addEventListener('DOMContentLoaded', function() {
+        var performanceCtx = document.getElementById('performanceChart').getContext('2d');
+        
+        var performanceChart = new Chart(performanceCtx, {
+            type: 'bar',
+            data: {
+                labels: ['A (80-100)', 'B (70-79)', 'C (60-69)', 'D (50-59)', 'E (40-49)', 'F (0-39)'],
+                datasets: [{
+                    label: 'Number of Students',
+                    data: [
+                        {{ grade_distribution.A|default:0 }},
+                        {{ grade_distribution.B|default:0 }},
+                        {{ grade_distribution.C|default:0 }},
+                        {{ grade_distribution.D|default:0 }},
+                        {{ grade_distribution.E|default:0 }},
+                        {{ grade_distribution.F|default:0 }}
+                    ],
+                    backgroundColor: [
+                        'rgba(28, 200, 138, 0.8)',
+                        'rgba(54, 185, 204, 0.8)',
+                        'rgba(78, 115, 223, 0.8)',
+                        'rgba(246, 194, 62, 0.8)',
+                        'rgba(255, 159, 64, 0.8)',
+                        'rgba(231, 74, 59, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(28, 200, 138, 1)',
+                        'rgba(54, 185, 204, 1)',
+                        'rgba(78, 115, 223, 1)',
+                        'rgba(246, 194, 62, 1)',
+                        'rgba(255, 159, 64, 1)',
+                        'rgba(231, 74, 59, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Students'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Grade Range'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Subject Performance Chart
+        var subjectCtx = document.getElementById('subjectChart').getContext('2d');
+        
+        var subjectLabels = [];
+        var subjectData = [];
+        
+        {% for subject, avg in subject_averages.items %}
+        subjectLabels.push('{{ subject }}');
+        subjectData.push({{ avg|floatformat:1 }});
+        {% endfor %}
+        
+        var subjectChart = new Chart(subjectCtx, {
+            type: 'doughnut',
+            data: {
+                labels: subjectLabels,
+                datasets: [{
+                    data: subjectData,
+                    backgroundColor: [
+                        'rgba(78, 115, 223, 0.8)',
+                        'rgba(28, 200, 138, 0.8)',
+                        'rgba(54, 185, 204, 0.8)',
+                        'rgba(246, 194, 62, 0.8)',
+                        'rgba(231, 74, 59, 0.8)',
+                        'rgba(255, 159, 64, 0.8)',
+                        'rgba(90, 92, 105, 0.8)'
+                    ],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            boxWidth: 12
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.parsed + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %} 

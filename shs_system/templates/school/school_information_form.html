@@ -1,0 +1,533 @@
+{% extends 'base.html' %} {% load static %} {% load widget_tweaks %} {% block title %} {% if form.instance.id %}Edit {{ form.instance.name }}{% else %}Add New
+School{% endif %} - School Information {% endblock %} {% block page_title %}{% if form.instance.id %}Edit {{ form.instance.name }}{% else %}Add New School{% endif %}{% endblock %} {% block extra_css %}
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %}
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              {% if form.instance.id %}Edit {{ form.instance.name }}{% else %}Add
+              New School{% endif %}
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if form.instance.id %}Update school information and settings{% else %}Create a new school and configure its settings{% endif %}
+          </p>
+        </div>
+        <div class="btn-group">
+          <a
+            href="{% if form.instance.id %}{% url 'school_information_detail' pk=form.instance.id %}{% else %}{% url 'school_information_list' %}{% endif %}"
+            class="btn btn-outline-secondary"
+          >
+            <i class="bi bi-arrow-left"></i> Back
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if not user.is_superadmin and user_school and form.instance.id and  user_school.id != form.instance.id %}
+  <div class="alert alert-danger" role="alert">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    <h4 class="alert-heading">Access Denied</h4>
+    <p>You do not have permission to edit information for this school.</p>
+    <hr />
+    <p class="mb-0">
+      Please contact your system administrator if you believe this is an error.
+    </p>
+  </div>
+  {% else %}
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-building me-2"></i>School Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data" id="schoolForm">
+            {% csrf_token %}
+
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.name.id_for_label }}" class="form-label"
+                    >School Name</label
+                  >
+                  {{ form.name|add_class:"form-control" }} {% if form.name.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.name.errors }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label
+                    for="{{ form.short_name.id_for_label }}"
+                    class="form-label"
+                    >Short Name</label
+                  >
+                  {{ form.short_name|add_class:"form-control" }} {% if form.short_name.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.short_name.errors }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-4">
+              <div class="col-md-12">
+                <div class="mb-3">
+                  <label
+                    for="{{ form.address.id_for_label }}"
+                    class="form-label"
+                    >Address</label
+                  >
+                  {{ form.address|add_class:"form-control" }} {% if form.address.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.address.errors }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label
+                    for="{{ form.postal_code.id_for_label }}"
+                    class="form-label"
+                    >Postal Code</label
+                  >
+                  {{ form.postal_code|add_class:"form-control" }} {% if form.postal_code.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.postal_code.errors }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label
+                    for="{{ form.phone_number.id_for_label }}"
+                    class="form-label"
+                    >Phone Number</label
+                  >
+                  {{ form.phone_number|add_class:"form-control" }} {% if form.phone_number.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.phone_number.errors }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.email.id_for_label }}" class="form-label"
+                    >Email</label
+                  >
+                  {{ form.email|add_class:"form-control" }} {% if form.email.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.email.errors }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label
+                    for="{{ form.website.id_for_label }}"
+                    class="form-label"
+                    >Website</label
+                  >
+                  {{ form.website|add_class:"form-control" }} {% if form.website.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.website.errors }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label
+                    for="{{ form.school_code.id_for_label }}"
+                    class="form-label"
+                    >School Code</label
+                  >
+                  {{ form.school_code|add_class:"form-control" }} {% if form.school_code.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.school_code.errors }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.motto.id_for_label }}" class="form-label"
+                    >Motto</label
+                  >
+                  {{ form.motto|add_class:"form-control" }} {% if form.motto.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.motto.errors }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="{{ form.logo.id_for_label }}" class="form-label"
+                    >Logo</label
+                  >
+                  {{ form.logo|add_class:"form-control" }} {% if form.logo.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.logo.errors }}
+                  </div>
+                  {% endif %} {% if form.instance.logo %}
+                  <div class="mt-2">
+                    <p class="mb-1">Current Logo:</p>
+                    <img
+                      src="{{ form.instance.logo.url }}"
+                      alt="School Logo"
+                      class="img-thumbnail"
+                      style="max-height: 100px"
+                    />
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label
+                    for="{{ form.school_stamp.id_for_label }}"
+                    class="form-label"
+                    >School Stamp</label
+                  >
+                  {{ form.school_stamp|add_class:"form-control" }} {% if form.school_stamp.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.school_stamp.errors }}
+                  </div>
+                  {% endif %} {% if form.instance.school_stamp %}
+                  <div class="mt-2">
+                    <p class="mb-1">Current Stamp:</p>
+                    <img
+                      src="{{ form.instance.school_stamp.url }}"
+                      alt="School Stamp"
+                      class="img-thumbnail"
+                      style="max-height: 100px"
+                    />
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-4">
+              <div class="col-md-12">
+                <div class="mb-3">
+                  <label for="{{ form.vision.id_for_label }}" class="form-label"
+                    >Vision</label
+                  >
+                  {{ form.vision|add_class:"form-control" }} {% if form.vision.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.vision.errors }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-4">
+              <div class="col-md-12">
+                <div class="mb-3">
+                  <label
+                    for="{{ form.mission.id_for_label }}"
+                    class="form-label"
+                    >Mission</label
+                  >
+                  {{ form.mission|add_class:"form-control" }} {% if form.mission.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.mission.errors }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-4">
+              <div class="col-md-12">
+                <div class="mb-3">
+                  <label
+                    for="{{ form.grading_system_description.id_for_label }}"
+                    class="form-label"
+                    >Grading System Description</label
+                  >
+                  {{ form.grading_system_description|add_class:"form-control" }}
+                  {% if form.grading_system_description.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.grading_system_description.errors }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-4">
+              <div class="col-md-12">
+                <div class="mb-3">
+                  <label
+                    for="{{ form.report_header.id_for_label }}"
+                    class="form-label"
+                    >Report Header</label
+                  >
+                  {{ form.report_header|add_class:"form-control" }} {% if form.report_header.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.report_header.errors }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-4">
+              <div class="col-md-12">
+                <div class="mb-3">
+                  <label
+                    for="{{ form.report_footer.id_for_label }}"
+                    class="form-label"
+                    >Report Footer</label
+                  >
+                  {{ form.report_footer|add_class:"form-control" }} {% if form.report_footer.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.report_footer.errors }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label
+                    for="{{ form.current_academic_year.id_for_label }}"
+                    class="form-label"
+                    >Current Academic Year</label
+                  >
+                  {{ form.current_academic_year|add_class:"form-select" }} {% if form.current_academic_year.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.current_academic_year.errors }}
+                  </div>
+                  {% endif %}
+                  <small class="form-text text-muted"
+                    >Select the current academic year for this school</small
+                  >
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label
+                    for="{{ form.current_term.id_for_label }}"
+                    class="form-label"
+                    >Current Term</label
+                  >
+                  <div class="input-group">
+                    {{ form.current_term|add_class:"form-select" }}
+                    <span
+                      class="input-group-text term-loading-container"
+                      style="display: none"
+                    >
+                      <span
+                        class="spinner-border spinner-border-sm text-primary"
+                        role="status"
+                      >
+                        <span class="visually-hidden">Loading...</span>
+                      </span>
+                    </span>
+                  </div>
+                  {% if form.current_term.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.current_term.errors }}
+                  </div>
+                  {% endif %}
+                  <small class="form-text text-muted"
+                    >First select an academic year, then choose a term</small
+                  >
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <div class="mb-3 form-check">
+                  {{ form.is_active }}
+                  <label
+                    for="{{ form.is_active.id_for_label }}"
+                    class="form-check-label"
+                    >Active School</label
+                  >
+                  {% if form.is_active.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.is_active.errors }}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save"></i> {% if form.instance.id %}Update{% else %}Create{% endif %} School
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="bi bi-info-circle me-2"></i>Help Information
+          </h6>
+        </div>
+        <div class="card-body">
+          <h5>School Information</h5>
+          <p>
+            This form allows you to manage your school's basic information and
+            settings.
+          </p>
+
+          <h6>Tips:</h6>
+          <ul>
+            <li>
+              The <strong>School Name</strong> is the official full name of your
+              institution.
+            </li>
+            <li>
+              The <strong>Short Name</strong> is used in places where space is
+              limited.
+            </li>
+            <li>
+              Upload a clear <strong>School Logo</strong> for use on reports and
+              official documents.
+            </li>
+            <li>
+              Set your <strong>Current Academic Year</strong> and
+              <strong>Current Term</strong> to ensure reports and records are
+              associated with the correct period.
+            </li>
+            <li>
+              The <strong>School Stamp</strong> will appear on official
+              documents and reports.
+            </li>
+          </ul>
+
+          {% if form.instance.id %}
+          <div class="alert alert-info mb-3">
+            <i class="bi bi-lightbulb me-2"></i>
+            <small
+              >After updating school information, you may need to update related
+              settings such as academic years, terms, or authority
+              signatures.</small
+            >
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Handle academic year change to load related terms
+    $("#id_current_academic_year").change(function () {
+      var academicYearId = $(this).val();
+      var currentTermSelect = $("#id_current_term");
+
+      // Clear current options and any previous error messages
+      currentTermSelect.empty();
+      currentTermSelect.append('<option value="">---------</option>');
+      $(".term-error-message").remove();
+
+      if (academicYearId) {
+        // Get current term ID if any
+        var currentTermId = '{{ form.instance.current_term.id|default:"" }}';
+
+        // Show loading indicator
+        $(".term-loading-container").show();
+
+        // Fetch terms for this academic year
+        $.ajax({
+          url: "/school/get_terms_by_academic_year/" + academicYearId + "/",
+          data: {
+            current_term_id: currentTermId,
+          },
+          dataType: "json",
+          success: function (data) {
+            // Hide loading indicator
+            $(".term-loading-container").hide();
+
+            if (data.terms && data.terms.length > 0) {
+              $.each(data.terms, function (i, term) {
+                var selected = term.id == currentTermId ? "selected" : "";
+                currentTermSelect.append(
+                  '<option value="' +
+                    term.id +
+                    '" ' +
+                    selected +
+                    ">" +
+                    term.name +
+                    "</option>"
+                );
+              });
+            } else {
+              // No terms found
+              currentTermSelect.after(
+                '<div class="alert alert-warning mt-2 term-error-message">No terms found for this academic year. Please <a href="/terms/create/">create terms</a> first.</div>'
+              );
+            }
+          },
+          error: function (xhr, status, error) {
+            // Hide loading indicator
+            $(".term-loading-container").hide();
+
+            console.error("Error fetching terms:", error);
+            // Display error message to user
+            currentTermSelect.after(
+              '<div class="alert alert-danger mt-2 term-error-message">Error loading terms. Please try again.</div>'
+            );
+          },
+        });
+      }
+    });
+
+    // Trigger change event on page load if academic year is already selected
+    if ($("#id_current_academic_year").val()) {
+      $("#id_current_academic_year").trigger("change");
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,39 @@
+# SchoolApp Docker Auto-Start Service
+# This systemd service ensures Docker containers start automatically on boot
+
+[Unit]
+Description=SchoolApp Docker Containers
+Documentation=https://github.com/your-repo/SchoolApp
+After=docker.service
+Requires=docker.service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/path/to/your/SchoolApp
+ExecStart=/path/to/your/SchoolApp/scripts/docker-auto-start.sh start
+ExecStop=/path/to/your/SchoolApp/scripts/docker-auto-start.sh stop
+ExecReload=/path/to/your/SchoolApp/scripts/docker-auto-start.sh restart
+TimeoutStartSec=300
+TimeoutStopSec=60
+
+# Restart policy
+Restart=on-failure
+RestartSec=10
+
+# Security settings
+User=root
+Group=root
+
+# Environment
+Environment=COMPOSE_PROJECT_NAME=schoolapp
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=schoolapp-docker
+
+[Install]
+WantedBy=multi-user.target

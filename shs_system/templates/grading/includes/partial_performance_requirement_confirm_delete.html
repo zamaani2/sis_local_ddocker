@@ -1,0 +1,80 @@
+{% load static %}
+<form
+  method="post"
+  action="{% url 'performance_requirement_delete' requirement.id %}"
+  class="js-requirement-delete-form"
+>
+  {% csrf_token %}
+  <div class="modal-header">
+    <h5 class="modal-title">Confirm Delete Performance Requirement</h5>
+    <button
+      type="button"
+      class="btn-close"
+      data-bs-dismiss="modal"
+      aria-label="Close"
+    ></button>
+  </div>
+  <div class="modal-body">
+    <div class="messages-container"></div>
+    <p>
+      Are you sure you want to delete the performance requirement
+      <strong>{{ requirement.name }}</strong>?
+    </p>
+
+    {% if requirement.is_active %}
+    <div class="alert alert-danger">
+      <i class="fas fa-exclamation-circle me-2"></i>
+      <strong>Warning!</strong> This is the currently active requirement. If
+      deleted, another requirement will be automatically activated if available.
+    </div>
+    {% endif %}
+
+    <div class="alert alert-warning">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      This action cannot be undone.
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-bordered table-sm">
+        <tr>
+          <th>Name:</th>
+          <td>{{ requirement.name }}</td>
+        </tr>
+        <tr>
+          <th>Min Average Score:</th>
+          <td>{{ requirement.min_average_score_for_promotion }}</td>
+        </tr>
+        <tr>
+          <th>Max Failed Subjects:</th>
+          <td>{{ requirement.max_failed_subjects }}</td>
+        </tr>
+        <tr>
+          <th>Min Passing Grade:</th>
+          <td>{{ requirement.min_passing_grade|default:"-" }}</td>
+        </tr>
+        <tr>
+          <th>Calculation Method:</th>
+          <td>{{ requirement.get_calculation_method_display }}</td>
+        </tr>
+        <tr>
+          <th>Status:</th>
+          <td>
+            {% if requirement.is_active %}
+            <span class="badge bg-success">Active</span>
+            {% else %}
+            <span class="badge bg-secondary">Inactive</span>
+            {% endif %}
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+      Cancel
+    </button>
+    <button type="submit" class="btn btn-danger">
+      <i class="fas fa-trash me-1"></i> Delete Requirement
+    </button>
+  </div>
+</form>

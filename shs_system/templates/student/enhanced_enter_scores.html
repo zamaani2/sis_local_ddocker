@@ -1,0 +1,1881 @@
+
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Enhanced Score Entry {% endblock %}
+{% block page_title %}Enhanced Score Entry {% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/student_class_assignment.css' %}">
+<!-- DataTables CSS is already loaded in base.html via _styles.html -->
+<!-- DataTables Buttons CSS removed - buttons functionality not used -->
+<link rel="stylesheet" href="{% static 'vendor/sweetalert2/11.7.32/dist/sweetalert2.min.css' %}">
+<style>
+    /* Legacy-style CSS similar to enter_scores.html */
+    .badge-grade {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-weight: bold;
+        font-size: 0.85rem;
+    }
+
+    .grade-a {
+        background-color: #198754;
+        color: white;
+    }
+
+    .grade-b {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+    .grade-c {
+        background-color: #6f42c1;
+        color: white;
+    }
+
+    .grade-d {
+        background-color: #fd7e14;
+        color: white;
+    }
+
+    .grade-e {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .grade-f {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .remarks-badge {
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-weight: 500;
+        display: inline-block;
+        min-width: 100px;
+        text-align: center;
+        font-size: 0.8rem;
+    }
+
+    .remarks-excellent {
+        background-color: #198754;
+        color: white;
+    }
+
+    .remarks-vgood {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+    .remarks-good {
+        background-color: #6f42c1;
+        color: white;
+    }
+
+    .remarks-average {
+        background-color: #fd7e14;
+        color: white;
+    }
+
+    .remarks-poor {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .remarks-fail {
+        background-color: #212529;
+        color: white;
+    }
+
+    .score-input {
+        background-color: #ffffff;
+        border: 1px solid #ced4da;
+        border-radius: 3px;
+        padding: 0.375rem 0.5rem;
+        width: 100%;
+        min-width: 70px;
+        font-size: 0.85rem;
+        height: 32px;
+        color: #212529;
+        font-weight: 500;
+    }
+
+    .score-input:focus {
+        border-color: #6f42c1;
+        box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.25);
+        outline: 0;
+        background-color: #ffffff;
+        color: #212529;
+    }
+
+    .score-input:read-only {
+        background-color: #f8f9fa;
+        color: #495057;
+        font-weight: 600;
+    }
+
+    .score-input::placeholder {
+        color: #6c757d;
+        font-weight: 400;
+    }
+
+    /* Enhanced input visibility for better readability */
+    .score-input:hover {
+        border-color: #6f42c1;
+        background-color: #ffffff;
+    }
+
+    .score-input:active {
+        border-color: #6f42c1;
+        background-color: #ffffff;
+        color: #212529;
+    }
+
+    /* Specific styling for different score input types */
+    .individual-score,
+    .class-test-score,
+    .project-score,
+    .group-work-score,
+    .exam-score {
+        color: #212529 !important;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .individual-score:focus,
+    .class-test-score:focus,
+    .project-score:focus,
+    .group-work-score:focus,
+    .exam-score:focus {
+        color: #212529 !important;
+        background-color: #ffffff !important;
+        border-color: #6f42c1 !important;
+        box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.25) !important;
+    }
+
+    /* Calculated fields styling */
+    .calculated-class-score,
+    .total-score {
+        color: #495057 !important;
+        font-weight: 700;
+        text-align: center;
+        background-color: #f8f9fa !important;
+    }
+
+    .table-scores th {
+        background-color: #212529;
+        color: white;
+        padding: 6px 4px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .table-scores tbody tr:nth-of-type(odd) {
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+
+    .table-scores tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.075);
+    }
+
+    /* Enhanced table cell padding for better input visibility */
+    .table tbody td {
+        padding: 6px 4px;
+        vertical-align: middle;
+    }
+
+    /* Specific styling for score input columns */
+    .table tbody td:has(.score-input) {
+        padding: 4px 3px;
+        min-width: 90px;
+    }
+
+    /* Modern table header styling */
+    .table thead th {
+        background-color: #212529;
+        color: white;
+        padding: 6px 4px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        border-bottom: 2px solid #495057;
+    }
+
+    .position-badge {
+        width: 25px;
+        height: 25px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-weight: bold;
+        font-size: 0.8rem;
+    }
+
+    .position-1 {
+        background-color: gold;
+        color: #212529;
+    }
+
+    .position-2 {
+        background-color: silver;
+        color: #212529;
+    }
+
+    .position-3 {
+        background-color: #cd7f32;
+        color: white;
+    }
+
+    .position-other {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    /* Enhanced validation styles */
+    .active-row {
+        background-color: rgba(209, 236, 250, 0.5) !important;
+    }
+    
+    .modified-row {
+        background-color: rgba(255, 243, 205, 0.5) !important;
+    }
+    
+    .is-invalid {
+        border-color: #dc3545 !important;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(.375em + .1875rem) center;
+        background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+    }
+    
+    .invalid-feedback {
+        display: block;
+        color: #dc3545;
+        font-size: 0.875em;
+        margin-top: 0.25rem;
+    }
+
+    /* Compact spacing for top sections */
+    .compact-section {
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .compact-header {
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+    
+    .compact-body {
+        padding: 0.5rem !important;
+    }
+
+    .class-stats {
+        background: linear-gradient(to right, #0077b6, #0096c7);
+        border-radius: 6px;
+        padding: 10px;
+        color: white;
+        margin-bottom: 15px;
+    }
+    
+    .stats-item {
+        text-align: center;
+        padding: 8px;
+        border-radius: 4px;
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .stats-value {
+        font-size: 20px;
+        font-weight: bold;
+    }
+    
+    .stats-label {
+        font-size: 11px;
+        opacity: 0.8;
+    }
+
+    .batch-tools-btn {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        z-index: 1000;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+    
+    @keyframes highlight-save {
+        0% { background-color: rgba(25, 135, 84, 0.1); }
+        50% { background-color: rgba(25, 135, 84, 0.3); }
+        100% { background-color: transparent; }
+    }
+    
+    .saved-row {
+        animation: highlight-save 1.5s ease;
+    }
+
+    /* Mobile-specific animations */
+    .mobile-student-card.saved-row {
+        animation: mobile-highlight-save 1.5s ease;
+    }
+    
+    @keyframes mobile-highlight-save {
+        0% { 
+            background-color: rgba(25, 135, 84, 0.1);
+            transform: scale(1);
+        }
+        50% { 
+            background-color: rgba(25, 135, 84, 0.3);
+            transform: scale(1.02);
+        }
+        100% { 
+            background-color: transparent;
+            transform: scale(1);
+        }
+    }
+
+    .tools-toolbar {
+        background-color: #f8f9fa;
+        border-radius: 3px;
+        padding: 6px;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    
+    .tools-toolbar .form-check {
+        margin-bottom: 0;
+    }
+    
+    kbd {
+        background-color: #212529;
+        color: #fff;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-size: 0.85em;
+    }
+
+    /* Collapsible section styles */
+    .card-header[data-bs-toggle="collapse"] {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+    
+    .card-header[data-bs-toggle="collapse"]:hover {
+        background-color:rgb(100, 17, 145) !important;
+    }
+    
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    
+    .transition-icon {
+        transition: transform 0.3s ease;
+    }
+    
+    .card-header[data-bs-toggle="collapse"][aria-expanded="true"] .transition-icon {
+        transform: rotate(180deg);
+    }
+    
+    .collapse {
+        transition: height 0.3s ease;
+    }
+
+    /* Component breakdown for enhanced scoring */
+    .component-breakdown {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .component-item {
+        background: white;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 0.75rem;
+        text-align: center;
+        transition: all 0.2s ease;
+    }
+
+    .component-item:hover {
+        border-color: #0d6efd;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .component-label {
+        font-size: 0.625rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+
+    .component-weight {
+        font-size: 0.75rem;
+        color: #0d6efd;
+        font-weight: 600;
+    }
+
+    /* Quick access button */
+    .tools-quick-access {
+        position: fixed;
+        bottom: 90px; /* Position above the batch tools button */
+        right: 30px;
+        z-index: 999;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+
+
+
+
+    .border-start {
+        border-left: 1px solid #dee2e6;
+    }
+
+    .upload-progress {
+        margin-top: 1rem;
+    }
+
+    .upload-status {
+        margin-top: 0.5rem;
+    }
+
+
+    /* Mobile-First Responsive Design */
+    
+    /* Mobile Navigation and Layout */
+    .mobile-header {
+        display: none;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        margin: -1rem -1rem 1rem -1rem;
+        border-radius: 0 0 1rem 1rem;
+    }
+    
+    .mobile-controls {
+        display: none;
+        background: #f8f9fa;
+        padding: 1rem;
+        margin: 1rem 0;
+        border-radius: 0.5rem;
+        border: 1px solid #dee2e6;
+    }
+    
+    .mobile-stats {
+        display: none;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        margin: 1rem 0;
+        border-radius: 0.5rem;
+    }
+    
+    .mobile-stats .row {
+        margin: 0;
+    }
+    
+    .mobile-stats .col-6 {
+            padding: 0.5rem;
+        text-align: center;
+    }
+    
+    .mobile-stats .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        display: block;
+    }
+    
+    .mobile-stats .stat-label {
+        font-size: 0.75rem;
+        opacity: 0.9;
+    }
+
+    /* Mobile Table Container */
+    .mobile-table-container {
+        display: none;
+        background: white;
+        border-radius: 0.375rem;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+        overflow: hidden;
+        margin: 0.5rem 0;
+    }
+    
+    .mobile-student-card {
+        border-bottom: 1px solid #e9ecef;
+        padding: 0.5rem;
+        background: white;
+    }
+    
+    .mobile-student-card:last-child {
+        border-bottom: none;
+    }
+    
+    .mobile-student-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.25rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .mobile-student-name {
+        font-weight: bold;
+        font-size: 0.9rem;
+        color: #212529;
+        line-height: 1.1;
+    }
+    
+    .mobile-student-id {
+        font-size: 0.7rem;
+        color: #6c757d;
+        background: #f8f9fa;
+        padding: 0.15rem 0.3rem;
+        border-radius: 0.15rem;
+    }
+    
+    .mobile-score-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.375rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .mobile-score-group {
+        background: #f8f9fa;
+        padding: 0.375rem;
+        border-radius: 0.25rem;
+        border: 1px solid #e9ecef;
+    }
+    
+    .mobile-score-label {
+        font-size: 0.65rem;
+        color: #6c757d;
+        margin-bottom: 0.25rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.2px;
+        line-height: 1.1;
+    }
+    
+    .mobile-score-input {
+        width: 100%;
+        padding: 0.375rem;
+        border: 2px solid #dee2e6;
+        border-radius: 0.25rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-align: center;
+        background: white;
+        transition: all 0.2s ease;
+        height: 2rem;
+    }
+    
+    .mobile-score-input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        outline: none;
+    }
+    
+    .mobile-score-input:read-only {
+        background: #e9ecef;
+        color: #495057;
+            font-weight: 700;
+    }
+    
+    .mobile-results {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 0.375rem;
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid #e9ecef;
+    }
+    
+    .mobile-result-item {
+        text-align: center;
+        padding: 0.25rem;
+        border-radius: 0.25rem;
+        background: #f8f9fa;
+    }
+    
+    .mobile-result-value {
+        font-size: 0.85rem;
+        font-weight: bold;
+        display: block;
+        margin-bottom: 0.1rem;
+    }
+    
+    .mobile-result-label {
+        font-size: 0.6rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.2px;
+        line-height: 1;
+    }
+    
+    .mobile-grade {
+        background: #198754;
+        color: white;
+        border-radius: 50%;
+        width: 1.5rem;
+        height: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.8rem;
+        margin: 0 auto;
+    }
+    
+    .mobile-remarks {
+        background: #0d6efd;
+        color: white;
+        padding: 0.2rem 0.3rem;
+        border-radius: 0.25rem;
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-align: center;
+        line-height: 1.1;
+    }
+    
+    .mobile-position {
+        background: #6c757d;
+        color: white;
+        border-radius: 50%;
+        width: 1.5rem;
+        height: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.75rem;
+        margin: 0 auto;
+    }
+    
+    /* Mobile Navigation */
+    .mobile-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        border-top: 1px solid #dee2e6;
+        padding: 0.5rem;
+        z-index: 1000;
+        display: none;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .mobile-nav-buttons {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+    }
+    
+    .mobile-nav-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0.375rem;
+        border: none;
+        background: none;
+        color: #6c757d;
+        text-decoration: none;
+        border-radius: 0.375rem;
+        transition: all 0.2s ease;
+        min-width: 50px;
+        cursor: pointer;
+    }
+    
+    .mobile-nav-btn:hover,
+    .mobile-nav-btn.active {
+        color: #667eea;
+        background: #f8f9fa;
+    }
+    
+    .mobile-nav-btn i {
+        font-size: 1rem;
+        margin-bottom: 0.125rem;
+    }
+    
+    .mobile-nav-btn span {
+        font-size: 0.65rem;
+        font-weight: 600;
+        line-height: 1.1;
+    }
+    
+    /* Mobile Search */
+    .mobile-search {
+        display: none;
+        background: white;
+        padding: 0.75rem;
+        margin: 0.75rem 0;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .mobile-search-input {
+        width: 100%;
+        padding: 0.625rem;
+        border: 2px solid #dee2e6;
+        border-radius: 0.375rem;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .mobile-search-input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        outline: none;
+    }
+    
+    .mobile-search-buttons {
+        display: flex;
+        gap: 0.375rem;
+    }
+    
+    .mobile-search-btn {
+        flex: 1;
+        padding: 0.625rem;
+        border: none;
+        border-radius: 0.375rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    
+    .mobile-search-btn.primary {
+        background: #667eea;
+        color: white;
+    }
+    
+    .mobile-search-btn.secondary {
+        background: #6c757d;
+        color: white;
+    }
+    
+    /* Mobile Tools */
+    .mobile-tools {
+        display: none;
+        background: white;
+        padding: 0.75rem;
+        margin: 0.75rem 0;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .mobile-tools-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+    }
+    
+    .mobile-tool-btn {
+        padding: 0.75rem 0.5rem;
+        border: 2px solid #dee2e6;
+        border-radius: 0.375rem;
+        background: white;
+        color: #495057;
+        text-decoration: none;
+        text-align: center;
+        transition: all 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.375rem;
+        cursor: pointer;
+    }
+    
+    .mobile-tool-btn:hover {
+        border-color: #667eea;
+        color: #667eea;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+    }
+    
+    .mobile-tool-btn i {
+        font-size: 1.25rem;
+    }
+    
+    .mobile-tool-btn span {
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1.1;
+    }
+    
+    /* Mobile Responsive Breakpoints */
+    @media (max-width: 768px) {
+        /* Hide desktop elements */
+        .table-responsive,
+        .tools-toolbar,
+        .batch-tools-btn,
+        .tools-quick-access {
+            display: none !important;
+        }
+        
+        /* Show mobile elements */
+        .mobile-header,
+        .mobile-controls,
+        .mobile-stats,
+        .mobile-table-container,
+        .mobile-search,
+        .mobile-tools,
+        .mobile-nav {
+            display: block !important;
+        }
+        
+        /* Mobile container adjustments */
+        .container-fluid {
+            padding: 0.375rem;
+            margin-bottom: 60px; /* Space for mobile nav */
+        }
+        
+        /* Mobile card adjustments */
+        .card {
+            margin: 0.375rem 0;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+        }
+        
+        .card-header {
+            padding: 0.75rem;
+            border-radius: 0.5rem 0.5rem 0 0;
+        }
+        
+        .card-body {
+            padding: 0.75rem;
+        }
+        
+        /* Mobile form adjustments */
+        .form-select,
+        .form-control {
+            font-size: 0.9rem;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+        }
+        
+        /* Mobile button adjustments */
+        .btn {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.9rem;
+            border-radius: 0.375rem;
+            margin: 0.2rem;
+        }
+        
+        /* Mobile alert adjustments */
+        .alert {
+            margin: 0.375rem 0;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+        }
+        
+        /* Mobile badge adjustments */
+        .badge {
+            font-size: 0.7rem;
+            padding: 0.375rem 0.5rem;
+            border-radius: 0.375rem;
+        }
+        
+        /* Mobile modal adjustments */
+        .modal-dialog {
+            margin: 0.375rem;
+            max-width: calc(100% - 0.75rem);
+        }
+        
+        .modal-content {
+            border-radius: 0.5rem;
+        }
+        
+        .modal-header {
+            padding: 0.75rem;
+            border-radius: 0.5rem 0.5rem 0 0;
+        }
+        
+        .modal-body {
+            padding: 0.75rem;
+        }
+        
+        /* Mobile toast adjustments */
+        .toast-container {
+            position: fixed;
+            top: 0.75rem;
+            left: 0.75rem;
+            right: 0.75rem;
+            z-index: 1055;
+        }
+        
+        .toast-modern {
+            margin-bottom: 0.375rem;
+            border-radius: 0.375rem;
+        }
+    }
+    
+    /* Extra small devices (phones, 576px and down) */
+    @media (max-width: 576px) {
+        .mobile-score-grid {
+            grid-template-columns: 1fr;
+            gap: 0.375rem;
+        }
+        
+        .mobile-results {
+            grid-template-columns: 1fr 1fr;
+            gap: 0.375rem;
+        }
+        
+        .mobile-tools-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .mobile-nav-buttons {
+            flex-wrap: wrap;
+            gap: 0.375rem;
+        }
+        
+        .mobile-nav-btn {
+            min-width: 45px;
+            padding: 0.25rem;
+        }
+        
+        .mobile-nav-btn i {
+            font-size: 0.9rem;
+        }
+        
+        .mobile-nav-btn span {
+            font-size: 0.6rem;
+        }
+        
+        .mobile-student-card {
+            padding: 0.5rem;
+        }
+        
+        .mobile-score-group {
+            padding: 0.25rem;
+        }
+        
+        .mobile-score-input {
+            height: 1.75rem;
+            font-size: 0.75rem;
+        }
+    }
+    
+    /* Landscape orientation adjustments */
+    @media (max-width: 768px) and (orientation: landscape) {
+        .mobile-nav {
+            position: relative;
+            margin-top: 1rem;
+        }
+        
+        .container-fluid {
+            margin-bottom: 0;
+        }
+        
+        .mobile-score-grid {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+        
+        .mobile-results {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+    }
+
+
+    /* Loading States */
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        z-index: 10;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #dee2e6;
+        border-top: 4px solid #0d6efd;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Toast Notifications */
+    .toast-modern {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #0d6efd;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        max-width: 400px;
+    }
+
+    .toast-success { border-left-color: #198754; }
+    .toast-warning { border-left-color: #fd7e14; }
+    .toast-error { border-left-color: #dc3545; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Mobile Header -->
+  <div class="mobile-header">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h3 class="mb-1">
+          {% if current_academic_year %}
+            {{ current_academic_year.name }}
+            {% if current_term %}
+              - {{ current_term.name }}
+            {% endif %}
+          {% else %}
+            Enhanced Score Entry
+          {% endif %}
+        </h3>
+        <p class="mb-0 opacity-75">
+          {% if current_academic_year %}
+            Current academic year and term management
+          {% else %}
+            Enter and manage student scores with enhanced features
+          {% endif %}
+        </p>
+      </div>
+      <div class="text-end">
+        <i class="bi bi-phone fs-2"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compact Header Section -->
+  <div class="row mb-2">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h4 class="mb-0">
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %}
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              Enhanced Score Entry
+            {% endif %}
+          </h4>
+          <small class="text-muted">
+            {% if current_academic_year %}
+              Academic Year: {{ current_academic_year.name }} | Term: {{ current_term.term_number }}
+            {% else %}
+              Enter and manage student scores with enhanced features
+            {% endif %}
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+      {% if not current_academic_year or not current_term %}
+      <div class="alert alert-warning d-flex align-items-center py-2 mb-2" role="alert">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <div class="small">No active academic year or term is set. Please contact the administrator.</div>
+      </div>
+      {% else %}
+
+    <div class="card mb-2">
+        <div class="card-body py-2">
+            <form method="get" id="assignmentForm">
+                {% if request.user.role == 'admin' and teachers_list %}
+                <!-- Teacher Filter for Admins -->
+                <div class="row g-2 align-items-end mb-2">
+                    <div class="col-md-6 col-lg-4">
+                        <div class="form-group mb-0">
+                            <label for="teacher_filter" class="form-label small mb-1">
+                                <i class="bi bi-person-badge me-1"></i>Filter by Teacher (Optional)
+                            </label>
+                            <select name="teacher_id" id="teacher_filter" class="form-select form-select-sm" onchange="handleTeacherFilterChange(this)">
+                                <option value="">-- All Teachers --</option>
+                                {% for teacher in teachers_list %}
+                                <option value="{{ teacher.id }}" {% if request.GET.teacher_id == teacher.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ teacher.full_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    {% if request.GET.teacher_id %}
+                    <div class="col-md-6 col-lg-8">
+                        <div class="alert alert-info py-1 mb-0 small">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Showing classes for selected teacher only. 
+                            <a href="?{% if request.GET.assignment_id %}assignment_id={{ request.GET.assignment_id }}{% endif %}" class="alert-link">Clear teacher filter</a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-6 col-lg-4">
+                        <div class="form-group mb-0">
+                            <label for="assignment" class="form-label small mb-1">
+                                <i class="bi bi-people me-1"></i>Select Class and Subject
+                            </label>
+                            <select name="assignment_id" id="assignment" class="form-select form-select-sm" onchange="updateAssignmentSelection()">
+                                <option value="">-- Select Class & Subject --</option>
+                                {% for assignment in assignments %}
+                                <option value="{{ assignment.id }}" {% if request.GET.assignment_id == assignment.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ assignment.class_assigned }} - {{ assignment.subject }}{% if request.user.role == 'admin' and assignment.teacher %} ({{ assignment.teacher.full_name }}){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% if assignments|length == 0 %}
+                            <small class="text-warning d-block mt-1">
+                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                {% if request.user.role == 'admin' and request.GET.teacher_id %}
+                                    No classes found for the selected teacher.
+                                {% elif request.user.role == 'admin' %}
+                                    No class assignments found. Please ensure classes are assigned to teachers.
+                                {% else %}
+                                    No class assignments found. Please contact your administrator to assign classes to your account.
+                                {% endif %}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-8">
+                        <div class="d-flex flex-wrap gap-2 justify-content-end">
+                            <!-- Export Buttons -->
+                            <button type="button" id="quickExportSingle" class="btn btn-primary btn-sm" title="Export selected class">
+                                <i class="bi bi-file-excel me-1"></i>Export Single
+                            </button>
+                            <button type="button" id="quickExportBatch" class="btn btn-outline-primary btn-sm" title="Export multiple classes">
+                                <i class="bi bi-files me-1"></i>Export Batch
+                            </button>
+                            <!-- Import Buttons -->
+                            <button type="button" id="quickImportSingle" class="btn btn-success btn-sm" title="Import for selected class">
+                                <i class="bi bi-upload me-1"></i>Import Single
+                            </button>
+                            <button type="button" id="quickImportBatch" class="btn btn-outline-success btn-sm" title="Import multiple classes">
+                                <i class="bi bi-cloud-upload me-1"></i>Import Batch
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Preserve teacher filter in form -->
+                {% if request.user.role == 'admin' and request.GET.teacher_id %}
+                <input type="hidden" name="teacher_id" value="{{ request.GET.teacher_id }}">
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Import/Export Tools Section - Now collapsible -->
+    <div class="card mb-2">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center cursor-pointer" 
+                     role="button" data-bs-toggle="collapse" data-bs-target="#importExportTools" aria-expanded="false" aria-controls="importExportTools">
+            <h6 class="mb-0">
+                <i class="bi bi-tools me-1"></i>Import/Export Tools
+                <small class="ms-2 text-muted">(click to expand)</small>
+                    </h6>
+                    <span class="badge bg-primary small">
+                        {% if selected_assignment %}
+                        {{ selected_assignment.class_assigned }} - {{ selected_assignment.subject }}
+                        {% else %}
+                        Batch mode
+                        {% endif %}
+                    </span>
+            <i class="bi bi-chevron-down transition-icon"></i>
+                </div>
+                <div class="collapse" id="importExportTools">
+            <div class="card-body py-2">
+                        <!-- Scoring Configuration Information -->
+                        {% if scoring_config %}
+                        <div class="alert alert-info py-2 mb-2">
+                            <div class="d-flex align-items-start">
+                        <i class="bi bi-info-circle me-2 mt-1 small"></i>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1 small">Current Scoring Configuration</h6>
+                                    <div class="row g-2">
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <div class="fw-bold text-primary small">{{ scoring_config.class_score_percentage }}%</div>
+                                                <small class="text-muted small">Class Weight</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <div class="fw-bold text-primary small">{{ scoring_config.exam_score_percentage }}%</div>
+                                                <small class="text-muted small">Exam Weight</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <div class="fw-bold text-success small">{{ scoring_config.individual_max_mark }}</div>
+                                                <small class="text-muted small">Individual Max</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <div class="fw-bold text-success small">{{ scoring_config.class_test_max_mark }}</div>
+                                                <small class="text-muted small">Class Test Max</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted mt-1 d-block small">
+                                <i class="bi bi-gear me-1"></i>
+                                        Used for validation and calculation in import/export.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <div class="d-flex flex-column h-100 p-2">
+                                    <h6 class="mb-2 fw-bold text-primary small">Export Scores</h6>
+                                    
+                                    <div class="alert alert-info small py-1 mb-2">
+                                        <small>Choose single class or batch export mode</small>
+                                    </div>
+                                    
+                                    <div class="d-flex flex-column gap-2 mb-2">
+                                        <button id="exportScoresSingle" class="btn btn-primary btn-sm">
+                                            <i class="bi bi-file-excel me-1"></i>
+                                            Export Single Class
+                                            {% if selected_assignment %}
+                                            <span class="badge bg-light text-dark ms-1">{{ selected_assignment.class_assigned }} - {{ selected_assignment.subject }}</span>
+                                            {% else %}
+                                            <span class="badge bg-warning text-dark ms-1">Select class first</span>
+                                            {% endif %}
+                                        </button>
+                                        
+                                        <button id="exportScoresBatch" class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-files me-1"></i>
+                                            Export Multiple Classes (Batch)
+                                        </button>
+                                    </div>
+                                    
+                                    <div id="exportInstructions" class="mt-2 small text-muted"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 border-start">
+                                <div class="d-flex flex-column h-100 p-2">
+                                    <h6 class="mb-2 fw-bold text-success small">Import Scores</h6>
+                                    
+                                    <div class="alert alert-info small py-1 mb-2">
+                                        <small>Choose single class or batch import mode</small>
+                                    </div>
+                                    
+                                    <div class="d-flex flex-column gap-2 mb-2">
+                                        <button id="importScoresSingle" class="btn btn-success btn-sm">
+                                            <i class="bi bi-upload me-1"></i>
+                                            Import Single Class
+                                            {% if selected_assignment %}
+                                            <span class="badge bg-light text-dark ms-1">{{ selected_assignment.class_assigned }} - {{ selected_assignment.subject }}</span>
+                                            {% else %}
+                                            <span class="badge bg-warning text-dark ms-1">Select class first</span>
+                                            {% endif %}
+                                        </button>
+                                        
+                                        <button id="importScoresBatch" class="btn btn-outline-success btn-sm">
+                                            <i class="bi bi-cloud-upload me-1"></i>
+                                            Import Multiple Classes (Batch)
+                                        </button>
+                                    </div>
+                                    
+                                    <form id="uploadForm" class="mt-2" style="display: none;">
+                                        {% csrf_token %}
+                                        <input type="file" id="scoreFile" name="scoreFile" accept=".xlsx,.xls"
+                                            class="form-control form-control-sm">
+                                        <input type="hidden" id="importMode" name="import_mode" value="single">
+                                    </form>
+                                    
+                                    <div id="importInstructions" class="mt-2 small text-muted"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="uploadProgress" class="mt-2" style="display: none;">
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"></div>
+                            </div>
+                        </div>
+                        <div id="uploadStatus" class="mt-1 small"></div>
+            </div>
+        </div>
+    </div>
+
+    {% if selected_assignment %}
+    <!-- Class Statistics Card - Only shown when a class is selected -->
+    {% if class_stats %}
+    <div class="card mb-2">
+        <div class="card-body py-2">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="fw-bold text-success fs-6">{{ class_stats.highest_score|floatformat:2 }}</div>
+                        <small class="text-muted small">Highest</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="fw-bold text-warning fs-6">{{ class_stats.lowest_score|floatformat:2 }}</div>
+                        <small class="text-muted small">Lowest</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="fw-bold text-info fs-6">{{ class_stats.average_score|floatformat:2 }}</div>
+                        <small class="text-muted small">Average</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="fw-bold text-primary fs-6">{{ class_stats.graded_students }}/{{ class_stats.total_students }}</div>
+                        <small class="text-muted small">Graded</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Mobile Controls -->
+    <div class="mobile-controls">
+        <div class="row g-2">
+            <div class="col-6">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="mobileAutoSave">
+                    <label class="form-check-label" for="mobileAutoSave">Auto-save</label>
+                </div>
+            </div>
+            <div class="col-6">
+                <button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="resetForm()">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Search -->
+    <div class="mobile-search">
+        <input type="text" id="mobileStudentSearch" class="mobile-search-input" placeholder="Search students by name or ID...">
+        <div class="mobile-search-buttons">
+            <button class="mobile-search-btn primary" id="mobileSearchBtn">
+                <i class="bi bi-search me-1"></i>Search
+            </button>
+            <button class="mobile-search-btn secondary" id="mobileClearSearchBtn">
+                <i class="bi bi-x me-1"></i>Clear
+            </button>
+        </div>
+    </div>
+
+    {% if students_in_class %}
+    <!-- Mobile Stats -->
+    {% if class_stats %}
+    <div class="mobile-stats">
+        <div class="row">
+            <div class="col-6">
+                <div class="stat-value">{{ class_stats.highest_score|floatformat:2 }}</div>
+                <div class="stat-label">Highest Score</div>
+            </div>
+            <div class="col-6">
+                <div class="stat-value">{{ class_stats.lowest_score|floatformat:2 }}</div>
+                <div class="stat-label">Lowest Score</div>
+            </div>
+            <div class="col-6">
+                <div class="stat-value">{{ class_stats.average_score|floatformat:2 }}</div>
+                <div class="stat-label">Class Average</div>
+            </div>
+            <div class="col-6">
+                <div class="stat-value">{{ class_stats.graded_students }}/{{ class_stats.total_students }}</div>
+                <div class="stat-label">Students Graded</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Mobile Tools -->
+    <div class="mobile-tools">
+        <div class="mobile-tools-grid">
+            <button class="mobile-tool-btn" onclick="showMobileBatchModal()">
+                <i class="bi bi-lightning"></i>
+                <span>Batch Ops</span>
+            </button>
+            <button class="mobile-tool-btn" onclick="showMobileImportExport()">
+                <i class="bi bi-file-excel"></i>
+                <span>Import/Export</span>
+            </button>
+            <button class="mobile-tool-btn" onclick="saveAllScores()">
+                <i class="bi bi-save"></i>
+                <span>Save All</span>
+            </button>
+            <button class="mobile-tool-btn" onclick="showMobileHelp()">
+                <i class="bi bi-question-circle"></i>
+                <span>Help</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Mobile Table Container -->
+    <div class="mobile-table-container">
+        {% for student_class in students_in_class %}
+        <div class="mobile-student-card" data-student-id="{{ student_class.student.id }}">
+            <div class="mobile-student-header">
+                <div class="mobile-student-name">{{ student_class.student.full_name }}</div>
+                <div class="mobile-student-id">{{ student_class.student.admission_number }}</div>
+            </div>
+            
+            <div class="mobile-score-grid">
+                <div class="mobile-score-group">
+                    <div class="mobile-score-label">Individual ({{ scoring_config.individual_max_mark }})</div>
+                    <input type="number" class="mobile-score-input individual-score"
+                        name="individual_score_{{ student_class.student.id }}" 
+                        step="0.01" min="0" max="{{ scoring_config.individual_max_mark }}"
+                        value="{{ student_class.student.individual_score|default:'' }}">
+                </div>
+                <div class="mobile-score-group">
+                    <div class="mobile-score-label">Class Test ({{ scoring_config.class_test_max_mark }})</div>
+                    <input type="number" class="mobile-score-input class-test-score"
+                        name="class_test_score_{{ student_class.student.id }}" 
+                        step="0.01" min="0" max="{{ scoring_config.class_test_max_mark }}"
+                        value="{{ student_class.student.class_test_score|default:'' }}">
+                </div>
+                <div class="mobile-score-group">
+                    <div class="mobile-score-label">Project ({{ scoring_config.project_max_mark }})</div>
+                    <input type="number" class="mobile-score-input project-score"
+                        name="project_score_{{ student_class.student.id }}" 
+                        step="0.01" min="0" max="{{ scoring_config.project_max_mark }}"
+                        value="{{ student_class.student.project_score|default:'' }}">
+                </div>
+                <div class="mobile-score-group">
+                    <div class="mobile-score-label">Group Work ({{ scoring_config.group_work_max_mark }})</div>
+                    <input type="number" class="mobile-score-input group-work-score"
+                        name="group_work_score_{{ student_class.student.id }}" 
+                        step="0.01" min="0" max="{{ scoring_config.group_work_max_mark }}"
+                        value="{{ student_class.student.group_work_score|default:'' }}">
+                </div>
+                <div class="mobile-score-group">
+                    <div class="mobile-score-label">Exam (100)</div>
+                    <input type="number" class="mobile-score-input exam-score"
+                        name="exam_score_{{ student_class.student.id }}" 
+                        step="0.01" min="0" max="100"
+                        value="{{ student_class.student.exam_score|default:'' }}">
+                </div>
+                <div class="mobile-score-group">
+                    <div class="mobile-score-label">Class Score</div>
+                    <input type="text" class="mobile-score-input calculated-class-score" readonly
+                        value="{{ student_class.student.class_score|default:'--' }}">
+                    <input type="hidden" class="calculated-class-score-input" 
+                           name="class_score_{{ student_class.student.id }}" 
+                           value="{{ student_class.student.class_score|default:'' }}">
+                </div>
+            </div>
+            
+            <div class="mobile-results">
+                <div class="mobile-result-item">
+                    <div class="mobile-result-value" id="total-score-{{ student_class.student.id }}">
+                        {{ student_class.student.total_score|default:'--' }}
+                    </div>
+                    <div class="mobile-result-label">Total Score</div>
+                    <input type="hidden" class="total-score-input" 
+                           name="total_score_{{ student_class.student.id }}" 
+                           value="{{ student_class.student.total_score|default:'' }}">
+                </div>
+                <div class="mobile-result-item">
+                    <div class="mobile-grade" id="grade-{{ student_class.student.id }}">
+                        {% if student_class.student.grade %}
+                            {{ student_class.student.grade }}
+                        {% else %}
+                            --
+                        {% endif %}
+                    </div>
+                    <div class="mobile-result-label">Grade</div>
+                    <input type="hidden" class="grade" name="grade_{{ student_class.student.id }}"
+                           value="{{ student_class.student.grade|default:'' }}">
+                </div>
+                <div class="mobile-result-item">
+                    <div class="mobile-remarks" id="remarks-{{ student_class.student.id }}">
+                        {% if student_class.student.remarks %}
+                            {{ student_class.student.remarks }}
+                        {% else %}
+                            --
+                        {% endif %}
+                    </div>
+                    <div class="mobile-result-label">Remarks</div>
+                    <input type="hidden" class="remarks" name="remarks_{{ student_class.student.id }}"
+                           value="{{ student_class.student.remarks|default:'' }}">
+                </div>
+                <div class="mobile-result-item">
+                    <div class="mobile-position" id="position-{{ student_class.student.id }}">
+                        {% if student_class.student.position %}
+                            {{ student_class.student.position }}
+                        {% else %}
+                            --
+                        {% endif %}
+                    </div>
+                    <div class="mobile-result-label">Position</div>
+                    <input type="hidden" class="position" name="position_{{ student_class.student.id }}"
+                           value="{{ student_class.student.position|default:'' }}">
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Score Entry Table - Only shown when a class with students is selected -->
+    <div class="card">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">
+                <i class="bi bi-pencil-square"></i> Enhanced Score Entry
+            </h6>
+            <span class="badge bg-primary small">
+                        {{ selected_assignment.class_assigned }} - {{ selected_assignment.subject }}
+                    </span>
+                </div>
+        <div class="card-body py-2">
+            <!-- Tools Toolbar -->
+            <div class="tools-toolbar mb-2">
+                <div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="enableAutoSave">
+                        <label class="form-check-label" for="enableAutoSave">Auto-save changes</label>
+                    </div>
+                </div>
+                <div>
+                    <span class="badge bg-secondary">Tip: Use <kbd>Enter</kbd> to move down, <kbd>Tab</kbd> to move right</span>
+                </div>
+            </div>
+                    <form method="post" id="enhancedScoreForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="assignment_id" value="{{ request.GET.assignment_id }}">
+                        
+                        <!-- Action Buttons Above Table -->
+                        <div class="d-flex gap-2 mb-2">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="bi bi-save me-1"></i>Save Scores
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetForm()">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Reset
+                            </button>
+                        </div>
+                        
+                        <!-- Search Section -->
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <input type="text" id="studentSearch" class="form-control" placeholder="Search students by name or ID...">
+                                    <button class="btn btn-outline-primary" type="button" id="searchBtn">
+                                        <i class="bi bi-search"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-info me-2" id="searchResultsCount">
+                                        Showing all {{ students_in_class|length }} students
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                    <table id="scoresTable" class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                <th>Student Name</th>
+                                <th>Student ID</th>
+                                <th>Individual Score ({{ scoring_config.individual_max_mark }})</th>
+                                <th>Class Test Score ({{ scoring_config.class_test_max_mark }})</th>
+                                <th>Project Score ({{ scoring_config.project_max_mark }})</th>
+                                <th>Group Work Score ({{ scoring_config.group_work_max_mark }})</th>
+                                <th>Class Score ({{ scoring_config.class_score_percentage }}%)</th>
+                                <th>Exam Score ({{ scoring_config.exam_score_percentage }}%)</th>
+                                <th>Total</th>
+                                <th>Grade</th>
+                                <th>Remarks</th>
+                                <th>Position</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for student_class in students_in_class %}
+                            <tr data-student-id="{{ student_class.student.id }}">
+                                <td>{{ student_class.student.full_name }}</td>
+                                <td>{{ student_class.student.admission_number }}</td>
+                                <td>
+                                    <input type="number" class="score-input individual-score"
+                                        name="individual_score_{{ student_class.student.id }}" step="0.01" min="0" max="{{ scoring_config.individual_max_mark }}"
+                                        value="{{ student_class.student.individual_score|default:'' }}">
+                                        </td>
+                                <td>
+                                    <input type="number" class="score-input class-test-score"
+                                        name="class_test_score_{{ student_class.student.id }}" step="0.01" min="0" max="{{ scoring_config.class_test_max_mark }}"
+                                        value="{{ student_class.student.class_test_score|default:'' }}">
+                                        </td>
+                                <td>
+                                    <input type="number" class="score-input project-score"
+                                        name="project_score_{{ student_class.student.id }}" step="0.01" min="0" max="{{ scoring_config.project_max_mark }}"
+                                        value="{{ student_class.student.project_score|default:'' }}">
+                                        </td>
+                                <td>
+                                    <input type="number" class="score-input group-work-score"
+                                        name="group_work_score_{{ student_class.student.id }}" step="0.01" min="0" max="{{ scoring_config.group_work_max_mark }}"
+                                        value="{{ student_class.student.group_work_score|default:'' }}">
+                                        </td>
+                                <td>
+                                    <input type="text" class="score-input calculated-class-score fw-bold" readonly
+                                        value="{{ student_class.student.class_score|default:'--' }}">
+                                    <input type="hidden" class="calculated-class-score-input" 
+                                           name="class_score_{{ student_class.student.id }}" 
+                                           value="{{ student_class.student.class_score|default:'' }}">
+                                        </td>
+                                <td>
+                                    <input type="number" class="score-input exam-score"
+                                        name="exam_score_{{ student_class.student.id }}" step="0.01" min="0" max="100"
+                                        value="{{ student_class.student.exam_score|default:'' }}">
+                                </td>
+                                <td>
+                                    <input type="text" class="score-input total-score fw-bold" readonly
+                                        value="{{ student_class.student.total_score|default:'--' }}">
+                                    <input type="hidden" class="total-score-input" 
+                                                       name="total_score_{{ student_class.student.id }}" 
+                                                       value="{{ student_class.student.total_score|default:'' }}">
+                                        </td>
+                                        <td class="text-center">
+                                                {% if student_class.student.grade %}
+                                    <div class="badge-grade grade-{{ student_class.student.grade|lower }}">
+                                                    {{ student_class.student.grade }}
+                                                </div>
+                                                {% else %}
+                                    <span>--</span>
+                                                {% endif %}
+                                    <input type="hidden" class="grade" name="grade_{{ student_class.student.id }}"
+                                                   value="{{ student_class.student.grade|default:'' }}">
+                                        </td>
+                                        <td class="text-center">
+                                                {% if student_class.student.remarks %}
+                                    <span
+                                        class="remarks-badge remarks-{{ student_class.student.remarks|lower|cut:" " }}">
+                                                    {{ student_class.student.remarks }}
+                                                </span>
+                                                {% else %}
+                                    <span>--</span>
+                                                {% endif %}
+                                    <input type="hidden" class="remarks" name="remarks_{{ student_class.student.id }}"
+                                                   value="{{ student_class.student.remarks|default:'' }}">
+                                        </td>
+                                        <td class="text-center">
+                                                {% if student_class.student.position %}
+                                    <div
+                                        class="position-badge position-{% if student_class.student.position <= 3 %}{{ student_class.student.position }}{% else %}other{% endif %}">
+                                                    {{ student_class.student.position }}
+                                                </div>
+                                                {% else %}
+                                    <span>--</span>
+                                                {% endif %}
+                                    <input type="hidden" class="position" name="position_{{ student_class.student.id }}"
+                                                   value="{{ student_class.student.position|default:'' }}">
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
+                </div>
+            </div>
+    <!-- Mobile Navigation -->
+    <div class="mobile-nav">
+        <div class="mobile-nav-buttons">
+            <button class="mobile-nav-btn active" onclick="showMobileSection('scores')">
+                <i class="bi bi-pencil-square"></i>
+                <span>Scores</span>
+            </button>
+            <button class="mobile-nav-btn" onclick="showMobileSection('search')">
+                <i class="bi bi-search"></i>
+                <span>Search</span>
+            </button>
+            <button class="mobile-nav-btn" onclick="showMobileSection('tools')">
+                <i class="bi bi-tools"></i>
+                <span>Tools</span>
+            </button>
+            <button class="mobile-nav-btn" onclick="showMobileSection('stats')">
+                <i class="bi bi-graph-up"></i>
+                <span>Stats</span>
+            </button>
+            <button class="mobile-nav-btn" onclick="saveAllScores()">
+                <i class="bi bi-save"></i>
+                <span>Save</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Floating Batch Operations Button -->
+    <button id="batchProcess" class="btn btn-primary batch-tools-btn" data-bs-toggle="tooltip" 
+        data-bs-placement="left" title="Batch Operations">
+        <i class="bi bi-lightning"></i>
+    </button>
+    
+    <!-- Quick Access Button for Import/Export -->
+    <button id="toolsQuickAccess" class="btn btn-info tools-quick-access" data-bs-toggle="tooltip" 
+        data-bs-placement="left" title="Import/Export Tools">
+        <i class="bi bi-file-excel"></i>
+    </button>
+    
+    {% elif selected_assignment %}
+    <div class="alert alert-info d-flex align-items-center">
+        <i class="bi bi-info-circle me-2"></i>No students found in the selected class.
+    </div>
+    {% else %}
+    <!-- No class selected message -->
+    <div class="alert alert-info d-flex align-items-center">
+        <i class="bi bi-info-circle me-2"></i>
+        <div>
+            <strong>No class selected.</strong> Please select a class and subject to enter scores, or use the batch export/import options above.
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+    {% endif %}
+</div>
+
+<!-- Toast Container for Notifications -->
+<div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
+<!-- Batch Operations Modal -->
+<div class="modal fade" id="batchProcessModal" tabindex="-1" aria-labelledby="batchProcessModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="batchProcessModalLabel">Batch Operations</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="list-group">
+                    <button type="button" class="list-group-item list-group-item-action" onclick="applyBatchOperation('fillZeros')">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Fill Empty Scores with Zeros</h6>
+                            <small class="text-primary">Apply</small>
+                        </div>
+                        <p class="mb-1 small text-muted">Sets all empty scores to 0 for all component scores.</p>
+                    </button>
+                    <button type="button" class="list-group-item list-group-item-action" onclick="applyBatchOperation('clearAll')">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Clear All Scores</h6>
+                            <small class="text-danger">Apply</small>
+                        </div>
+                        <p class="mb-1 small text-muted">Remove all entered scores for this class and subject.</p>
+                    </button>
+                    <button type="button" class="list-group-item list-group-item-action" onclick="applyBatchOperation('calculateMissing')">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Calculate Missing Values</h6>
+                            <small class="text-primary">Apply</small>
+                        </div>
+                        <p class="mb-1 small text-muted">Auto-calculate grades and remarks for all students with scores.</p>
+                    </button>
+                    </div>
+                        </div>
+                        </div>
+                        </div>
+                    </div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Configuration object for JavaScript (must be loaded before external JS) -->
+<script>
+    // Configuration object for enhanced_enter_scores.js
+    window.enhancedScoresConfig = {
+        isAdmin: {% if request.user.role == 'admin' %}true{% else %}false{% endif %},
+        userRole: '{% if request.user.role == 'admin' %}admin{% else %}teacher{% endif %}',
+        scoringConfig: {
+            examScorePercentage: {{ scoring_config.exam_score_percentage|default:70 }},
+            classScorePercentage: {{ scoring_config.class_score_percentage|default:30 }},
+            maxClassScore: {{ scoring_config.max_class_score|default:30 }},
+            individualMaxMark: {{ scoring_config.individual_max_mark|default:15 }},
+            classTestMaxMark: {{ scoring_config.class_test_max_mark|default:15 }},
+            projectMaxMark: {{ scoring_config.project_max_mark|default:15 }},
+            groupWorkMaxMark: {{ scoring_config.group_work_max_mark|default:15 }}
+        },
+        urls: {
+            exportSingle: "{% url 'export_enhanced_scores' %}",
+            exportBatch: "{% url 'export_enhanced_scores_batch' %}",
+            importSingle: "{% url 'import_enhanced_scores' %}",
+            importBatch: "{% url 'import_enhanced_scores_batch' %}"
+        }
+    };
+    
+    // Function to handle teacher filter change - clears assignment when teacher changes
+    // Must be in global scope for inline onchange handler
+    window.handleTeacherFilterChange = function(teacherSelect) {
+        const teacherId = teacherSelect.value;
+        
+        // Build URL with only teacher_id (clear assignment_id when teacher changes)
+        let url = window.location.pathname;
+        if (teacherId) {
+            url += '?teacher_id=' + teacherId;
+        }
+        
+        window.location.href = url;
+    };
+    
+    // Function to preserve teacher filter when assignment changes (admins only)
+    // Must be in global scope for inline onchange handler
+    // Using vanilla JS for assignment select to avoid jQuery dependency issues
+    window.updateAssignmentSelection = function() {
+        const assignmentSelect = document.getElementById('assignment');
+        const assignmentId = assignmentSelect ? assignmentSelect.value : '';
+        const isAdmin = window.enhancedScoresConfig.isAdmin;
+        const teacherId = new URLSearchParams(window.location.search).get("teacher_id");
+        
+        // Build URL with assignment_id and optionally teacher_id
+        let url = window.location.pathname + '?';
+        if (assignmentId) {
+            url += 'assignment_id=' + assignmentId;
+        }
+        // Preserve teacher_id if admin and teacher_id exists
+        if (isAdmin && teacherId) {
+            if (assignmentId) {
+                url += '&';
+            }
+            url += 'teacher_id=' + teacherId;
+        }
+        
+        window.location.href = url;
+    };
+</script>
+
+<!-- Load external JavaScript file -->
+<script src="{% static 'js/enhanced_enter_scores.js' %}"></script>
+{% endblock %}
+

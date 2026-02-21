@@ -1,0 +1,259 @@
+{% extends "base.html" %} {% load static %} {% block title %}Assignment History
+- {{ student.full_name }}{% endblock %}
+{% block page_title %}Assignment History - {{ student.full_name }}{% endblock %}
+{% block extra_css %}
+
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            {% if current_academic_year %}
+              {{ current_academic_year.name }}
+              {% if current_term %}
+                - {{ current_term.name }}
+              {% endif %}
+            {% else %}
+              Assignment History
+            {% endif %}
+          </h2>
+          <p class="text-muted mb-0">
+            {% if current_academic_year %}
+              Current academic year and term management
+            {% else %}
+              {{ student.full_name }} ({{ student.admission_number }})
+            {% endif %}
+          </p>
+        </div>
+        <div class="btn-group">
+          <a
+            href="{% url 'student_class_assignment_list' %}"
+            class="btn btn-outline-primary"
+          >
+            <i class="fas fa-arrow-left"></i> Back to List
+          </a>
+          <a
+            href="{% url 'student_class_assignment_dashboard' %}"
+            class="btn btn-outline-secondary"
+          >
+            <i class="fas fa-tachometer-alt"></i> Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Student Information -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Student Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-2">
+              {% if student.profile_picture %}
+              <img
+                src="{{ student.profile_picture.url }}"
+                alt="{{ student.full_name }}"
+                class="img-fluid rounded-circle"
+                style="width: 100px; height: 100px; object-fit: cover"
+              />
+              {% else %}
+              <div
+                class="bg-secondary rounded-circle d-flex align-items-center justify-content-center"
+                style="width: 100px; height: 100px"
+              >
+                <i class="fas fa-user fa-3x text-white"></i>
+              </div>
+              {% endif %}
+            </div>
+            <div class="col-md-10">
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Full Name:</strong> {{ student.full_name }}</p>
+                  <p>
+                    <strong>Admission Number:</strong>
+                    <span class="badge bg-primary"
+                      >{{ student.admission_number }}</span
+                    >
+                  </p>
+                  <p>
+                    <strong>Date of Birth:</strong> {{ student.date_of_birth|date:"F d, Y" }}
+                  </p>
+                  <p>
+                    <strong>Gender:</strong>
+                    {% if student.gender == "M" %}
+                    <span class="badge bg-info">Male</span>
+                    {% elif student.gender == "F" %}
+                    <span class="badge bg-pink">Female</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Not set</span>
+                    {% endif %}
+                  </p>
+                </div>
+                <div class="col-md-6">
+                  <p>
+                    <strong>Form:</strong> {{ student.form.name|default:"Not set" }}
+                  </p>
+                  <p>
+                    <strong>Learning Area:</strong> {{ student.learning_area.name|default:"Not set" }}
+                  </p>
+                  <p>
+                    <strong>Parent Contact:</strong> {{ student.parent_contact }}
+                  </p>
+                  {% if student.email %}
+                  <p><strong>Email:</strong> {{ student.email }}</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assignment History -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Class Assignment History</h5>
+        </div>
+        <div class="card-body">
+          {% if assignments %}
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Class</th>
+                  <th>Academic Year</th>
+                  <th>Assignment Date</th>
+                  <th>Assigned By</th>
+                  <th>Status</th>
+                  <th>Duration</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for assignment in assignments %}
+                <tr
+                  class="{% if assignment.is_active %}table-success{% endif %}"
+                >
+                  <td>
+                    <strong>{{ assignment.assigned_class.name }}</strong>
+                    {% if assignment.assigned_class.form %}
+                    <br /><small class="text-muted"
+                      >{{ assignment.assigned_class.form.name }}</small
+                    >
+                    {% endif %} {% if assignment.assigned_class.learning_area %}
+                    <br /><small class="text-muted"
+                      >{{ assignment.assigned_class.learning_area.name }}</small
+                    >
+                    {% endif %}
+                  </td>
+                  <td>{{ assignment.assigned_class.academic_year.name }}</td>
+                  <td>{{ assignment.date_assigned|date:"M d, Y" }}</td>
+                  <td>
+                    {% if assignment.assigned_by %} {{ assignment.assigned_by.full_name }} {% else %}
+                    <span class="text-muted">System</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if assignment.is_active %}
+                    <span class="badge bg-success">Active</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if assignment.is_active %}
+                    <span class="text-success">
+                      <i class="fas fa-clock"></i>
+                      {{ assignment.date_assigned|timesince }} ago
+                    </span>
+                    {% else %}
+                    <span class="text-muted">
+                      {% if assignments|length > 1 %} {% with next_assignment=assignments|slice:":1" %} {% if next_assignment %} 
+                      {% with prev_assignment=assignments|slice:"1:2" %} 
+                      {% if prev_assignment %} {{ assignment.date_assigned|timesince:prev_assignment.0.date_assigned }} {% endif %} {% endwith %} {% endif %} {% endwith %} {% endif %}
+                    </span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-5">
+            <i class="fas fa-history fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No Assignment History</h5>
+            <p class="text-muted">
+              This student has not been assigned to any classes yet.
+            </p>
+            <a
+              href="{% url 'student_class_assignment_list' %}"
+              class="btn btn-primary"
+            >
+              <i class="fas fa-user-plus"></i> Assign to Class
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics -->
+  {% if assignments %}
+  <div class="row mt-4">
+    <div class="col-md-4">
+      <div class="card bg-primary text-white">
+        <div class="card-body text-center">
+          <h4 class="mb-0">{{ assignments|length }}</h4>
+          <p class="mb-0">Total Assignments</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card bg-success text-white">
+        <div class="card-body text-center">
+          <h4 class="mb-0">
+            {% for assignment in assignments %} {% if assignment.is_active %}1{% else %}0{% endif %} {% endfor %}
+          </h4>
+          <p class="mb-0">Active Assignments</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card bg-info text-white">
+        <div class="card-body text-center">
+          <h4 class="mb-0">
+            {% if assignments %} {% for assignment in assignments %} {% if assignment.is_active %} {{ assignment.date_assigned|timesince }} {% endif %} {% endfor %} {% else %} N/A {% endif %}
+          </h4>
+          <p class="mb-0">Time in Current Class</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  // Add any specific JavaScript for the history page here
+  document.addEventListener("DOMContentLoaded", function () {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(
+      document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    );
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  });
+</script>
+{% endblock %}

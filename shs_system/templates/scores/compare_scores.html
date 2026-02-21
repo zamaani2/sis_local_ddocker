@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+{% load static %}
+{% load score_filters %}
+
+{% block title %}Compare Scores{% endblock %}
+{% block page_title %}Compare Scores{% endblock %}
+
+{% block extra_css %}
+<style>
+    .comparison-table th, .comparison-table td {
+        text-align: center;
+    }
+    .comparison-toggle {
+        margin-bottom: 20px;
+    }
+    .toggle-btn {
+        width: 120px;
+    }
+</style>
+<!-- Chart.js for data visualization (local) -->
+<script src="{% static 'vendor/chartjs/4.4.0/dist/chart.umd.min.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        {% if current_academic_year %}
+                          {{ current_academic_year.name }}
+                          {% if current_term %}
+                            - {{ current_term.name }}
+                          {% endif %}
+                        {% else %}
+                          Compare Scores
+                        {% endif %}
+                    </h2>
+                    <p class="text-muted mb-0">
+                        {% if current_academic_year %}
+                          Current academic year and term management
+                        {% else %}
+                          Compare student performance across terms and subjects
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'score_management_dashboard' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> Back to Score Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparison Type Selector -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up"></i> Comparison Type
+                    </h5>
+                </div>
+                <div class="card-body">
+            <div class="comparison-toggle text-center">
+                <div class="btn-group">
+                    <a href="{% url 'compare_scores' %}?comparison_type=terms{% if academic_year_id %}&academic_year_id={{ academic_year_id }}{% endif %}{% if class_id %}&class_id={{ class_id }}{% endif %}" 
+                       class="btn btn-{% if comparison_type == 'terms' %}primary{% else %}outline-primary{% endif %} toggle-btn">
+                        <i class="bi bi-calendar3"></i> By Terms
+                    </a>
+                    <a href="{% url 'compare_scores' %}?comparison_type=subjects{% if academic_year_id %}&academic_year_id={{ academic_year_id }}{% endif %}{% if class_id %}&class_id={{ class_id }}{% endif %}" 
+                       class="btn btn-{% if comparison_type == 'subjects' %}primary{% else %}outline-primary{% endif %} toggle-btn">
+                        <i class="bi bi-book"></i> By Subjects
+                    </a>
+                </div>
+            </div>
+
+            <form action="{% url 'compare_scores' %}" method="GET" class="filter-form">
+                <input type="hidden" name="comparison_type" value="{{ comparison_type }}">
+                <div class="row">
+                    <!-- Academic Year Filter -->
+                    <div class="col-md-6">
+                        <label for="academic_year_id" class="form-label">Academic Year</label>
+                        <select class="form-select" id="academic_year_id" name="academic_year_id">
+                            {% for academic_year in academic_years %}
+                            <option value="{{ academic_year.id }}" {% if academic_year.id == selected_academic_year.id %}selected{% endif %}>
+                                {{ academic_year.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Class Filter -->
+                    <div class="col-md-6">
+                        <label for="class_id" class="form-label">Class</label>
+                        <select class="form-select" id="class_id" name="class_id">
+                            {% for class in available_classes %}
+                            <option value="{{ class.id }}" {% if selected_class and class.id == selected_class.id %}selected{% endif %}>
+                                {{ class.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Compare
+                        </button>
+                    </div>
+                </div>
+            </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if comparison_data %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up"></i>
+                        {% if comparison_data.type == 'terms' %}
+                        Comparison Across Terms for {{ selected_class.name }}
+                        {% else %}
+                        Comparison Across Subjects for {{ selected_class.name }}
+                        {% endif %}
+                    </h5>
+                </div>
+        <div class="card-body">
+            <div class="chart-container mb-4" style="position: relative; height: 300px;">
+                <canvas id="comparisonChart"></canvas>
+            </div>
+
+            <div class="table-responsive">
+                {% if comparison_data.type == 'terms' %}
+                <!-- Term Comparison Table -->
+                <table class="table table-hover comparison-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Student</th>
+                            {% for term in comparison_data.terms %}
+                            <th>{{ term.get_term_number_display }}</th>
+                            {% endfor %}
+                            <th>Average</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student_data in comparison_data.students %}
+                        <tr>
+                            <td class="text-left">
+                                <a href="{% url 'student_score_detail' student_data.student.id %}" class="text-decoration-none">
+                                    {{ student_data.student.full_name }}
+                                </a>
+                            </td>
+                            {% for term in comparison_data.terms %}
+                            <td>
+                                {% if student_data.terms|get_item:term.id|get_item:'average' %}
+                                <span class="badge {% if student_data.terms|get_item:term.id|get_item:'average' >= 70 %}bg-success{% elif student_data.terms|get_item:term.id|get_item:'average' >= 60 %}bg-primary{% elif student_data.terms|get_item:term.id|get_item:'average' >= 50 %}bg-info{% elif student_data.terms|get_item:term.id|get_item:'average' >= 40 %}bg-warning{% else %}bg-danger{% endif %} text-white">
+                                    {{ student_data.terms|get_item:term.id|get_item:'average'|floatformat:1 }}
+                                </span>
+                                {% else %}
+                                --
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                            <td>
+                                {% with total=0 count=0 %}
+                                    {% for term in comparison_data.terms %}
+                                        {% with term_data=student_data.terms|get_item:term.id %}
+                                            {% if term_data.average %}
+                                                {% with total=total|add:term_data.average count=count|add:1 %}
+                                                    {% comment %}Store updated values{% endcomment %}
+                                                {% endwith %}
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endfor %}
+                                    
+                                    {% if count > 0 %}
+                                        {% with overall_avg=total|divided_by:count %}
+                                        <span class="font-weight-bold">{{ overall_avg|floatformat:1 }}</span>
+                                        {% endwith %}
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="bg-light">
+                        <tr>
+                            <th>Class Average</th>
+                            {% for term in comparison_data.terms %}
+                            <th>
+                                {% if comparison_data.averages|get_item:term.id %}
+                                {{ comparison_data.averages|get_item:term.id|floatformat:1 }}
+                                {% else %}
+                                --
+                                {% endif %}
+                            </th>
+                            {% endfor %}
+                            <th>
+                                {% with term_avgs=0 term_count=0 %}
+                                    {% for term in comparison_data.terms %}
+                                        {% with term_avg=comparison_data.averages|get_item:term.id %}
+                                            {% if term_avg %}
+                                                {% with term_avgs=term_avgs|add:term_avg term_count=term_count|add:1 %}
+                                                    {% comment %}Store updated values{% endcomment %}
+                                                {% endwith %}
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endfor %}
+                                    
+                                    {% if term_count > 0 %}
+                                        {% with final_avg=term_avgs|divided_by:term_count %}
+                                        <span class="font-weight-bold">{{ final_avg|floatformat:1 }}</span>
+                                        {% endwith %}
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                {% endwith %}
+                            </th>
+                        </tr>
+                    </tfoot>
+                </table>
+                {% else %}
+                <!-- Subject Comparison Table -->
+                <table class="table table-hover comparison-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Student</th>
+                            {% for subject in comparison_data.subjects %}
+                            <th>{{ subject.subject_name }}</th>
+                            {% endfor %}
+                            <th>Average</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student_data in comparison_data.students %}
+                        <tr>
+                            <td class="text-left">
+                                <a href="{% url 'student_score_detail' student_data.student.id %}" class="text-decoration-none">
+                                    {{ student_data.student.full_name }}
+                                </a>
+                            </td>
+                            {% for subject in comparison_data.subjects %}
+                            <td>
+                                {% with assessment=student_data.subjects|get_item:subject.id|get_item:'assessment' %}
+                                    {% if assessment and assessment.total_score %}
+                                    <span class="badge {% if assessment.total_score >= 70 %}bg-success{% elif assessment.total_score >= 60 %}bg-primary{% elif assessment.total_score >= 50 %}bg-info{% elif assessment.total_score >= 40 %}bg-warning{% else %}bg-danger{% endif %} text-white">
+                                        {{ assessment.total_score|floatformat:1 }}
+                                    </span>
+                                    {% else %}
+                                    --
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            {% endfor %}
+                            <td>
+                                {% with total=0 count=0 %}
+                                    {% for subject in comparison_data.subjects %}
+                                        {% with assessment=student_data.subjects|get_item:subject.id|get_item:'assessment' %}
+                                            {% if assessment and assessment.total_score %}
+                                                {% with total=total|add:assessment.total_score count=count|add:1 %}
+                                                    {% comment %}Store updated values{% endcomment %}
+                                                {% endwith %}
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endfor %}
+                                    
+                                    {% if count > 0 %}
+                                        {% with overall_avg=total|divided_by:count %}
+                                        <span class="font-weight-bold">{{ overall_avg|floatformat:1 }}</span>
+                                        {% endwith %}
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="bg-light">
+                        <tr>
+                            <th>Subject Average</th>
+                            {% for subject in comparison_data.subjects %}
+                            <th>
+                                {% with subject_avg=comparison_data.averages|get_item:subject.id %}
+                                    {% if subject_avg %}
+                                    {{ subject_avg|floatformat:1 }}
+                                    {% else %}
+                                    --
+                                    {% endif %}
+                                {% endwith %}
+                            </th>
+                            {% endfor %}
+                            <th>
+                                {% with subj_avgs=0 subj_count=0 %}
+                                    {% for subject in comparison_data.subjects %}
+                                        {% with subject_avg=comparison_data.averages|get_item:subject.id %}
+                                            {% if subject_avg %}
+                                                {% with subj_avgs=subj_avgs|add:subject_avg subj_count=subj_count|add:1 %}
+                                                    {% comment %}Store updated values{% endcomment %}
+                                                {% endwith %}
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endfor %}
+                                    
+                                    {% if subj_count > 0 %}
+                                        {% with final_avg=subj_avgs|divided_by:subj_count %}
+                                        <span class="font-weight-bold">{{ final_avg|floatformat:1 }}</span>
+                                        {% endwith %}
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                {% endwith %}
+                            </th>
+                        </tr>
+                    </tfoot>
+                </table>
+                {% endif %}
+            </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> Please select a class to compare scores.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Auto-submit form when filters change
+        $('#academic_year_id, #class_id').change(function() {
+            $('.filter-form').submit();
+        });
+    });
+
+    {% if comparison_data %}
+    // Comparison Chart
+    document.addEventListener('DOMContentLoaded', function() {
+        var ctx = document.getElementById('comparisonChart').getContext('2d');
+        
+        {% if comparison_data.type == 'terms' %}
+        // Term comparison chart
+        var labels = [{% for term in comparison_data.terms %}'{{ term.get_term_number_display }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+        var datasets = [];
+        
+        // Class average dataset
+        var averageData = [];
+        {% for term in comparison_data.terms %}
+        averageData.push({{ comparison_data.averages|get_item:term.id|default:'null' }});
+        {% endfor %}
+        
+        datasets.push({
+            label: 'Class Average',
+            data: averageData,
+            backgroundColor: 'rgba(78, 115, 223, 0.2)',
+            borderColor: 'rgba(78, 115, 223, 1)',
+            borderWidth: 2,
+            type: 'line',
+            fill: false,
+            tension: 0.1,
+            pointRadius: 5,
+            pointHoverRadius: 7
+        });
+        
+        // Top 5 students
+        {% for student_data in comparison_data.students|slice:':5' %}
+        var studentData = [];
+        {% for term in comparison_data.terms %}
+        studentData.push({{ student_data.terms|get_item:term.id|get_item:'average'|default:'null' }});
+        {% endfor %}
+        
+        datasets.push({
+            label: '{{ student_data.student.full_name }}',
+            data: studentData,
+            backgroundColor: 'rgba({{ forloop.counter0 }}0, {{ forloop.counter0|add:10 }}0, {{ 255|add:forloop.counter0|add:-30 }}, 0.7)',
+            borderColor: 'rgba({{ forloop.counter0 }}0, {{ forloop.counter0|add:10 }}0, {{ 255|add:forloop.counter0|add:-30 }}, 1)',
+            borderWidth: 1
+        });
+        {% endfor %}
+        
+        {% else %}
+        // Subject comparison chart
+        var labels = [{% for subject in comparison_data.subjects %}'{{ subject.subject_name }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+        var datasets = [];
+        
+        // Class average dataset
+        var averageData = [];
+        {% for subject in comparison_data.subjects %}
+        averageData.push({{ comparison_data.averages|get_item:subject.id|default:'null' }});
+        {% endfor %}
+        
+        datasets.push({
+            label: 'Class Average',
+            data: averageData,
+            backgroundColor: 'rgba(78, 115, 223, 0.7)',
+            borderColor: 'rgba(78, 115, 223, 1)',
+            borderWidth: 2,
+            type: 'bar'
+        });
+        
+        // Top 5 students
+        {% for student_data in comparison_data.students|slice:':5' %}
+        var studentData = [];
+        {% for subject in comparison_data.subjects %}
+        {% with assessment=student_data.subjects|get_item:subject.id|get_item:'assessment' %}
+        {% if assessment and assessment.total_score %}
+        studentData.push({{ assessment.total_score }});
+        {% else %}
+        studentData.push(null);
+        {% endif %}
+        {% endwith %}
+        {% endfor %}
+        
+        datasets.push({
+            label: '{{ student_data.student.full_name }}',
+            data: studentData,
+            type: 'line',
+            fill: false,
+            tension: 0.1,
+            backgroundColor: 'rgba({{ forloop.counter0|add:10 }}0, {{ 200|add:forloop.counter0|add:-50 }}, {{ forloop.counter0|add:5 }}0, 0.7)',
+            borderColor: 'rgba({{ forloop.counter0|add:10 }}0, {{ 200|add:forloop.counter0|add:-50 }}, {{ forloop.counter0|add:5 }}0, 1)',
+            borderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 7
+        });
+        {% endfor %}
+        {% endif %}
+        
+        var comparisonChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Score'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: {% if comparison_data.type == 'terms' %}'Terms'{% else %}'Subjects'{% endif %}
+                        }
+                    }
+                }
+            }
+        });
+    });
+    {% endif %}
+</script>
+{% endblock %} 

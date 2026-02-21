@@ -1,0 +1,441 @@
+{% extends 'super_admin/base.html' %} {% load static %} 
+{% block title %}Subscription Plans - {{ block.super }}{% endblock %} 
+{% block page_title %}Subscription Plans{% endblock %} {% block breadcrumb %}
+<li class="breadcrumb-item active">Subscription Plans</li>
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <!-- Page Heading -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Subscription Plans</h1>
+    <a
+      href="{% url 'super_admin:plan_create' %}"
+      class="d-none d-sm-inline-block btn btn-primary shadow-sm"
+    >
+      <i class="bi bi-plus-circle me-1"></i> Create New Plan
+    </a>
+  </div>
+
+  <!-- Plans Cards -->
+  <div class="row">
+    {% for plan in plans %}
+    <div class="col-lg-4 col-md-6 mb-4">
+      <div
+        class="card shadow h-100 {% if plan.is_featured %}border-warning{% endif %}"
+      >
+        {% if plan.is_featured %}
+        <div class="card-header bg-warning text-dark">
+          <h5 class="mb-0">
+            {{ plan.name }}
+            <span class="badge bg-dark ms-2">FEATURED</span>
+          </h5>
+        </div>
+        {% else %}
+        <div class="card-header">
+          <h5 class="mb-0">{{ plan.name }}</h5>
+        </div>
+        {% endif %}
+
+        <div class="card-body">
+          <div class="text-center mb-4">
+            <h2 class="display-4 font-weight-bold">${{ plan.price }}</h2>
+            <p class="text-muted">per {{ plan.billing_cycle }}</p>
+          </div>
+
+          <div class="mb-4">
+            <h6 class="font-weight-bold">Features:</h6>
+            <ul class="list-group list-group-flush">
+              {% for feature in plan.features %}
+              <li class="list-group-item border-0 ps-0">
+                <i class="bi bi-check-circle-fill text-success me-2"></i> {{
+                feature }}
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+
+          <div class="mb-3">
+            <h6 class="font-weight-bold">Plan Details:</h6>
+            <dl class="row">
+              <dt class="col-sm-6">Max Users:</dt>
+              <dd class="col-sm-6">{{ plan.max_users }}</dd>
+
+              <dt class="col-sm-6">Storage:</dt>
+              <dd class="col-sm-6">{{ plan.storage_limit }} GB</dd>
+
+              <dt class="col-sm-6">Bandwidth:</dt>
+              <dd class="col-sm-6">{{ plan.bandwidth_limit }} GB/month</dd>
+
+              <dt class="col-sm-6">API Requests:</dt>
+              <dd class="col-sm-6">{{ plan.api_request_limit }}/day</dd>
+
+              <dt class="col-sm-6">Trial Period:</dt>
+              <dd class="col-sm-6">{{ plan.trial_days }} days</dd>
+            </dl>
+          </div>
+
+          <div class="d-flex justify-content-between mt-4">
+            <a
+              href="{% url 'super_admin:plan_update' plan.id %}"
+              class="btn btn-primary"
+            >
+              <i class="bi bi-pencil me-1"></i> Edit
+            </a>
+            <div class="btn-group">
+              <button
+                type="button"
+                class="btn btn-outline-secondary dropdown-toggle"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                Actions
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{% url 'super_admin:plan_duplicate' plan.id %}"
+                    >Duplicate Plan</a
+                  >
+                </li>
+                {% if plan.is_featured %}
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{% url 'super_admin:plan_toggle_feature' plan.id %}"
+                    >Remove Featured</a
+                  >
+                </li>
+                {% else %}
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{% url 'super_admin:plan_toggle_feature' plan.id %}"
+                    >Mark as Featured</a
+                  >
+                </li>
+                {% endif %}
+                <li><hr class="dropdown-divider" /></li>
+                <li>
+                  <a
+                    class="dropdown-item text-danger"
+                    href="#"
+                    data-bs-toggle="modal"
+                    data-bs-target="#deletePlanModal{{ plan.id }}"
+                    >Delete Plan</a
+                  >
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-footer bg-light">
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted"
+              >{{ plan.active_subscriptions }} active subscriptions</small
+            >
+            <span
+              class="badge {% if plan.is_active %}bg-success{% else %}bg-danger{% endif %}"
+            >
+              {% if plan.is_active %}Active{% else %}Inactive{% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delete Plan Modal -->
+      <div
+        class="modal fade"
+        id="deletePlanModal{{ plan.id }}"
+        tabindex="-1"
+        aria-labelledby="deletePlanModalLabel{{ plan.id }}"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="deletePlanModalLabel{{ plan.id }}">
+                Delete Plan
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <p>
+                Are you sure you want to delete
+                <strong>{{ plan.name }}</strong>?
+              </p>
+              {% if plan.active_subscriptions > 0 %}
+              <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                This plan has
+                <strong>{{ plan.active_subscriptions }}</strong> active
+                subscriptions. Deleting this plan will require migrating these
+                subscriptions to other plans.
+              </div>
+              {% endif %}
+              <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancel
+              </button>
+              <form
+                action="{% url 'super_admin:plan_delete' plan.id %}"
+                method="post"
+                style="display: inline"
+              >
+                {% csrf_token %}
+                <button
+                  type="submit"
+                  class="btn btn-danger"
+                  {% if plan.active_subscriptions > 0 %}disabled{% endif %}>Delete Plan
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <i class="bi bi-layers display-1 text-muted mb-3"></i>
+          <h4>No Subscription Plans Available</h4>
+          <p class="text-muted">
+            Create your first subscription plan to start offering services.
+          </p>
+          <a
+            href="{% url 'super_admin:plan_create' %}"
+            class="btn btn-primary mt-3"
+          >
+            <i class="bi bi-plus-circle me-1"></i> Create New Plan
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Plan Comparison -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold">Plan Comparison</h6>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              {% for plan in plans %}
+              <th
+                class="text-center {% if plan.is_featured %}bg-warning-light{% endif %}"
+              >
+                {{ plan.name }} {% if plan.is_featured %}<span
+                  class="badge bg-warning text-dark"
+                  >FEATURED</span
+                >{% endif %}
+              </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Price</td>
+              {% for plan in plans %}
+              <td class="text-center">
+                ${{ plan.price }}/{{ plan.billing_cycle }}
+              </td>
+              {% endfor %}
+            </tr>
+            <tr>
+              <td>Max Users</td>
+              {% for plan in plans %}
+              <td class="text-center">{{ plan.max_users }}</td>
+              {% endfor %}
+            </tr>
+            <tr>
+              <td>Storage</td>
+              {% for plan in plans %}
+              <td class="text-center">{{ plan.storage_limit }} GB</td>
+              {% endfor %}
+            </tr>
+            <tr>
+              <td>Bandwidth</td>
+              {% for plan in plans %}
+              <td class="text-center">{{ plan.bandwidth_limit }} GB/month</td>
+              {% endfor %}
+            </tr>
+            <tr>
+              <td>API Requests</td>
+              {% for plan in plans %}
+              <td class="text-center">{{ plan.api_request_limit }}/day</td>
+              {% endfor %}
+            </tr>
+            <tr>
+              <td>Trial Period</td>
+              {% for plan in plans %}
+              <td class="text-center">{{ plan.trial_days }} days</td>
+              {% endfor %}
+            </tr>
+            <tr>
+              <td>Active Subscriptions</td>
+              {% for plan in plans %}
+              <td class="text-center">{{ plan.active_subscriptions }}</td>
+              {% endfor %}
+            </tr>
+            <tr>
+              <td>Status</td>
+              {% for plan in plans %}
+              <td class="text-center">
+                <span
+                  class="badge {% if plan.is_active %}bg-success{% else %}bg-danger{% endif %}"
+                >
+                  {% if plan.is_active %}Active{% else %}Inactive{% endif %}
+                </span>
+              </td>
+              {% endfor %}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Plan Statistics -->
+  <div class="row">
+    <div class="col-xl-8 col-lg-7">
+      <div class="card shadow mb-4">
+        <div
+          class="card-header py-3 d-flex flex-row align-items-center justify-content-between"
+        >
+          <h6 class="m-0 font-weight-bold">Subscription Distribution</h6>
+          <div class="dropdown no-arrow">
+            <a
+              class="dropdown-toggle"
+              href="#"
+              role="button"
+              id="dropdownMenuLink"
+              data-bs-toggle="dropdown"
+              aria-haspopup="true"
+              aria-expanded="false"
+            >
+              <i class="bi bi-three-dots-vertical text-gray-400"></i>
+            </a>
+            <div
+              class="dropdown-menu dropdown-menu-end shadow animated--fade-in"
+              aria-labelledby="dropdownMenuLink"
+            >
+              <div class="dropdown-header">Export:</div>
+              <a class="dropdown-item" href="#">CSV</a>
+              <a class="dropdown-item" href="#">PDF</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" href="#">View Full Report</a>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="chart-area">
+            <canvas id="planDistributionChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-4 col-lg-5">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold">Revenue by Plan</h6>
+        </div>
+        <div class="card-body">
+          <div class="chart-pie pt-4 pb-2">
+            <canvas id="planRevenueChart"></canvas>
+          </div>
+          <div class="mt-4 text-center small">
+            {% for plan in plans %}
+            <span class="me-2">
+              <i
+                class="fas fa-circle"
+                style="color: {{ plan.chart_color }}"
+              ></i>
+              {{ plan.name }}
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="{% static 'vendor/chartjs/4.4.0/dist/chart.umd.min.js' %}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Plan Distribution Chart
+    var ctx = document.getElementById('planDistributionChart').getContext('2d');
+    var planDistributionChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: [{% for plan in plans %}'{{ plan.name }}',{% endfor %}],
+        datasets: [{
+          label: 'Active Subscriptions',
+          data: [{% for plan in plans %}{{ plan.active_subscriptions }},{% endfor %}],
+          backgroundColor: [{% for plan in plans %}'{{ plan.chart_color }}',{% endfor %}],
+          borderColor: [{% for plan in plans %}'{{ plan.chart_color }}',{% endfor %}],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+
+    // Plan Revenue Chart
+    var ctx2 = document.getElementById('planRevenueChart').getContext('2d');
+    var planRevenueChart = new Chart(ctx2, {
+      type: 'doughnut',
+      data: {
+        labels: [{% for plan in plans %}'{{ plan.name }}',{% endfor %}],
+        datasets: [{
+          data: [{% for plan in plans %}{{ plan.monthly_revenue }},{% endfor %}],
+          backgroundColor: [{% for plan in plans %}'{{ plan.chart_color }}',{% endfor %}],
+          hoverBackgroundColor: [{% for plan in plans %}'{{ plan.chart_hover_color }}',{% endfor %}],
+          hoverBorderColor: "rgba(234, 236, 244, 1)",
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        tooltips: {
+          backgroundColor: "rgb(255,255,255)",
+          bodyFontColor: "#858796",
+          borderColor: '#dddfeb',
+          borderWidth: 1,
+          xPadding: 15,
+          yPadding: 15,
+          displayColors: false,
+          caretPadding: 10,
+        },
+        legend: {
+          display: false
+        },
+        cutoutPercentage: 80,
+      }
+    });
+  });
+</script>
+{% endblock %}

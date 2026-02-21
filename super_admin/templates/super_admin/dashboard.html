@@ -1,0 +1,254 @@
+{% extends 'super_admin/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - {{ block.super }}{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Dashboard</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Info boxes -->
+  <div class="row">
+    <div class="col-12 col-sm-6 col-md-3">
+      <div class="super-admin-card card-primary mb-4 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Schools</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ schools_count }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-building fa-2x text-gray-300"></i>
+            </div>
+          </div>
+          <div class="mt-2">
+            <a href="{% url 'super_admin:school_list' %}" class="text-decoration-none">View Details <i class="bi bi-arrow-right"></i></a>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-12 col-sm-6 col-md-3">
+      <div class="super-admin-card card-success mb-4 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Active Subscriptions</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ active_subscriptions }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-check-circle fa-2x text-gray-300"></i>
+            </div>
+          </div>
+          <div class="mt-2">
+            <a href="{% url 'super_admin:subscription_list' %}?status=active" class="text-decoration-none">View Details <i class="bi bi-arrow-right"></i></a>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-12 col-sm-6 col-md-3">
+      <div class="super-admin-card card-info mb-4 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Trial Subscriptions</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ trial_subscriptions }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-hourglass-split fa-2x text-gray-300"></i>
+            </div>
+          </div>
+          <div class="mt-2">
+            <a href="{% url 'super_admin:subscription_list' %}?status=trial" class="text-decoration-none">View Details <i class="bi bi-arrow-right"></i></a>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-12 col-sm-6 col-md-3">
+      <div class="super-admin-card card-warning mb-4 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Expired Subscriptions</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ expired_subscriptions }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-exclamation-triangle fa-2x text-gray-300"></i>
+            </div>
+          </div>
+          <div class="mt-2">
+            <a href="{% url 'super_admin:subscription_list' %}?status=expired" class="text-decoration-none">View Details <i class="bi bi-arrow-right"></i></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Recent Schools and Subscription Stats -->
+  <div class="row">
+    <!-- Recent Schools -->
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold">Recent Schools</h6>
+          <a href="{% url 'super_admin:school_list' %}" class="btn btn-sm btn-primary">View All</a>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover" id="recentSchools" width="100%" cellspacing="0">
+              <thead>
+                <tr>
+                  <th>School Name</th>
+                  <th>Domain</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for school in new_schools %}
+                <tr>
+                  <td><a href="{% url 'super_admin:school_detail' school.id %}">{{ school.name }}</a></td>
+                  <td>{{ school.domain }}</td>
+                  <td>
+                    {% if school.is_active %}
+                    <span class="badge bg-success">Active</span>
+                    {% else %}
+                    <span class="badge bg-danger">Inactive</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ school.date_created|date:"M d, Y" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="4" class="text-center">No schools registered yet.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Subscription Stats -->
+    <div class="col-lg-4">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="m-0 font-weight-bold">Schools by Status</h6>
+        </div>
+        <div class="card-body">
+          <div class="list-group">
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+              <span>Total Schools</span>
+              <span class="badge bg-primary rounded-pill">{{ schools_count }}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+              <span>Active Schools</span>
+              <span class="badge bg-success rounded-pill">{{ active_schools }}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+              <span>Active Subscriptions</span>
+              <span class="badge bg-info rounded-pill">{{ active_subscriptions }}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+              <span>Trial Subscriptions</span>
+              <span class="badge bg-warning rounded-pill">{{ trial_subscriptions }}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+              <span>Expired Subscriptions</span>
+              <span class="badge bg-danger rounded-pill">{{ expired_subscriptions }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Subscriptions Expiring Soon -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="m-0 font-weight-bold">Expiring Soon</h6>
+        </div>
+        <div class="card-body">
+          <div class="list-group">
+            {% for subscription in expiring_soon %}
+            <div class="list-group-item">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">{{ subscription.school.name }}</h6>
+                <small>{{ subscription.end_date|date:"M d" }}</small>
+              </div>
+              <p class="mb-1">{{ subscription.plan.name }}</p>
+              <small class="text-{% if subscription.status == 'trial' %}info{% else %}success{% endif %}">
+                {{ subscription.status|title }}
+              </small>
+            </div>
+            {% empty %}
+            <div class="list-group-item">
+              <p class="mb-0">No subscriptions expiring soon.</p>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Recent Transactions -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold">Recent Transactions</h6>
+          <a href="{% url 'super_admin:transaction_list' %}" class="btn btn-sm btn-primary">View All</a>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+              <thead>
+                <tr>
+                  <th>School</th>
+                  <th>Plan</th>
+                  <th>Amount</th>
+                  <th>Payment Method</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for transaction in recent_transactions %}
+                <tr>
+                  <td>{{ transaction.school.name }}</td>
+                  <td>{{ transaction.subscription.plan.name }}</td>
+                  <td>${{ transaction.amount }}</td>
+                  <td>{{ transaction.payment_method }}</td>
+                  <td>{{ transaction.payment_date|date:"M d, Y" }}</td>
+                  <td>
+                    {% if transaction.status == 'completed' %}
+                    <span class="badge bg-success">Completed</span>
+                    {% elif transaction.status == 'pending' %}
+                    <span class="badge bg-warning">Pending</span>
+                    {% elif transaction.status == 'failed' %}
+                    <span class="badge bg-danger">Failed</span>
+                    {% else %}
+                    <span class="badge bg-secondary">{{ transaction.status|title }}</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="6" class="text-center">No transactions yet.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 

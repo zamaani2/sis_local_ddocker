@@ -1,0 +1,1822 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% load static %}
+{% block title %}Student Promotion{% endblock %}
+{% block page_title %}Promotion Management {% endblock %}
+{% block extra_css %}
+{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
+<li class="breadcrumb-item active">Promotion Management</li>
+{% endblock %}
+{% block head_extras %}
+<style>
+    /* Enhanced SweetAlert2 Styling for Promotion Page */
+    .swal2-popup-enhanced {
+        border-radius: 15px !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+        border: 2px solid #e3e6f0 !important;
+    }
+    
+    .swal2-title-enhanced {
+        font-size: 1.5rem !important;
+        font-weight: 600 !important;
+        color: #2c3e50 !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    .swal2-content-enhanced {
+        font-size: 1.1rem !important;
+        color: #495057 !important;
+        line-height: 1.6 !important;
+    }
+    
+    .swal2-confirm {
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        padding: 10px 25px !important;
+        font-size: 1rem !important;
+    }
+    
+    .swal2-close {
+        color: #6c757d !important;
+        font-size: 1.5rem !important;
+    }
+    
+    .swal2-close:hover {
+        color: #495057 !important;
+    }
+    
+    /* Success alert styling */
+    .swal2-popup.swal2-icon-success {
+        border-color: #28a745 !important;
+    }
+    
+    /* Error alert styling */
+    .swal2-popup.swal2-icon-error {
+        border-color: #dc3545 !important;
+    }
+    
+    /* Warning alert styling */
+    .swal2-popup.swal2-icon-warning {
+        border-color: #ffc107 !important;
+    }
+    
+    /* Info alert styling */
+    .swal2-popup.swal2-icon-info {
+        border-color: #17a2b8 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                      {% if current_academic_year %}
+                        {{ current_academic_year.name }}
+                        {% if current_term %}
+                          - {{ current_term.name }}
+                        {% endif %}
+                      {% else %}
+                        Student Promotion Management
+                      {% endif %}
+                    </h2>
+                    <p class="text-muted mb-0">
+                      {% if current_academic_year %}
+                        Current academic year and term management
+                      {% else %}
+                        Manage student promotions
+                      {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-arrow-up-circle"></i> Promotion Management
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="lead">
+                     
+                    </p>
+
+                    <!-- Hidden div to track URL parameters -->
+                    <div id="url-params" style="display: none;">
+                        <div data-success="{{ request.GET.success }}"></div>
+                        <div data-warning="{{ request.GET.warning }}"></div>
+                        <div data-action="{{ request.GET.action }}"></div>
+                    </div>
+
+
+                    <!-- Class Selection Interface -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-funnel"></i> Select Class for Promotion Management
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                        <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label for="class-selector" class="form-label">
+                                        <i class="bi bi-people"></i> Select Class
+                                    </label>
+                                    <select id="class-selector" name="selected_class_id" class="form-select" required>
+                                        <option value="">Choose a class to manage promotions</option>
+                                        {% for class_obj in classes %}
+                                        <option value="{{ class_obj.id }}" 
+                                            {% if selected_class_id == class_obj.id %}selected{% endif %}>
+                                            {{ class_obj.name }} ({{ class_obj.form.name }} - {{ class_obj.learning_area.name }})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-text text-muted">Select a specific class to view and manage student promotions</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="form-filter" class="form-label">
+                                        <i class="bi bi-filter"></i> Filter by Form
+                                    </label>
+                                    <select id="form-filter" name="form_filter" class="form-select">
+
+                                    <option value="">All Forms</option>
+                                    {% for form_id, form_name in forms %}
+                                    <option value="{{ form_id }}" {% if form_filter == form_id|stringformat:"s" %}selected{% endif %}>{{ form_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                                <div class="col-md-3">
+                                    <label for="learning-area-filter" class="form-label">
+                                        <i class="bi bi-book"></i> Filter by Learning Area
+                                    </label>
+                                    <select id="learning-area-filter" name="learning_area_filter" class="form-select">
+
+                                    <option value="">All Learning Areas</option>
+                                    {% for area_id, area_name in learning_areas %}
+                                    <option value="{{ area_id }}" {% if learning_area_filter == area_id %}selected{% endif %}>{{ area_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+
+                                    <label for="terms-consider" class="form-label">
+                                        <i class="bi bi-calendar"></i> Terms to Consider
+                                    </label>
+                                    <select id="terms-consider" name="terms_to_consider" class="form-select">
+                                        <option value="1" {% if terms_to_consider == 1 %}selected{% endif %}>Current Term Only</option>
+                                        <option value="2" {% if terms_to_consider == 2 %}selected{% endif %}>Last 2 Terms</option>
+                                        <option value="3" {% if terms_to_consider == 3 %}selected{% endif %}>Last 3 Terms</option>
+                                </select>
+                            </div>
+                            </div>
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <input type="text" id="search-input" name="search" class="form-control"
+                                            placeholder="Search by name or admission #" value="{{ search_query }}">
+                                        <button class="btn btn-outline-secondary" type="button" id="search-btn">
+                                            <i class="bi bi-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <select id="status-filter" name="status_filter" class="form-select">
+                                        <option value="">All Statuses</option>
+                                        <option value="promote" {% if status_filter == "promote" %}selected{% endif %}>Ready to Promote</option>
+                                        <option value="graduate" {% if status_filter == "graduate" %}selected{% endif %}>Ready to Graduate</option>
+                                        <option value="retained" {% if status_filter == "retained" %}selected{% endif %}>Retained</option>
+                                        <option value="incomplete" {% if status_filter == "incomplete" %}selected{% endif %}>Incomplete</option>
+                                </select>
+                            </div>
+                                <div class="col-md-3">
+                                    <button type="button" class="btn btn-outline-primary w-100" id="load-class-data">
+                                        <i class="bi bi-arrow-clockwise"></i> Refresh Data
+                                    </button>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <span class="badge bg-info">Available Terms: {{ available_terms }}</span>
+                            <span class="badge bg-success">Terms Considered: {{ terms_to_consider }}</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-primary">
+                                <i class="bi bi-info-circle"></i> Select target class for promotion
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Target Selection Section -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-bullseye"></i> Promotion Target Selection
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="target-academic-year" class="form-label">
+                                        <i class="bi bi-calendar3"></i> Target Academic Year
+                                    </label>
+                                    <select id="target-academic-year" name="target_academic_year_id" class="form-select" required>
+                                        <option value="">Select Academic Year</option>
+                                    {% for year in available_academic_years %}
+                                    <option value="{{ year.id }}">{{ year.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                    <div class="form-text text-muted">Choose the academic year to promote students to</div>
+                            </div>
+                                <div class="col-md-6">
+                                    <label for="target-class" class="form-label">
+                                        <i class="bi bi-people"></i> Target Class
+                                    </label>
+                                    <select id="target-class" name="target_class_id" class="form-select" required disabled>
+                                        <option value="">Select Academic Year First</option>
+                                    </select>
+                                    <div class="form-text text-muted">Choose the specific class to promote students to</div>
+                            </div>
+                            </div>
+                            <div class="mt-3" id="target-class-info" style="display: none;">
+                                <div class="alert alert-info">
+                                    <h6><i class="bi bi-info-circle"></i> Target Class Information</h6>
+                                    <div id="class-details"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Promotion Form -->
+                    <form method="post" id="promotion-form">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <button type="submit" name="action" value="promote" class="btn btn-primary" id="promote-btn" disabled>
+                                <i class="bi bi-arrow-up"></i> Promote/Demote Selected Students
+                            </button>
+                            <button type="submit" name="action" value="archive" class="btn btn-success" id="archive-btn" disabled>
+                                <i class="bi bi-mortarboard"></i> Archive Graduated Students
+                            </button>
+                            <button type="submit" name="action" value="demote" class="btn btn-warning" Hidden id="demote-btn" disabled>
+                                <i class="bi bi-arrow-down"></i> Demote Selected Students
+                            </button>
+                            <small class="text-muted ms-2">
+                                <i class="bi bi-info-circle"></i> Buttons are enabled based on selected students' eligibility
+                            </small>
+                        </div>
+
+
+                        <!-- Single Class Display Area -->
+                        <div id="class-display-area" style="display: none;">
+                                <div class="card mb-4">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">
+                                        <i class="bi bi-people"></i> <span id="selected-class-name">Selected Class</span> Students
+                                        <small class="ms-2" id="selected-class-details">(Form - Learning Area)</small>
+                                        </h6>
+                                    <div>
+                                        <span class="badge bg-primary" id="student-count">0 students</span>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="refresh-class-data">
+                                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                                        </button>
+                                    </div>
+
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>
+
+                                                        <input type="checkbox" id="select-all-students" class="form-check-input">
+
+                                                        </th>
+                                                        <th>Admission #</th>
+                                                        <th>Student Name</th>
+                                                        <th>Current Class</th>
+                                                        <th>Learning Area</th>
+                                                        <th>Avg. Score</th>
+                                                        <th>Status</th>
+                                                        <th>Demotion</th>
+                                                        <th>Reason</th>
+                                                        <th>Action</th>
+                                                    </tr>
+                                                </thead>
+
+                                            <tbody id="students-table-body">
+                                                <!-- Students will be loaded here via AJAX -->
+
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                        <!-- No Class Selected Message -->
+                        <div id="no-class-selected" class="text-center py-5">
+                            <div class="card">
+                                <div class="card-body">
+                                    <i class="bi bi-funnel display-1 text-muted"></i>
+                                    <h4 class="mt-3 text-muted">Select a Class to Manage Promotions</h4>
+                                    <p class="text-muted">Choose a class from the dropdown above to view and manage student promotions for that specific class.</p>
+                                    <div class="mt-4">
+                                        <span class="badge bg-info me-2">Available Terms: {{ available_terms }}</span>
+                                        <span class="badge bg-success">Terms Considered: {{ terms_to_consider }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // Small notification function for top right corner
+        function showSmallNotification(message, type = 'info') {
+            // Remove any existing notifications
+            const existingNotification = document.getElementById('small-notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.id = 'small-notification';
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 9999;
+                padding: 12px 16px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                font-size: 14px;
+                font-weight: 500;
+                max-width: 300px;
+                word-wrap: break-word;
+                opacity: 0;
+                transform: translateX(100%);
+                transition: all 0.3s ease;
+            `;
+
+            // Set colors based on type
+            const colors = {
+                'success': { bg: '#d4edda', text: '#155724', border: '#c3e6cb' },
+                'error': { bg: '#f8d7da', text: '#721c24', border: '#f5c6cb' },
+                'info': { bg: '#d1ecf1', text: '#0c5460', border: '#bee5eb' },
+                'warning': { bg: '#fff3cd', text: '#856404', border: '#ffeaa7' }
+            };
+
+            const colorScheme = colors[type] || colors['info'];
+            notification.style.backgroundColor = colorScheme.bg;
+            notification.style.color = colorScheme.text;
+            notification.style.border = `1px solid ${colorScheme.border}`;
+
+            // Add icon based on type
+            const icons = {
+                'success': '✓',
+                'error': '✕',
+                'info': 'ℹ',
+                'warning': '⚠'
+            };
+            notification.innerHTML = `<span style="margin-right: 8px;">${icons[type] || icons['info']}</span>${message}`;
+
+            // Add to page
+            document.body.appendChild(notification);
+
+            // Animate in
+            setTimeout(() => {
+                notification.style.opacity = '1';
+                notification.style.transform = 'translateX(0)';
+            }, 10);
+
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Reason popup functionality
+        function createReasonPopup(reason, triggerElement) {
+            // Remove any existing popup
+            const existingPopup = document.getElementById('reason-popup');
+            if (existingPopup) {
+                existingPopup.remove();
+            }
+
+            // Create popup element
+            const popup = document.createElement('div');
+            popup.id = 'reason-popup';
+            popup.className = 'reason-popup';
+            
+            // Create close button with proper event handling
+            const closeButton = document.createElement('button');
+            closeButton.className = 'reason-popup-close';
+            closeButton.innerHTML = '<i class="bi bi-x"></i>';
+            closeButton.addEventListener('click', function(e) {
+                e.stopPropagation();
+                closeReasonPopup();
+            });
+
+            // Create header
+            const header = document.createElement('div');
+            header.className = 'reason-popup-header';
+            header.innerHTML = '<span><i class="bi bi-info-circle me-2"></i>Promotion Reason</span>';
+            header.appendChild(closeButton);
+
+            // Create content
+            const content = document.createElement('div');
+            content.className = 'reason-popup-content';
+            content.textContent = reason;
+
+            // Assemble popup
+            popup.appendChild(header);
+            popup.appendChild(content);
+
+            // Add beautiful inline CSS styles
+            popup.style.cssText = `
+                position: absolute;
+                background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+                border: 1px solid #e3e6f0;
+                border-radius: 12px;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.1), 0 3px 10px rgba(0,0,0,0.05);
+                padding: 0;
+                z-index: 1060;
+                max-width: 420px;
+                min-width: 320px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                opacity: 0;
+                transform: scale(0.9) translateY(-10px);
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                pointer-events: none;
+                backdrop-filter: blur(10px);
+            `;
+
+            // Style header
+            header.style.cssText = `
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 12px 16px;
+                border-radius: 12px 12px 0 0;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                font-weight: 600;
+                font-size: 14px;
+            `;
+
+            // Style close button
+            closeButton.style.cssText = `
+                background: rgba(255,255,255,0.2);
+                border: none;
+                color: white;
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                font-size: 12px;
+            `;
+
+            // Style content
+            content.style.cssText = `
+                padding: 16px;
+                color: #495057;
+                font-size: 14px;
+                line-height: 1.5;
+                word-wrap: break-word;
+                background: white;
+                border-radius: 0 0 12px 12px;
+            `;
+
+            // Position popup
+            const rect = triggerElement.getBoundingClientRect();
+            const popupTop = rect.top + window.scrollY - 10;
+            const popupLeft = Math.max(10, rect.left + window.scrollX - 100);
+            
+            popup.style.top = popupTop + 'px';
+            popup.style.left = popupLeft + 'px';
+
+            // Add to page
+            document.body.appendChild(popup);
+
+            // Show popup with beautiful animation
+            setTimeout(() => {
+                popup.style.opacity = '1';
+                popup.style.transform = 'scale(1) translateY(0)';
+                popup.style.pointerEvents = 'auto';
+            }, 10);
+
+            // Close on outside click
+            setTimeout(() => {
+                document.addEventListener('click', function closeOnOutsideClick(e) {
+                    if (!popup.contains(e.target) && !triggerElement.contains(e.target)) {
+                        closeReasonPopup();
+                        document.removeEventListener('click', closeOnOutsideClick);
+                    }
+                });
+            }, 100);
+
+            // Add hover effects
+            closeButton.addEventListener('mouseenter', function() {
+                this.style.background = 'rgba(255,255,255,0.3)';
+                this.style.transform = 'scale(1.1)';
+            });
+
+            closeButton.addEventListener('mouseleave', function() {
+                this.style.background = 'rgba(255,255,255,0.2)';
+                this.style.transform = 'scale(1)';
+            });
+        }
+
+        function closeReasonPopup() {
+            const popup = document.getElementById('reason-popup');
+            if (popup) {
+                popup.style.opacity = '0';
+                popup.style.transform = 'scale(0.9) translateY(-10px)';
+                setTimeout(() => {
+                    if (popup.parentNode) {
+                        popup.parentNode.removeChild(popup);
+                    }
+                }, 300);
+            }
+        }
+
+        // Add event listeners for reason popups
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.reason-text i.bi-info-circle')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const reasonText = e.target.closest('.reason-text');
+                const reason = reasonText.getAttribute('data-reason');
+                
+                if (reason) {
+                    createReasonPopup(reason, reasonText);
+                }
+            }
+        });
+
+        // Select Elements
+        const classSelector = document.getElementById('class-selector');
+        const formFilter = document.getElementById('form-filter');
+        const learningAreaFilter = document.getElementById('learning-area-filter');
+        const termsConsider = document.getElementById('terms-consider');
+        const searchInput = document.getElementById('search-input');
+        const statusFilter = document.getElementById('status-filter');
+        const loadClassDataBtn = document.getElementById('load-class-data');
+        const refreshClassDataBtn = document.getElementById('refresh-class-data');
+        const classDisplayArea = document.getElementById('class-display-area');
+        const noClassSelected = document.getElementById('no-class-selected');
+        const studentsTableBody = document.getElementById('students-table-body');
+        const selectedClassName = document.getElementById('selected-class-name');
+        const selectedClassDetails = document.getElementById('selected-class-details');
+        const studentCount = document.getElementById('student-count');
+        const selectAllStudents = document.getElementById('select-all-students');
+        
+        const promoteButton = document.querySelector('button[value="promote"]');
+        const archiveButton = document.querySelector('button[value="archive"]');
+        const demoteButton = document.querySelector('button[value="demote"]');
+
+        const targetAcademicYearSelect = document.getElementById('target-academic-year');
+        const targetClassSelect = document.getElementById('target-class');
+        const targetClassInfo = document.getElementById('target-class-info');
+        const classDetails = document.getElementById('class-details');
+
+        // Available classes data from Django context
+        const availableClasses = [
+            {% for class in available_classes %}
+            {
+                id: {{ class.id }},
+                name: "{{ class.name }}",
+                academic_year_id: {{ class.academic_year.id }},
+                academic_year_name: "{{ class.academic_year.name }}",
+                form_number: {{ class.form.form_number }},
+                form_name: "{{ class.form.name }}",
+                learning_area: "{{ class.learning_area.name }}",
+                current_students: {{ class.get_current_student_count }},
+                max_students: {{ class.maximum_students }},
+                is_full: {{ class.is_class_full|yesno:"true,false" }}
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+
+        // Current class data
+        let currentClassData = null;
+        let currentStudents = [];
+
+        // Function to load class data via AJAX
+        function loadClassData(classId) {
+            if (!classId) {
+                showSweetAlert('Error', 'Please select a class first.', 'error');
+                return;
+            }
+
+            // Show loading state
+            if (loadClassDataBtn) {
+                loadClassDataBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Loading...';
+                loadClassDataBtn.disabled = true;
+            }
+
+            // Prepare request data
+            const requestData = {
+                'class_id': classId,
+                'search': searchInput.value,
+                'form_filter': formFilter.value,
+                'learning_area_filter': learningAreaFilter.value,
+                'status_filter': statusFilter.value,
+                'terms_to_consider': termsConsider.value,
+                'csrfmiddlewaretoken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            };
+
+            // Make AJAX request
+            fetch('{% url "student_promotion" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: new URLSearchParams(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentClassData = data.class_data;
+                    currentStudents = data.students;
+                    displayClassData();
+                    
+                    // Show small loading notification in top right
+                    showSmallNotification(`Loaded ${data.students.length} students for ${data.class_data.name}`, 'success');
+                } else {
+                    showSmallNotification(data.message || 'Failed to load class data', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading class data:', error);
+                showSmallNotification('Failed to load class data. Please try again.', 'error');
+            })
+            .finally(() => {
+                // Reset button state
+                if (loadClassDataBtn) {
+                    loadClassDataBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Refresh Data';
+                    loadClassDataBtn.disabled = false;
+                }
+            });
+        }
+
+        // Function to display class data
+        function displayClassData() {
+            if (!currentClassData || !currentStudents) {
+                return;
+            }
+
+            // Update class information
+            selectedClassName.textContent = currentClassData.name;
+            selectedClassDetails.textContent = `(${currentClassData.form_name} - ${currentClassData.learning_area})`;
+            studentCount.textContent = `${currentStudents.length} students`;
+
+            // Build students table
+            let tableHTML = '';
+            if (currentStudents.length === 0) {
+                tableHTML = '<tr><td colspan="10" class="text-center text-muted">No students found for this class with current filters.</td></tr>';
+            } else {
+                currentStudents.forEach(student => {
+                    const statusBadge = getStatusBadge(student.status);
+                    const scoreBadge = getScoreBadge(student.avg_score);
+                    const demotionBadge = getDemotionBadge(student.demotion_eligible, student.demotion_reason, student.previous_class);
+                    
+                    tableHTML += `
+                        <tr>
+                            <td>
+                                <input type="checkbox" name="selected_students" value="${student.student_id}" 
+                                       class="form-check-input student-checkbox" data-status="${student.status}">
+                            </td>
+                            <td>${student.admission_number}</td>
+                            <td>${student.full_name}</td>
+                            <td>${student.current_class_name}</td>
+                            <td>${student.learning_area_name}</td>
+                            <td>${scoreBadge}</td>
+                            <td>${statusBadge}</td>
+                            <td>${demotionBadge}</td>
+                            <td>${formatReasonCell(student.reason || '')}</td>
+                            <td>
+                                <a href="/students/performance/${student.student_id}/" class="btn btn-sm btn-info">
+                                    <i class="bi bi-graph-up"></i> View Performance
+                                </a>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            studentsTableBody.innerHTML = tableHTML;
+            
+            // Show the class display area
+            classDisplayArea.style.display = 'block';
+            noClassSelected.style.display = 'none';
+            
+            // Update selection stats
+            updateSelectionStats();
+        }
+
+        // Helper functions for badges
+        function getStatusBadge(status) {
+            const badges = {
+                'promote': '<span class="badge bg-success">Ready to Promote</span>',
+                'graduate': '<span class="badge bg-primary">Ready to Graduate</span>',
+                'retained': '<span class="badge bg-danger">Retained</span>',
+                'incomplete': '<span class="badge bg-warning">Incomplete</span>'
+            };
+            return badges[status] || '<span class="badge bg-secondary">Unknown</span>';
+        }
+
+        function getScoreBadge(score) {
+            let badgeClass = 'bg-success';
+            if (score < 40) badgeClass = 'bg-danger';
+            else if (score < 60) badgeClass = 'bg-warning';
+            return `<span class="badge ${badgeClass}">${score}%</span>`;
+        }
+
+        function getDemotionBadge(eligible, reason, previousClass) {
+            if (eligible) {
+                let badge = '<span class="badge bg-info" title="' + reason + '"><i class="bi bi-arrow-down"></i> Can Demote</span>';
+                if (previousClass) {
+                    badge += '<small class="text-muted d-block">' + previousClass + '</small>';
+                }
+                return badge;
+            } else {
+                return '<span class="badge bg-secondary" title="' + reason + '"><i class="bi bi-ban"></i> No Previous Class</span>';
+            }
+        }
+
+        function formatReasonCell(reason) {
+            if (!reason) return '';
+            
+            const maxLength = 50; // Character limit for inline display
+            
+            if (reason.length <= maxLength) {
+                return reason;
+            }
+            
+            // Truncate and add popup trigger
+            const truncated = reason.substring(0, maxLength) + '...';
+            const uniqueId = 'reason-' + Math.random().toString(36).substr(2, 9);
+            
+            return `
+                <span class="reason-text" data-reason="${reason.replace(/"/g, '&quot;')}" data-id="${uniqueId}" style="position: relative;">
+                    ${truncated}
+                    <i class="bi bi-info-circle reason-info-icon" 
+                       style="
+                           color: #667eea; 
+                           margin-left: 6px; 
+                           cursor: pointer; 
+                           font-size: 14px;
+                           transition: all 0.2s ease;
+                           display: inline-block;
+                       " 
+                       title="Click to view full reason"
+                       onmouseover="this.style.color='#764ba2'; this.style.transform='scale(1.2)'"
+                       onmouseout="this.style.color='#667eea'; this.style.transform='scale(1)'">
+                    </i>
+                </span>
+            `;
+        }
+
+
+        // Handle target academic year selection
+        if (targetAcademicYearSelect) {
+            targetAcademicYearSelect.addEventListener('change', function () {
+                const selectedYearId = this.value;
+                
+                // Clear and disable target class select
+                targetClassSelect.innerHTML = '<option value="">Select Class</option>';
+                targetClassSelect.disabled = true;
+                targetClassInfo.style.display = 'none';
+                updatePromoteButtonState();
+                
+                if (selectedYearId) {
+                    // Filter classes for selected academic year
+                    const yearClasses = availableClasses.filter(cls => cls.academic_year_id == selectedYearId);
+                    
+                    if (yearClasses.length > 0) {
+                        // Populate target class select
+                        yearClasses.forEach(cls => {
+                            const option = document.createElement('option');
+                            option.value = cls.id;
+                            option.textContent = `${cls.name} (${cls.form_name} - ${cls.learning_area})`;
+                            if (cls.is_full) {
+                                option.textContent += ' [FULL]';
+                                option.style.color = 'red';
+                            }
+                            targetClassSelect.appendChild(option);
+                        });
+                        
+                        targetClassSelect.disabled = false;
+                    } else {
+                        targetClassSelect.innerHTML = '<option value="">No classes available for this academic year</option>';
+                    }
+                }
+            });
+        }
+
+        // Handle target class selection
+        if (targetClassSelect) {
+            targetClassSelect.addEventListener('change', function () {
+                const selectedClassId = this.value;
+                
+                if (selectedClassId) {
+                    const selectedClass = availableClasses.find(cls => cls.id == selectedClassId);
+                    if (selectedClass) {
+                        // Show class information
+                        classDetails.innerHTML = `
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Class:</strong> ${selectedClass.name}<br>
+                                    <strong>Form:</strong> ${selectedClass.form_name}<br>
+                                    <strong>Learning Area:</strong> ${selectedClass.learning_area}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Academic Year:</strong> ${selectedClass.academic_year_name}<br>
+                                    <strong>Current Students:</strong> ${selectedClass.current_students}/${selectedClass.max_students}<br>
+                                    <strong>Status:</strong> <span class="badge ${selectedClass.is_full ? 'bg-danger' : 'bg-success'}">${selectedClass.is_full ? 'Full' : 'Available'}</span>
+                                </div>
+                            </div>
+                        `;
+                        targetClassInfo.style.display = 'block';
+                        
+                        // Show notification for class selection
+                        if (selectedClass.is_full) {
+                            showWarningNotification(`Target class ${selectedClass.name} is at full capacity (${selectedClass.current_students}/${selectedClass.max_students} students).`);
+                        } else {
+                            showInfoNotification(`Target class ${selectedClass.name} selected. Capacity: ${selectedClass.current_students}/${selectedClass.max_students} students.`);
+                        }
+                    }
+                } else {
+                    targetClassInfo.style.display = 'none';
+                }
+                
+                updatePromoteButtonState();
+            });
+        }
+
+        // Function to update promote button state
+        function updatePromoteButtonState() {
+            const hasSelectedYear = targetAcademicYearSelect && targetAcademicYearSelect.value;
+            const hasSelectedClass = targetClassSelect && targetClassSelect.value;
+            const hasSelectedStudents = document.querySelectorAll('input[name="selected_students"]:checked').length > 0;
+            
+            if (promoteButton) {
+                promoteButton.disabled = !(hasSelectedYear && hasSelectedClass && hasSelectedStudents);
+            }
+        }
+
+
+        // Event listeners for new interface with auto-loading
+        if (classSelector) {
+            classSelector.addEventListener('change', function() {
+                const selectedClassId = this.value;
+                if (selectedClassId) {
+                    loadClassData(selectedClassId);
+                } else {
+                    // Hide class display area when no class is selected
+                    classDisplayArea.style.display = 'none';
+                    noClassSelected.style.display = 'block';
+                    currentClassData = null;
+                    currentStudents = [];
+                }
+            });
+        }
+
+        // Auto-load when filters change (with debouncing)
+        let filterTimeout;
+        function debouncedLoadClassData() {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(() => {
+                const selectedClassId = classSelector.value;
+                if (selectedClassId) {
+                    loadClassData(selectedClassId);
+                }
+            }, 500); // Wait 500ms after user stops typing/changing filters
+        }
+
+        // Add event listeners for all filter controls
+        if (formFilter) {
+            formFilter.addEventListener('change', debouncedLoadClassData);
+        }
+        
+        if (learningAreaFilter) {
+            learningAreaFilter.addEventListener('change', debouncedLoadClassData);
+        }
+        
+        if (statusFilter) {
+            statusFilter.addEventListener('change', debouncedLoadClassData);
+        }
+        
+        if (termsConsider) {
+            termsConsider.addEventListener('change', debouncedLoadClassData);
+        }
+        
+        if (searchInput) {
+            searchInput.addEventListener('input', debouncedLoadClassData);
+        }
+
+        // Keep the manual load button for explicit refresh
+        if (loadClassDataBtn) {
+            loadClassDataBtn.addEventListener('click', function() {
+                const selectedClassId = classSelector.value;
+                if (selectedClassId) {
+                    loadClassData(selectedClassId);
+                } else {
+                    showSweetAlert('Error', 'Please select a class first.', 'error');
+                }
+            });
+        }
+
+        if (refreshClassDataBtn) {
+            refreshClassDataBtn.addEventListener('click', function() {
+                const selectedClassId = classSelector.value;
+                if (selectedClassId) {
+                    loadClassData(selectedClassId);
+                }
+            });
+        }
+
+        // Statistics counters
+        let statCounters = {
+            total: 0,
+
+            selected: 0,
+            promote: 0,
+            graduate: 0,
+            retained: 0,
+            incomplete: 0
+        };
+
+        // Create status counter element
+        const createStatusCounter = () => {
+            const counterDiv = document.createElement('div');
+            counterDiv.className = 'status-counter mt-2 mb-3';
+            counterDiv.innerHTML = `
+                <div class="d-flex flex-wrap justify-content-between align-items-center p-2 bg-light rounded">
+                    <span class="badge bg-primary">Total: ${statCounters.total}</span>
+                    <span class="badge bg-info">Selected: <span id="selected-count">0</span>/${statCounters.total}</span>
+                    <span class="badge bg-success">To Promote: <span id="promote-count">0</span></span>
+                    <span class="badge bg-primary">To Graduate: <span id="graduate-count">0</span></span>
+                    <span class="badge bg-danger">Retained: <span id="retained-count">0</span></span>
+                    <span class="badge bg-warning">Incomplete: <span id="incomplete-count">0</span></span>
+                </div>
+                <div class="btn-group btn-group-sm mt-2">
+                    <button type="button" class="btn btn-outline-success select-by-status" data-status="promote">
+                        <i class="fas fa-check-circle"></i> Select To Promote
+                    </button>
+                    <button type="button" class="btn btn-outline-primary select-by-status" data-status="graduate">
+                        <i class="fas fa-graduation-cap"></i> Select To Graduate
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="clear-selection">
+                        <i class="fas fa-times-circle"></i> Clear Selection
+                    </button>
+                </div>
+            `;
+
+            // Insert after the promotion buttons
+            const buttonsContainer = document.querySelector('form button[value="archive"]').closest('div');
+            buttonsContainer.after(counterDiv);
+
+            // Add event listeners to the new buttons
+            document.querySelectorAll('.select-by-status').forEach(button => {
+                button.addEventListener('click', function () {
+                    const status = this.getAttribute('data-status');
+                    selectAllByStatus(status);
+                });
+            });
+
+            document.getElementById('clear-selection').addEventListener('click', function () {
+                studentCheckboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                updateSelectionStats();
+                updateSelectAllCheckboxes();
+            });
+        };
+
+        // Select all checkboxes with a specific status
+        const selectAllByStatus = (status) => {
+            studentCheckboxes.forEach(checkbox => {
+                if (checkbox.dataset.status === status) {
+                    checkbox.checked = true;
+                }
+            });
+            updateSelectionStats();
+        };
+
+        // Update the selection statistics with enhanced validation
+        const updateSelectionStats = () => {
+
+            // Get current student checkboxes
+            const studentCheckboxes = document.querySelectorAll('.student-checkbox');
+            
+            // Reset counters
+            statCounters.total = studentCheckboxes.length;
+
+            statCounters.selected = 0;
+            statCounters.promote = 0;
+            statCounters.graduate = 0;
+            statCounters.retained = 0;
+            statCounters.incomplete = 0;
+
+            // Count selected checkboxes by status and check eligibility
+            let demotionEligibleCount = 0;
+            let promotionEligibleCount = 0;
+            let graduationEligibleCount = 0;
+            
+            studentCheckboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    statCounters.selected++;
+
+                    const status = checkbox.dataset.status;
+
+                    if (statCounters.hasOwnProperty(status)) {
+                    statCounters[status]++;
+                    }
+
+                    
+                    // Check eligibility for different actions
+                    const row = checkbox.closest('tr');
+                    
+                    // Check demotion eligibility
+                    const demotionBadge = row.querySelector('.badge.bg-info');
+                    if (demotionBadge && demotionBadge.textContent.includes('Can Demote')) {
+                        demotionEligibleCount++;
+                    }
+                    
+                    // Check promotion eligibility (promote or incomplete status)
+                    if (status === 'promote' || status === 'incomplete') {
+                        promotionEligibleCount++;
+                    }
+                    
+                    // Check graduation eligibility (graduate status)
+                    if (status === 'graduate') {
+                        graduationEligibleCount++;
+                    }
+                }
+            });
+
+
+            // Update the counter display if elements exist
+            const selectedCountEl = document.getElementById('selected-count');
+            const promoteCountEl = document.getElementById('promote-count');
+            const graduateCountEl = document.getElementById('graduate-count');
+            const retainedCountEl = document.getElementById('retained-count');
+            const incompleteCountEl = document.getElementById('incomplete-count');
+
+            if (selectedCountEl) selectedCountEl.textContent = statCounters.selected;
+            if (promoteCountEl) promoteCountEl.textContent = statCounters.promote;
+            if (graduateCountEl) graduateCountEl.textContent = statCounters.graduate;
+            if (retainedCountEl) retainedCountEl.textContent = statCounters.retained;
+            if (incompleteCountEl) incompleteCountEl.textContent = statCounters.incomplete;
+
+
+            // Update button states with enhanced validation
+            if (statCounters.selected > 0) {
+                // Enable promote button only if target class is selected AND students are eligible
+
+                const targetClassSelected = targetClassSelect && targetClassSelect.value !== '';
+                if (promoteButton) {
+                promoteButton.disabled = !targetClassSelected || promotionEligibleCount === 0;
+                }
+                
+                // Enable archive button only if students are eligible for graduation
+                if (archiveButton) {
+                archiveButton.disabled = graduationEligibleCount === 0;
+                }
+                
+                // Enable demote button only if students are eligible for demotion
+                if (demoteButton) {
+                demoteButton.disabled = demotionEligibleCount === 0;
+                }
+
+                
+                // Update button tooltips with helpful messages
+                updateButtonTooltips(targetClassSelected, promotionEligibleCount, graduationEligibleCount, demotionEligibleCount);
+            } else {
+
+                if (promoteButton) promoteButton.disabled = true;
+                if (archiveButton) archiveButton.disabled = true;
+                if (demoteButton) demoteButton.disabled = true;
+
+                clearButtonTooltips();
+            }
+        };
+
+        // Update button tooltips with helpful messages
+        const updateButtonTooltips = (targetClassSelected, promotionEligibleCount, graduationEligibleCount, demotionEligibleCount) => {
+            // Update promote button tooltip
+            if (!targetClassSelected) {
+                promoteButton.title = 'Please select a target class first';
+            } else if (promotionEligibleCount === 0) {
+                promoteButton.title = 'No selected students are eligible for promotion (must have "promote" or "incomplete" status)';
+            } else {
+                promoteButton.title = `Promote ${promotionEligibleCount} eligible student(s) to selected class`;
+            }
+            
+            // Update archive button tooltip
+            if (graduationEligibleCount === 0) {
+                archiveButton.title = 'No selected students are eligible for graduation (must have "graduate" status)';
+            } else {
+                archiveButton.title = `Archive ${graduationEligibleCount} eligible student(s)`;
+            }
+            
+            // Update demote button tooltip
+            if (demotionEligibleCount === 0) {
+                demoteButton.title = 'No selected students are eligible for demotion (must have previous class assignments)';
+            } else {
+                demoteButton.title = `Demote ${demotionEligibleCount} eligible student(s) to previous class`;
+            }
+        };
+
+        // Clear button tooltips
+        const clearButtonTooltips = () => {
+            promoteButton.title = 'Select students and target class to enable';
+            archiveButton.title = 'Select students eligible for graduation to enable';
+            demoteButton.title = 'Select students eligible for demotion to enable';
+        };
+
+        // Create the confirmation modal
+        const createConfirmationModal = () => {
+            const modalDiv = document.createElement('div');
+            modalDiv.className = 'modal fade';
+            modalDiv.id = 'confirmActionModal';
+            modalDiv.setAttribute('tabindex', '-1');
+            modalDiv.setAttribute('aria-labelledby', 'confirmActionModalLabel');
+            modalDiv.setAttribute('aria-hidden', 'true');
+
+            modalDiv.innerHTML = `
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header" id="confirm-modal-header">
+                            <h5 class="modal-title" id="confirmActionModalLabel">Confirm Action</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="confirm-message"></div>
+                            <div class="alert alert-warning mt-3" id="warning-message"></div>
+                            <div class="mt-3">
+                                <h6>Selected Students Summary:</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Status</th>
+                                                <th>Count</th>
+                                                <th>Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="confirm-stats">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="confirm-action-btn">Confirm</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modalDiv);
+            return new bootstrap.Modal(document.getElementById('confirmActionModal'));
+        };
+
+        // Initialize UI elements
+        createStatusCounter();
+        const confirmModal = createConfirmationModal();
+
+        // Form tab activation handling for better UX
+        const formTabs = document.querySelectorAll('[id^="form"][id$="-tab"]');
+        formTabs.forEach(tab => {
+            tab.addEventListener('shown.bs.tab', function () {
+                // Save active tab to session storage
+                sessionStorage.setItem('activePromotionTab', this.id);
+            });
+        });
+
+        // Restore previously active tab
+        const activeTab = sessionStorage.getItem('activePromotionTab');
+        if (activeTab) {
+            const tabToActivate = document.getElementById(activeTab);
+            if (tabToActivate) {
+                const tab = new bootstrap.Tab(tabToActivate);
+                tab.show();
+            }
+        }
+
+
+        // Add select all functionality for the new interface
+        if (selectAllStudents) {
+            selectAllStudents.addEventListener('change', function () {
+                const checkboxes = document.querySelectorAll('.student-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+                updateSelectionStats();
+            });
+        }
+
+        // Add individual checkbox change event (using event delegation)
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('student-checkbox')) {
+                updateSelectionStats();
+                updateSelectAllCheckbox();
+
+                
+                // Show subtle notification for selection changes
+                const selectedCount = document.querySelectorAll('input[name="selected_students"]:checked').length;
+                if (selectedCount > 0) {
+                    // Show a subtle toast notification
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        timerProgressBar: true,
+                        didOpen: (toast) => {
+                            toast.addEventListener('mouseenter', Swal.stopTimer)
+                            toast.addEventListener('mouseleave', Swal.resumeTimer)
+                        }
+                    });
+                    
+                    Toast.fire({
+                        icon: 'info',
+                        title: `${selectedCount} student(s) selected`
+                    });
+                }
+
+            }
+        });
+
+        // Update select-all checkbox based on individual checkbox states
+        const updateSelectAllCheckbox = () => {
+            if (!selectAllStudents) return;
+            
+            const studentCheckboxes = document.querySelectorAll('.student-checkbox');
+            const checkedCheckboxes = document.querySelectorAll('.student-checkbox:checked');
+            
+            if (studentCheckboxes.length === 0) {
+                selectAllStudents.checked = false;
+                selectAllStudents.indeterminate = false;
+            } else if (checkedCheckboxes.length === studentCheckboxes.length) {
+                selectAllStudents.checked = true;
+                selectAllStudents.indeterminate = false;
+                } else if (checkedCheckboxes.length > 0) {
+                selectAllStudents.checked = false;
+                selectAllStudents.indeterminate = true;
+                } else {
+                selectAllStudents.checked = false;
+                selectAllStudents.indeterminate = false;
+                }
+
+        };
+
+        // Add loading indicator during form submission
+        const createLoadingOverlay = () => {
+            const overlay = document.createElement('div');
+            overlay.id = 'loading-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+            `;
+
+            overlay.innerHTML = `
+                <div class="card p-4 text-center">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h5 id="loading-message">Processing students...</h5>
+                </div>
+            `;
+
+            document.body.appendChild(overlay);
+            return overlay;
+        };
+
+        // Add event listener for promote button with enhanced validation
+        promoteButton.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            const selectedStudents = document.querySelectorAll('input[name="selected_students"]:checked');
+            if (selectedStudents.length === 0) {
+                showSweetAlert('Error', 'Please select at least one student to promote.', 'error');
+                return;
+            }
+
+            // Enhanced validation: Check target class selection
+            if (!targetClassSelect.value) {
+                showSweetAlert('Error', 'Please select a target class before promoting students.', 'error');
+                return;
+            }
+
+            // Enhanced validation: Check if any selected students are eligible for promotion
+            let promotionEligibleCount = 0;
+            let ineligibleStudents = [];
+            
+            selectedStudents.forEach(checkbox => {
+                const status = checkbox.dataset.status;
+                if (status === 'promote' || status === 'incomplete') {
+                    promotionEligibleCount++;
+                } else {
+                    const row = checkbox.closest('tr');
+                    const studentName = row.cells[2].textContent.trim(); // Student name column
+                    ineligibleStudents.push(studentName);
+                }
+            });
+
+            // If no students are eligible for promotion, show error
+            if (promotionEligibleCount === 0) {
+                showSweetAlert('Error', 'None of the selected students are eligible for promotion. Only students with "promote" or "incomplete" status can be promoted.', 'error');
+                return;
+            }
+
+            // If some students are not eligible, show warning
+            if (ineligibleStudents.length > 0) {
+                const warningMessage = `
+                    <div class="alert alert-warning">
+                        <strong>Warning:</strong> ${ineligibleStudents.length} student(s) are not eligible for promotion:
+                        <ul class="mb-0 mt-2">
+                            ${ineligibleStudents.map(name => `<li>${name}</li>`).join('')}
+                        </ul>
+                        <p class="mb-0 mt-2">Only students with "promote" or "incomplete" status will be processed.</p>
+                    </div>
+                `;
+                showSweetAlert('Warning', warningMessage, 'warning');
+                return;
+            }
+
+            // Get selected target academic year and class
+            const targetYear = targetAcademicYearSelect.options[targetAcademicYearSelect.selectedIndex].text;
+            const targetClass = targetClassSelect.options[targetClassSelect.selectedIndex].text;
+            const selectedClass = availableClasses.find(cls => cls.id == targetClassSelect.value);
+
+            // Set up confirmation modal
+            document.getElementById('confirmActionModalLabel').textContent = 'Confirm Student Promotion';
+            document.getElementById('confirm-modal-header').className = 'modal-header bg-primary text-white';
+            document.getElementById('confirm-message').innerHTML = `
+                <p>You are about to promote <strong>${statCounters.selected}</strong> student(s) to a specific target class.</p>
+                <p><strong>Target Academic Year:</strong> ${targetYear}</p>
+                <p><strong>Target Class:</strong> ${targetClass}</p>
+                ${selectedClass ? `
+                <p><strong>Class Details:</strong></p>
+                <ul>
+                    <li>Form: ${selectedClass.form_name}</li>
+                    <li>Learning Area: ${selectedClass.learning_area}</li>
+                    <li>Current Students: ${selectedClass.current_students}/${selectedClass.max_students}</li>
+                    <li>Status: ${selectedClass.is_full ? 'FULL' : 'Available'}</li>
+                </ul>
+                ` : ''}
+                <p><strong>Note:</strong> Students will be moved to the selected target class.</p>
+            `;
+
+            // Show warnings if necessary
+            const warningElement = document.getElementById('warning-message');
+            if (statCounters.retained > 0 || statCounters.incomplete > 0 || statCounters.graduate > 0) {
+                warningElement.innerHTML = `
+                    <strong>Warning:</strong> You have selected students who may not be eligible for promotion:
+                    <ul class="mb-0 mt-2">
+                        ${statCounters.graduate > 0 ? `<li>${statCounters.graduate} students marked for graduation</li>` : ''}
+                        ${statCounters.retained > 0 ? `<li>${statCounters.retained} students marked as retained</li>` : ''}
+                        ${statCounters.incomplete > 0 ? `<li>${statCounters.incomplete} students with incomplete assessments</li>` : ''}
+                    </ul>
+                `;
+                warningElement.style.display = 'block';
+            } else {
+                warningElement.style.display = 'none';
+            }
+
+            // Build stats table
+            document.getElementById('confirm-stats').innerHTML = `
+                <tr>
+                    <td><span class="badge bg-success">Ready to Promote</span></td>
+                    <td>${statCounters.promote}</td>
+                    <td>Students will move to the next form</td>
+                </tr>
+                ${statCounters.graduate > 0 ? `
+                <tr>
+                    <td><span class="badge bg-primary">Graduation Ready</span></td>
+                    <td>${statCounters.graduate}</td>
+                    <td>Should be archived instead of promoted</td>
+                </tr>` : ''}
+                ${statCounters.retained > 0 ? `
+                <tr>
+                    <td><span class="badge bg-danger">Retained</span></td>
+                    <td>${statCounters.retained}</td>
+                    <td>Failed subjects and should repeat</td>
+                </tr>` : ''}
+                ${statCounters.incomplete > 0 ? `
+                <tr>
+                    <td><span class="badge bg-warning">Incomplete</span></td>
+                    <td>${statCounters.incomplete}</td>
+                    <td>Missing assessments in some subjects</td>
+                </tr>` : ''}
+            `;
+
+            const confirmButton = document.getElementById('confirm-action-btn');
+            confirmButton.className = 'btn btn-primary';
+            confirmButton.textContent = 'Confirm Promotion';
+
+            confirmButton.onclick = function () {
+                confirmModal.hide();
+                const loadingOverlay = createLoadingOverlay();
+                document.getElementById('loading-message').textContent = 'Processing student promotions...';
+
+                setTimeout(() => {
+                    // Submit the form with action=promote
+                    const form = document.getElementById('promotion-form');
+                    
+                    // Add target academic year and class inputs
+                    const targetYearInput = document.createElement('input');
+                    targetYearInput.type = 'hidden';
+                    targetYearInput.name = 'target_academic_year_id';
+                    targetYearInput.value = targetAcademicYearSelect.value;
+                    form.appendChild(targetYearInput);
+                    
+                    const targetClassInput = document.createElement('input');
+                    targetClassInput.type = 'hidden';
+                    targetClassInput.name = 'target_class_id';
+                    targetClassInput.value = targetClassSelect.value;
+                    form.appendChild(targetClassInput);
+                    
+                    const actionInput = document.createElement('input');
+                    actionInput.type = 'hidden';
+                    actionInput.name = 'action';
+                    actionInput.value = 'promote';
+                    form.appendChild(actionInput);
+                    
+                    form.submit();
+                }, 500);
+            };
+
+            confirmModal.show();
+        });
+
+        // Add event listener for archive button with enhanced validation
+        archiveButton.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            const selectedStudents = document.querySelectorAll('input[name="selected_students"]:checked');
+            if (selectedStudents.length === 0) {
+                showSweetAlert('Error', 'Please select at least one student to archive.', 'error');
+                return;
+            }
+
+            // Enhanced validation: Check if any selected students are eligible for graduation
+            let graduationEligibleCount = 0;
+            let ineligibleStudents = [];
+            
+            selectedStudents.forEach(checkbox => {
+                const status = checkbox.dataset.status;
+                if (status === 'graduate') {
+                    graduationEligibleCount++;
+                } else {
+                    const row = checkbox.closest('tr');
+                    const studentName = row.cells[2].textContent.trim(); // Student name column
+                    ineligibleStudents.push(studentName);
+                }
+            });
+
+            // If no students are eligible for graduation, show error
+            if (graduationEligibleCount === 0) {
+                showSweetAlert('Error', 'None of the selected students are eligible for graduation. Only students with "graduate" status can be archived.', 'error');
+                return;
+            }
+
+            // If some students are not eligible, show warning
+            if (ineligibleStudents.length > 0) {
+                const warningMessage = `
+                    <div class="alert alert-warning">
+                        <strong>Warning:</strong> ${ineligibleStudents.length} student(s) are not eligible for graduation:
+                        <ul class="mb-0 mt-2">
+                            ${ineligibleStudents.map(name => `<li>${name}</li>`).join('')}
+                        </ul>
+                        <p class="mb-0 mt-2">Only students with "graduate" status will be processed.</p>
+                    </div>
+                `;
+                showSweetAlert('Warning', warningMessage, 'warning');
+                return;
+            }
+
+            // Set up confirmation modal
+            document.getElementById('confirmActionModalLabel').textContent = 'Confirm Student Graduation & Archiving';
+            document.getElementById('confirm-modal-header').className = 'modal-header bg-success text-white';
+            document.getElementById('confirm-message').innerHTML = `
+                <p>You are about to graduate and archive <strong>${statCounters.selected}</strong> student(s). 
+                This action will mark them as completed and remove them from active classes.</p>
+            `;
+
+            // Show warnings if necessary
+            const warningElement = document.getElementById('warning-message');
+            if (statCounters.promote > 0 || statCounters.incomplete > 0 || statCounters.retained > 0) {
+                warningElement.innerHTML = `
+                    <strong>Warning:</strong> You have selected students who may not be eligible for graduation:
+                    <ul class="mb-0 mt-2">
+                        ${statCounters.promote > 0 ? `<li>${statCounters.promote} students marked for promotion</li>` : ''}
+                        ${statCounters.retained > 0 ? `<li>${statCounters.retained} students marked as retained</li>` : ''}
+                        ${statCounters.incomplete > 0 ? `<li>${statCounters.incomplete} students with incomplete assessments</li>` : ''}
+                    </ul>
+                `;
+                warningElement.style.display = 'block';
+            } else {
+                warningElement.style.display = 'none';
+            }
+
+            // Build stats table
+            document.getElementById('confirm-stats').innerHTML = `
+                <tr>
+                    <td><span class="badge bg-primary">Graduation Ready</span></td>
+                    <td>${statCounters.graduate}</td>
+                    <td>Students will be archived as graduates</td>
+                </tr>
+                ${statCounters.promote > 0 ? `
+                <tr>
+                    <td><span class="badge bg-success">Ready to Promote</span></td>
+                    <td>${statCounters.promote}</td>
+                    <td>Should be promoted instead of archived</td>
+                </tr>` : ''}
+                ${statCounters.retained > 0 ? `
+                <tr>
+                    <td><span class="badge bg-danger">Retained</span></td>
+                    <td>${statCounters.retained}</td>
+                    <td>Failed subjects and should repeat</td>
+                </tr>` : ''}
+                ${statCounters.incomplete > 0 ? `
+                <tr>
+                    <td><span class="badge bg-warning">Incomplete</span></td>
+                    <td>${statCounters.incomplete}</td>
+                    <td>Missing assessments in some subjects</td>
+                </tr>` : ''}
+            `;
+
+            const confirmButton = document.getElementById('confirm-action-btn');
+            confirmButton.className = 'btn btn-success';
+            confirmButton.textContent = 'Confirm Graduation';
+
+            confirmButton.onclick = function () {
+                confirmModal.hide();
+                const loadingOverlay = createLoadingOverlay();
+                document.getElementById('loading-message').textContent = 'Processing student graduations...';
+
+                setTimeout(() => {
+                    // Submit the form with action=archive
+                    const form = document.getElementById('promotion-form');
+                    const actionInput = document.createElement('input');
+                    actionInput.type = 'hidden';
+                    actionInput.name = 'action';
+                    actionInput.value = 'archive';
+                    form.appendChild(actionInput);
+                    form.submit();
+                }, 500);
+            };
+
+            confirmModal.show();
+        });
+
+        // Add event listener for demotion button
+        if (demoteButton) {
+            demoteButton.addEventListener('click', function (e) {
+                e.preventDefault();
+
+                const selectedStudents = document.querySelectorAll('input[name="selected_students"]:checked');
+                if (selectedStudents.length === 0) {
+                    showSweetAlert('Error', 'Please select at least one student to demote.', 'error');
+                    return;
+                }
+
+                // Check demotion eligibility for selected students
+                let demotionEligibleCount = 0;
+                let ineligibleStudents = [];
+                
+                selectedStudents.forEach(checkbox => {
+                    const row = checkbox.closest('tr');
+                    const demotionBadge = row.querySelector('.badge.bg-info');
+                    if (demotionBadge && demotionBadge.textContent.includes('Can Demote')) {
+                        demotionEligibleCount++;
+                    } else {
+                        const studentName = row.cells[2].textContent.trim(); // Student name column
+                        ineligibleStudents.push(studentName);
+                    }
+                });
+
+                // If no students are eligible for demotion, show error
+                if (demotionEligibleCount === 0) {
+                    showSweetAlert('Error', 'None of the selected students can be demoted. Students must have previous class assignments to be demoted.', 'error');
+                    return;
+                }
+
+                // If some students are not eligible, show warning
+                let warningMessage = '';
+                if (ineligibleStudents.length > 0) {
+                    warningMessage = `
+                        <div class="alert alert-warning">
+                            <strong>Warning:</strong> ${ineligibleStudents.length} student(s) cannot be demoted:
+                            <ul class="mb-0 mt-2">
+                                ${ineligibleStudents.map(name => `<li>${name}</li>`).join('')}
+                            </ul>
+                            <p class="mb-0 mt-2">Only students with previous class assignments can be demoted.</p>
+                        </div>
+                    `;
+                }
+
+                // Set up confirmation modal
+                document.getElementById('confirmActionModalLabel').textContent = 'Confirm Student Demotion';
+                document.getElementById('confirm-modal-header').className = 'modal-header bg-warning text-white';
+                document.getElementById('confirm-message').innerHTML = `
+                    <p>You are about to demote <strong>${demotionEligibleCount}</strong> student(s) back to their previous classes.</p>
+                    <p class="text-warning"><i class="fas fa-exclamation-triangle"></i> This action will move students back to their most recent previous class assignment.</p>
+                    ${warningMessage}
+                `;
+
+                // Show warnings if necessary
+                const warningElement = document.getElementById('warning-message');
+                if (statCounters.graduate > 0) {
+                    warningElement.innerHTML = `
+                        <strong>Warning:</strong> You have selected students who are marked for graduation:
+                        <ul class="mb-0 mt-2">
+                            <li>${statCounters.graduate} students marked for graduation</li>
+                        </ul>
+                        <p class="mb-0 mt-2">These students should be graduated, not demoted.</p>
+                    `;
+                    warningElement.style.display = 'block';
+                } else {
+                    warningElement.style.display = 'none';
+                }
+
+                // Build stats table
+                document.getElementById('confirm-stats').innerHTML = `
+                    <table class="table table-sm">
+                        <tr><td>Total Selected:</td><td><strong>${statCounters.selected}</strong></td></tr>
+                        <tr><td>Ready to Promote:</td><td>${statCounters.promote}</td></tr>
+                        <tr><td>Ready to Graduate:</td><td>${statCounters.graduate}</td></tr>
+                        <tr><td>Retained:</td><td>${statCounters.retained}</td></tr>
+                        <tr><td>Incomplete:</td><td>${statCounters.incomplete}</td></tr>
+                    </table>
+                `;
+
+                // Update confirm button
+                const confirmButton = document.getElementById('confirm-action-btn');
+                confirmButton.className = 'btn btn-warning';
+                confirmButton.textContent = 'Confirm Demotion';
+
+                confirmButton.onclick = function () {
+                    confirmModal.hide();
+                    const loadingOverlay = createLoadingOverlay();
+                    document.getElementById('loading-message').textContent = 'Processing student demotions...';
+
+                    setTimeout(() => {
+                        // Submit the form with action=demote
+                        const form = document.getElementById('promotion-form');
+                        const actionInput = document.createElement('input');
+                        actionInput.type = 'hidden';
+                        actionInput.name = 'action';
+                        actionInput.value = 'demote';
+                        form.appendChild(actionInput);
+                        form.submit();
+                    }, 500);
+                };
+
+                confirmModal.show();
+            });
+        }
+
+        // Enable search auto-submit after typing stops
+        if (searchInput) {
+            let searchTimeout;
+            searchInput.addEventListener('input', function () {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    this.closest('form').submit();
+                }, 500);
+            });
+        }
+
+        // Initialize selection stats on page load
+        updateSelectionStats();
+
+        // Initialize promote button state
+        updatePromoteButtonState();
+        
+
+        // Initialize select-all checkbox
+        updateSelectAllCheckbox();
+
+        // Auto-load first class on page load
+        function autoLoadFirstClass() {
+            if (classSelector && classSelector.options.length > 1) {
+                // Select the first available class (skip the default "Choose a class..." option)
+                const firstClassOption = classSelector.options[1];
+                if (firstClassOption) {
+                    classSelector.value = firstClassOption.value;
+                    
+                    // Show a subtle notification that we're auto-loading
+                    showSmallNotification(`Auto-loading ${firstClassOption.textContent}`, 'info');
+                    
+                    loadClassData(firstClassOption.value);
+                }
+            }
+        }
+
+        // Show no class selected message initially
+        if (noClassSelected) {
+            noClassSelected.style.display = 'block';
+        }
+        if (classDisplayArea) {
+            classDisplayArea.style.display = 'none';
+        }
+
+        // Auto-load first class after a short delay to ensure DOM is ready
+        setTimeout(autoLoadFirstClass, 100);
+
+
+        // Add event listener for target class selection to update button states
+        if (targetClassSelect) {
+            targetClassSelect.addEventListener('change', function() {
+                updateSelectionStats(); // This will update button states based on new target class selection
+            });
+        }
+
+        // Add event listener for target academic year selection
+        if (targetAcademicYearSelect) {
+            targetAcademicYearSelect.addEventListener('change', function() {
+                updateSelectionStats(); // This will update button states
+            });
+        }
+
+        // Add success notification for form submissions
+        function showSuccessNotification(message) {
+            showSweetAlert('Success!', message, 'success', {
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: false
+            });
+        }
+
+        // Add warning notification
+        function showWarningNotification(message) {
+            showSweetAlert('Warning', message, 'warning', {
+                timer: 4000,
+                timerProgressBar: true,
+                showConfirmButton: true
+            });
+        }
+
+        // Add info notification
+        function showInfoNotification(message) {
+            showSweetAlert('Information', message, 'info', {
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: false
+            });
+        }
+    });
+</script>
+{% endblock %}
