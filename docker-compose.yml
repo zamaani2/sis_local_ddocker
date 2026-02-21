@@ -25,6 +25,9 @@ services:
 
   # Django Application
   django:
+    # Default to Docker Hub image; local build remains available unless --no-build is used.
+    image: ${DJANGO_IMAGE:-cise1/sis-django:latest}
+    pull_policy: ${DJANGO_PULL_POLICY:-missing}
     build: .
     container_name: schoolapp_django
 
