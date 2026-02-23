@@ -30,7 +30,8 @@ services:
     pull_policy: ${DJANGO_PULL_POLICY:-missing}
     build: .
     container_name: schoolapp_django
-    # Podman fallback: set DJANGO_CONTAINER_USER=0:0 when media volume permission issues occur.
+    # Podman fix: Use root (0:0) for Podman to avoid volume permission issues
+    # For Docker Desktop, use 'django' user. Set DJANGO_CONTAINER_USER=0:0 for Podman.
     user: ${DJANGO_CONTAINER_USER:-django}
 
     restart: always

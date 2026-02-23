@@ -84,6 +84,19 @@ fi
 export DJANGO_SETTINGS_MODULE=SchoolApp.settings
 echo "DJANGO_SETTINGS_MODULE set to: $DJANGO_SETTINGS_MODULE"
 
+# Fix Podman volume permissions (if running as root or with elevated permissions)
+# This ensures media directories are writable
+if [ -d "/app/media" ]; then
+    echo "Fixing media directory permissions for Podman..."
+    # Try to fix permissions if we have the capability
+    # This will fail silently if we don't have permissions, which is fine
+    chmod -R u+w /app/media 2>/dev/null || true
+    # Ensure subdirectories exist with proper permissions
+    mkdir -p /app/media/school_image /app/media/signatures /app/media/profile_pictures/teachers /app/media/profile_pictures/students 2>/dev/null || true
+    chmod -R u+w /app/media/school_image /app/media/signatures /app/media/profile_pictures 2>/dev/null || true
+    echo "Media directory permissions checked"
+fi
+
 # Collect static files
 echo "Collecting static files..."
 echo "Checking if staticfiles directory exists..."
