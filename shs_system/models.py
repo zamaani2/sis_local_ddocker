@@ -4,6 +4,18 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 
+
+def validate_image_size_150kb(image):
+    """
+    Ensure uploaded image is not larger than 150KB.
+    This is enforced on both student and teacher profile pictures.
+    """
+    max_kb = 150
+    if image and hasattr(image, "size") and image.size > max_kb * 1024:
+        raise ValidationError(
+            f"Image file too large. Maximum allowed size is {max_kb}KB."
+        )
+
 from django.utils import timezone
 
 import random
@@ -610,7 +622,10 @@ class Teacher(models.Model):
     contact_number = models.CharField(max_length=15)
     email = models.EmailField(max_length=100, blank=True, null=True)
     profile_picture = models.ImageField(
-        upload_to="profile_pictures/teachers/", null=True, blank=True
+        upload_to="profile_pictures/teachers/",
+        null=True,
+        blank=True,
+        validators=[validate_image_size_150kb],
     )
     skip_user_creation = models.BooleanField(
         default=False, editable=False
@@ -722,7 +737,10 @@ class Student(models.Model):
     parent_contact = models.CharField(max_length=15)
     admission_date = models.DateField()
     profile_picture = models.ImageField(
-        upload_to="profile_pictures/students/", null=True, blank=True
+        upload_to="profile_pictures/students/",
+        null=True,
+        blank=True,
+        validators=[validate_image_size_150kb],
     )
     form = models.ForeignKey(Form, on_delete=models.SET_NULL, null=True, blank=True)
     learning_area = models.ForeignKey(

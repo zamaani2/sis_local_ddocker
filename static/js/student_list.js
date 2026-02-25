@@ -32,12 +32,12 @@ $(document).ready(function () {
         $('#id_profile_picture').on('change', function (e) {
             const file = e.target.files[0];
             if (file) {
-                // Check file size (300KB limit)
-                if (file.size > 300 * 1024) {
+                // Check file size (150KB limit)
+                if (file.size > 150 * 1024) {
                     Swal.fire({
                         icon: 'error',
                         title: 'File Too Large',
-                        text: 'Please select an image smaller than 300KB.',
+                        text: 'Please select an image smaller than 150KB.',
                         confirmButtonColor: '#3085d6'
                     });
                     // Clear the file input
@@ -73,12 +73,12 @@ $(document).ready(function () {
         $(document).on('change', 'input[id="id_profile_picture"]', function (e) {
             const file = e.target.files[0];
             if (file) {
-                // Check file size (300KB limit)
-                if (file.size > 300 * 1024) {
+                // Check file size (150KB limit)
+                if (file.size > 150 * 1024) {
                     Swal.fire({
                         icon: 'error',
                         title: 'File Too Large',
-                        text: 'Please select an image smaller than 300KB.',
+                        text: 'Please select an image smaller than 150KB.',
                         confirmButtonColor: '#3085d6'
                     });
                     // Clear the file input
@@ -660,17 +660,17 @@ $(document).ready(function () {
         $('#addStudentForm').submit(function (e) {
             e.preventDefault();
 
-            // Validate profile picture file size before submission
+            // Validate profile picture file size before submission (150KB limit)
             const profilePictureInput = $('#id_profile_picture')[0];
             if (profilePictureInput && profilePictureInput.files.length > 0) {
                 const file = profilePictureInput.files[0];
 
-                // Check file size (300KB limit)
-                if (file.size > 300 * 1024) {
+                // Check file size (150KB limit)
+                if (file.size > 150 * 1024) {
                     Swal.fire({
                         icon: 'error',
                         title: 'File Too Large',
-                        text: 'Please select an image smaller than 300KB.',
+                        text: 'Please select an image smaller than 150KB.',
                         confirmButtonColor: '#3085d6'
                     });
                     return false;
@@ -733,10 +733,10 @@ $(document).ready(function () {
                     return;
                 }
 
-                // Validate file sizes (max 300KB each)
-                const oversizedFiles = selectedFiles.filter(file => file.size > 300 * 1024);
+                // Validate file sizes (max 150KB each)
+                const oversizedFiles = selectedFiles.filter(file => file.size > 150 * 1024);
                 if (oversizedFiles.length > 0) {
-                    Swal.fire('File Too Large', `Some files are larger than 300KB. Please reduce their size and try again.`, 'error');
+                    Swal.fire('File Too Large', `Some files are larger than 150KB. Please reduce their size and try again.`, 'error');
                     return;
                 }
 
@@ -863,11 +863,11 @@ $(document).ready(function () {
                 const file = e.target.files[0];
                 if (!file) return;
 
-                // Validate file size (max 300KB)
-                if (file.size > 300 * 1024) {
+                // Validate file size (max 150KB)
+                if (file.size > 150 * 1024) {
                     Swal.fire({
                         title: 'File Too Large',
-                        text: 'Please select an image smaller than 300KB.',
+                        text: 'Please select an image smaller than 150KB.',
                         icon: 'error'
                     });
                     fileInput.remove();
@@ -914,12 +914,12 @@ $(document).ready(function () {
             if (profilePictureInput && profilePictureInput.files.length > 0) {
                 const file = profilePictureInput.files[0];
 
-                // Check file size (300KB limit)
-                if (file.size > 300 * 1024) {
+                // Check file size (150KB limit)
+                if (file.size > 150 * 1024) {
                     Swal.fire({
                         icon: 'error',
                         title: 'File Too Large',
-                        text: 'Please select an image smaller than 300KB.',
+                        text: 'Please select an image smaller than 150KB.',
                         confirmButtonColor: '#3085d6'
                     });
                     return false;

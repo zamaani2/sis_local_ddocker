@@ -127,7 +127,7 @@ extra_css %} {% endblock %} {% block breadcrumb %}
               />
               <div class="form-text">
 
-                Upload a new profile picture (JPG, PNG, GIF - Max 300KB).
+                Upload a new profile picture (JPG, PNG, GIF - Max 150KB).
 
               </div>
             </div>
@@ -215,16 +215,16 @@ extra_css %} {% endblock %} {% block breadcrumb %}
 <script>
   $(document).ready(function () {
 
-    // File size validation for profile picture
+    // File size validation for profile picture (150KB limit)
     $("#profile_picture").on("change", function (e) {
       const file = e.target.files[0];
       if (file) {
-        // Check file size (300KB limit)
-        if (file.size > 300 * 1024) {
+        // Check file size (150KB limit)
+        if (file.size > 150 * 1024) {
           Swal.fire({
             icon: "error",
             title: "File Too Large",
-            text: "Please select an image smaller than 300KB.",
+            text: "Please select an image smaller than 150KB.",
             confirmButtonColor: "#3085d6",
           });
           // Clear the file input

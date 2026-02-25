@@ -96,3 +96,5 @@ DJANGO_CONTAINER_USER=0:0
 
 **Note**: Running as root in containers is generally acceptable for development, but for production, consider using proper volume permission management or rootless Podman with proper configuration.
 
+
+
